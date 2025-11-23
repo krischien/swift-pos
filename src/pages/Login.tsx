@@ -6,13 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { UserRole } from "@/types/pos";
 import { Store } from "lucide-react";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [selectedRole, setSelectedRole] = useState<UserRole>("cashier");
   const { login } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -20,10 +18,10 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await login(email, password, selectedRole);
+      const user = await login(email, password);
       toast({
         title: "Login successful",
-        description: `Welcome back, ${selectedRole}!`,
+        description: `Welcome back, ${user.role}!`,
       });
       navigate("/pos");
     } catch (error) {
@@ -70,27 +68,6 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Select Role</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  type="button"
-                  variant={selectedRole === "cashier" ? "default" : "outline"}
-                  onClick={() => setSelectedRole("cashier")}
-                  className="h-12"
-                >
-                  Cashier
-                </Button>
-                <Button
-                  type="button"
-                  variant={selectedRole === "admin" ? "default" : "outline"}
-                  onClick={() => setSelectedRole("admin")}
-                  className="h-12"
-                >
-                  Admin
-                </Button>
-              </div>
             </div>
             <Button type="submit" className="w-full h-12 text-base font-semibold">
               Sign In

@@ -10,17 +10,34 @@ interface CartProps {
   onUpdateQuantity: (itemId: string, quantity: number) => void;
   onRemoveItem: (itemId: string) => void;
   onCheckout: () => void;
+  discountsEnabled?: boolean;
+  discountPercent?: number;
+  onDiscountChange?: (percent: number) => void;
+  taxRatePercent?: number;
 }
 
-export const Cart = ({ items, onUpdateQuantity, onRemoveItem, onCheckout }: CartProps) => {
+export const Cart = ({
+  items,
+  onUpdateQuantity,
+  onRemoveItem,
+  onCheckout,
+  discountsEnabled,
+  discountPercent = 0,
+  onDiscountChange,
+  taxRatePercent = 12,
+}: CartProps) => {
   const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
-  const tax = subtotal * 0.1; // 10% tax
-  const total = subtotal + tax;
+  const effectiveDiscount = discountsEnabled ? discountPercent : 0;
+  const discountAmount = subtotal * (effectiveDiscount / 100);
+  const netSubtotal = Math.max(0, subtotal - discountAmount);
+  const taxRate = taxRatePercent / 100;
+  const tax = netSubtotal * taxRate;
+  const total = netSubtotal + tax;
 
   return (
-    <div className="flex flex-col h-full bg-pos-cart border-l">
+    <div className="flex flex-col bg-pos-cart md:h-full md:border-l rounded-xl md:rounded-none shadow-sm">
       <div className="p-4 border-b bg-card">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 pr-10">
           <ShoppingCart className="w-5 h-5 text-primary" />
           <h2 className="font-bold text-lg">Cart</h2>
           <span className="ml-auto bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
@@ -102,8 +119,40 @@ export const Cart = ({ items, onUpdateQuantity, onRemoveItem, onCheckout }: Cart
             <span className="text-muted-foreground">Subtotal</span>
             <span className="font-semibold">${subtotal.toFixed(2)}</span>
           </div>
+          {discountsEnabled && (
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground flex-1">Discount (%)</span>
+              <div className="flex items-center gap-1">
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={discountPercent}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    if (Number.isNaN(val)) {
+                      onDiscountChange?.(0);
+                    } else {
+                      const clamped = Math.max(0, Math.min(100, val));
+                      onDiscountChange?.(clamped);
+                    }
+                  }}
+                  className="w-16 h-8 text-right text-xs"
+                />
+                <span className="text-xs text-muted-foreground mr-1">%</span>
+              </div>
+            </div>
+          )}
+          {discountsEnabled && discountAmount > 0 && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Discount</span>
+              <span className="font-semibold text-destructive">
+                -${discountAmount.toFixed(2)}
+              </span>
+            </div>
+          )}
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Tax (10%)</span>
+            <span className="text-muted-foreground">Tax ({taxRatePercent}%)</span>
             <span className="font-semibold">${tax.toFixed(2)}</span>
           </div>
           <Separator />

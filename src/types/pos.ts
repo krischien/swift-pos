@@ -24,6 +24,7 @@ export interface Product {
   id: string;
   name: string;
   categoryId: string;
+  itemCode: string;
   hasVariants: boolean;
   price?: number;
   stock?: number;

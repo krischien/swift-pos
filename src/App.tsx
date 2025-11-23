@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SettingsProvider } from "@/contexts/SettingsContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import AppLayout from "@/components/layout/AppLayout";
 import Login from "./pages/Login";
@@ -18,50 +19,52 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={<Navigate to="/pos" replace />} />
-            <Route
-              element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/pos" element={<POS />} />
+      <SettingsProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/" element={<Navigate to="/pos" replace />} />
               <Route
-                path="/inventory"
                 element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
-                    <Inventory />
+                  <ProtectedRoute>
+                    <AppLayout />
                   </ProtectedRoute>
                 }
-              />
-              <Route
-                path="/sales"
-                element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
-                    <Sales />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
-                    <Settings />
-                  </ProtectedRoute>
-                }
-              />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+              >
+                <Route path="/pos" element={<POS />} />
+                <Route
+                  path="/inventory"
+                  element={
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                      <Inventory />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/sales"
+                  element={
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                      <Sales />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                      <Settings />
+                    </ProtectedRoute>
+                  }
+                />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </SettingsProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

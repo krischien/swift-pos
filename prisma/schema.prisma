@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id     String   @id @default(cuid())
+  name   String
+  email  String   @unique
+  role   String   // "admin" | "cashier"
+
+  sales  Sale[]
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String
+
+  products Product[]
+}
+
+model Product {
+  id                 String         @id @default(cuid())
+  name               String
+  categoryId         String
+  itemCode           String?        @unique
+  hasVariants        Boolean        @default(false)
+  price              Float?
+  stock              Int?
+  lowStockThreshold  Int            @default(0)
+  status             String         @default("active") // "active" | "inactive"
+  image              String?
+
+  category           Category       @relation(fields: [categoryId], references: [id])
+  variants           Variant[]
+  saleItems          SaleItem[]
+}
+
+model Variant {
+  id        String   @id @default(cuid())
+  productId String
+  name      String
+  price     Float
+  stock     Int
+
+  product   Product  @relation(fields: [productId], references: [id])
+  saleItems SaleItem[]
+}
+
+model Sale {
+  id             String         @id @default(cuid())
+  ticketNumber   String?        @unique
+  cashierId      String
+  cashierName    String
+  total          Float
+  paymentMethod  String         @default("cash") // e.g. "cash"
+  amountReceived Float
+  change         Float
+  createdAt      DateTime       @default(now())
+
+  cashier        User?          @relation(fields: [cashierId], references: [id])
+  items          SaleItem[]
+}
+
+model SaleItem {
+  id          String   @id @default(cuid())
+  saleId      String
+  productId   String
+  variantId   String?
+  productName String
+  variantName String?
+  quantity    Int
+  price       Float
+  subtotal    Float
+
+  sale        Sale     @relation(fields: [saleId], references: [id])
+  product     Product  @relation(fields: [productId], references: [id])
+  variant     Variant? @relation(fields: [variantId], references: [id])
+}
+
+

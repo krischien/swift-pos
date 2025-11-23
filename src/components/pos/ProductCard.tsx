@@ -18,8 +18,16 @@ export const ProductCard = ({ product, onSelect }: ProductCardProps) => {
       className="h-auto flex-col p-4 bg-pos-product hover:bg-accent hover:border-primary transition-all"
       onClick={() => onSelect(product)}
     >
-      <div className="w-full aspect-square bg-muted rounded-lg mb-3 flex items-center justify-center">
-        <Package className="w-10 h-10 text-muted-foreground" />
+      <div className="w-full aspect-square bg-muted rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+        {product.image ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <Package className="w-10 h-10 text-muted-foreground" />
+        )}
       </div>
       <h3 className="font-semibold text-sm mb-1 line-clamp-2 w-full text-center">
         {product.name}
@@ -28,11 +36,9 @@ export const ProductCard = ({ product, onSelect }: ProductCardProps) => {
         ${displayPrice?.toFixed(2)}
         {product.hasVariants && "+"}
       </p>
-      {product.hasVariants && (
-        <p className="text-xs text-muted-foreground mt-1">
-          {product.variants?.length} variants
-        </p>
-      )}
+      <p className="text-xs text-muted-foreground mt-1 h-4">
+        {product.hasVariants ? `${product.variants?.length} variants` : "\u00a0"}
+      </p>
     </Button>
   );
 };

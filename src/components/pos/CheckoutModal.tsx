@@ -14,10 +14,17 @@ interface CheckoutModalProps {
   open: boolean;
   onClose: () => void;
   total: number;
+  ticketNumber?: string;
   onComplete: (amountReceived: number) => void;
 }
 
-export const CheckoutModal = ({ open, onClose, total, onComplete }: CheckoutModalProps) => {
+export const CheckoutModal = ({
+  open,
+  onClose,
+  total,
+  ticketNumber,
+  onComplete,
+}: CheckoutModalProps) => {
   const [amountReceived, setAmountReceived] = useState<string>("");
   const change = parseFloat(amountReceived || "0") - total;
 
@@ -39,6 +46,12 @@ export const CheckoutModal = ({ open, onClose, total, onComplete }: CheckoutModa
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-6 py-4">
+          {ticketNumber && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Ticket Number</span>
+              <span className="font-mono font-semibold">{ticketNumber}</span>
+            </div>
+          )}
           <div className="bg-primary/10 rounded-lg p-4 text-center">
             <p className="text-sm text-muted-foreground mb-1">Total Amount</p>
             <p className="text-3xl font-bold text-primary">${total.toFixed(2)}</p>
