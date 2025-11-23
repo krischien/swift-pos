@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <style>
+      .bg { fill: #06b6d4; } /* teal-500-ish */
+      .icon { fill: none; stroke: #ffffff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+  <!-- Rounded square background -->
+  <rect x="4" y="4" width="56" height="56" rx="14" ry="14" class="bg" />
+  <!-- Simple store icon -->
+  <path
+    class="icon"
+    d="M18 28h28l-3-10H21l-3 10z
+       M20 28v16a2 2 0 0 0 2 2h20a2 2 0 0 0 2-2V28
+       M28 46V36h8v10"
+  />
+</svg>
+
+

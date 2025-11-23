@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState } from "react";
-import { User, UserRole } from "@/types/pos";
-import { mockUser } from "@/lib/mockData";
+import { User } from "@/types/pos";
+import { api } from "@/lib/api";
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, role: UserRole) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -14,10 +14,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
-  const login = async (email: string, password: string, role: UserRole) => {
-    // Mock login - in real app, this would call an API
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    setUser({ ...mockUser, email, role });
+  const login = async (email: string, password: string) => {
+    // Simple API-based login without real password validation
+    const loggedInUser = await api.login({
+      email,
+      name: email.split("@")[0],
+    });
+    setUser(loggedInUser as User);
+    return loggedInUser as User;
   };
 
   const logout = () => {
