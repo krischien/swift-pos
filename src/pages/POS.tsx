@@ -144,7 +144,139 @@ const POS = () => {
     setShowCheckoutModal(true);
   };
 
+  const buildReceiptHtml = (sale: any, fallbackItems: CartItem[], fallbackTotals: { total: number; amountReceived: number; change: number }) => {
+    const receiptItems =
+      Array.isArray(sale?.items) && sale.items.length
+        ? sale.items.map((item: any) => ({
+            name: item.productName,
+            variant: item.variantName,
+            quantity: item.quantity,
+            price: item.price,
+            subtotal: item.subtotal,
+          }))
+        : fallbackItems.map((item) => ({
+            name: item.name,
+            variant: item.variantName,
+            quantity: item.quantity,
+            price: item.price,
+            subtotal: item.subtotal,
+          }));
+
+    const itemsRows = receiptItems
+      .map(
+        (item) => `
+        <tr>
+          <td>${item.name}${item.variant ? ` (${item.variant})` : ""}</td>
+          <td style="text-align:right;">${item.quantity}</td>
+          <td style="text-align:right;">$${Number(item.price ?? 0).toFixed(2)}</td>
+          <td style="text-align:right;">$${Number(item.subtotal ?? 0).toFixed(2)}</td>
+        </tr>`,
+      )
+      .join("") || `<tr><td colspan="4" style="text-align:center;padding:8px 0;">No items</td></tr>`;
+
+    const headerName = storeName || "QuickPOS Receipt";
+    const headerAddress = storeAddress || "";
+    const createdAt = new Date(sale?.createdAt ?? Date.now());
+    const totalDisplay = typeof sale?.total === "number" ? sale.total : fallbackTotals.total;
+    const amountReceivedDisplay =
+      typeof sale?.amountReceived === "number" ? sale.amountReceived : fallbackTotals.amountReceived;
+    const changeDisplay = typeof sale?.change === "number" ? sale.change : fallbackTotals.change;
+
+    return `<!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Receipt</title>
+        <style>
+          body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 16px; color: #111827; }
+          h1 { font-size: 18px; margin: 0 0 8px; text-align: center; }
+          .meta { font-size: 12px; margin-bottom: 12px; text-align: center; }
+          table { width: 100%; border-collapse: collapse; font-size: 12px; }
+          th, td { padding: 4px 0; }
+          th { border-bottom: 1px solid #ddd; text-align: left; }
+          tfoot td { border-top: 1px solid #ddd; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        ${
+          showLogoOnReceipt
+            ? `<div style="text-align:center;margin-bottom:4px;font-weight:bold;">${headerName}</div>`
+            : ""
+        }
+        <h1>${headerName}</h1>
+        <div class="meta">
+          ${headerAddress ? `<div>${headerAddress}</div>` : ""}
+          <div>Ticket: <strong>${sale?.ticketNumber ?? ticketNumber ?? ""}</strong></div>
+          <div>Date: ${createdAt.toLocaleString()}</div>
+          <div>Cashier: ${sale?.cashierName ?? user?.name ?? ""}</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th style="text-align:right;">Qty</th>
+              <th style="text-align:right;">Price</th>
+              <th style="text-align:right;">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsRows}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3">Total</td>
+              <td style="text-align:right;">$${Number(totalDisplay ?? 0).toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td colspan="3">Amount Received</td>
+              <td style="text-align:right;">$${Number(amountReceivedDisplay ?? 0).toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td colspan="3">Change</td>
+              <td style="text-align:right;">$${Number(changeDisplay ?? 0).toFixed(2)}</td>
+            </tr>
+          </tfoot>
+        </table>
+        <div style="text-align:center;font-size:12px;margin-top:12px;">This is not an Official Receipt</div>
+      </body>
+    </html>`;
+  };
+
+  const printReceipt = (sale: any, fallbackItems: CartItem[], fallbackTotals: { total: number; amountReceived: number; change: number }) => {
+    // Remove existing print frame if any
+    const existingFrame = document.getElementById("receipt-print-frame");
+    if (existingFrame) {
+      document.body.removeChild(existingFrame);
+    }
+
+    const iframe = document.createElement("iframe");
+    iframe.id = "receipt-print-frame";
+    iframe.style.display = "none";
+    document.body.appendChild(iframe);
+
+    const receiptHtml = buildReceiptHtml(sale, fallbackItems, fallbackTotals);
+    const doc = iframe.contentWindow?.document;
+
+    if (doc) {
+      doc.open();
+      doc.write(receiptHtml);
+      doc.close();
+
+      // Wait for content to load then print
+      if (iframe.contentWindow) {
+        iframe.contentWindow.onload = () => {
+          try {
+            iframe.contentWindow?.print();
+          } catch (e) {
+            console.error("Print failed", e);
+          }
+        };
+      }
+    }
+  };
+
   const handleCompleteCheckout = async (amountReceived: number) => {
+    const cartSnapshot = cart.map((item) => ({ ...item }));
     const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
     const taxRate = (typeof taxRatePercent === "number" ? taxRatePercent : 12) / 100;
     const effectiveDiscount = enableDiscounts ? discountPercent : 0;
@@ -174,100 +306,15 @@ const POS = () => {
         description: `Total: $${total.toFixed(2)} | Change: $${change.toFixed(2)}`,
       });
 
-      // Open printable receipt in a new window if auto-print is enabled
       if (autoPrintReceipt) {
         try {
-          const printWindow = window.open("", "_blank", "width=400,height=600");
-          if (!printWindow) throw new Error("Popup blocked");
-
-          const createdAt = new Date(sale.createdAt);
-          const dateStr = createdAt.toLocaleString();
-
-          const itemsRows = (sale.items ?? [])
-            .map(
-              (item: any) => `
-              <tr>
-                <td>${item.productName}${
-                  item.variantName ? ` (${item.variantName})` : ""
-                }</td>
-                <td style="text-align:right;">${item.quantity}</td>
-                <td style="text-align:right;">$${item.price.toFixed(2)}</td>
-                <td style="text-align:right;">$${item.subtotal.toFixed(2)}</td>
-              </tr>`,
-            )
-            .join("");
-
-          const headerName = storeName || "QuickPOS Receipt";
-          const headerAddress = storeAddress || "";
-
-          const receiptHtml = `<!doctype html>
-          <html>
-            <head>
-              <meta charset="utf-8" />
-              <title>Receipt</title>
-              <style>
-                body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 16px; }
-                h1 { font-size: 18px; margin: 0 0 8px; text-align: center; }
-                .meta { font-size: 12px; margin-bottom: 12px; }
-                table { width: 100%; border-collapse: collapse; font-size: 12px; }
-                th, td { padding: 4px 0; }
-                th { border-bottom: 1px solid #ddd; text-align: left; }
-                tfoot td { border-top: 1px solid #ddd; font-weight: bold; }
-              </style>
-            </head>
-            <body>
-              ${
-                showLogoOnReceipt
-                  ? `<div style="text-align:center;margin-bottom:4px;font-weight:bold;">${headerName}</div>`
-                  : ""
-              }
-              <h1>${headerName}</h1>
-              <div class="meta">
-                ${headerAddress ? `<div>${headerAddress}</div>` : ""}
-                <div>Ticket: <strong>${sale.ticketNumber}</strong></div>
-                <div>Date: ${dateStr}</div>
-                <div>Cashier: ${sale.cashierName}</div>
-              </div>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Item</th>
-                    <th style="text-align:right;">Qty</th>
-                    <th style="text-align:right;">Price</th>
-                    <th style="text-align:right;">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${itemsRows}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colspan="3">Total</td>
-                    <td style="text-align:right;">$${sale.total.toFixed(2)}</td>
-                  </tr>
-                  <tr>
-                    <td colspan="3">Amount Received</td>
-                    <td style="text-align:right;">$${sale.amountReceived.toFixed(2)}</td>
-                  </tr>
-                  <tr>
-                    <td colspan="3">Change</td>
-                    <td style="text-align:right;">$${sale.change.toFixed(2)}</td>
-                  </tr>
-                </tfoot>
-              </table>
-              <script>
-                window.onload = function () {
-                  window.print();
-                };
-              </script>
-            </body>
-          </html>`;
-
-          printWindow.document.open();
-          printWindow.document.write(receiptHtml);
-          printWindow.document.close();
-        } catch {
-          // Ignore print errors; sale is already recorded
+          printReceipt(sale, cartSnapshot, { total, amountReceived, change });
+        } catch (err: any) {
+          console.error("Receipt print failed:", err);
+          toast({
+            title: "Receipt not printed",
+            description: err.message ?? "Printing failed",
+          });
         }
       }
 
@@ -310,7 +357,7 @@ const POS = () => {
         </div>
       </header>
 
-      <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden md:h-[calc(100vh-96px)] md:max-h-[calc(100vh-96px)]">
         {/* Products Section */}
         <div className="flex-1 flex flex-col md:overflow-hidden">
           <div className="p-4 space-y-4 border-b bg-background">
@@ -350,7 +397,7 @@ const POS = () => {
         </div>
 
         {/* Cart Section - desktop/tablet */}
-        <div className="hidden md:block md:w-96 lg:w-[420px] md:mt-0">
+        <div className="hidden md:flex md:flex-col md:w-96 lg:w-[420px] md:h-full">
           <Cart
             items={cart}
             onUpdateQuantity={handleUpdateQuantity}

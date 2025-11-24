@@ -1,139 +1,73 @@
-## Quick POS – Backbone Demo
+# Welcome to your Lovable project
 
-Modern, responsive POS demo app built with React, Vite, Prisma + SQLite, and an Express API.
+## Project info
 
-### Stack
+**URL**: https://lovable.dev/projects/47cd3828-b124-4ae2-9a13-604301b27fe9
 
-- **Frontend**: React, TypeScript, Vite, shadcn-ui, Tailwind CSS, React Router
-- **Backend**: Node.js, Express, Prisma ORM, SQLite
-- **Other**: `xlsx` for exports, `date-fns` for date ranges
+## How can I edit this code?
 
----
+There are several ways of editing your application.
 
-## Running the project locally
+**Use Lovable**
 
-### 1. Install dependencies
+Simply visit the [Lovable Project](https://lovable.dev/projects/47cd3828-b124-4ae2-9a13-604301b27fe9) and start prompting.
 
-```bash
-npm install
-```
+Changes made via Lovable will be committed automatically to this repo.
 
-### 2. Run Prisma migrations and seed data
+**Use your preferred IDE**
 
-This creates the SQLite database (`prisma/dev.db`) and seeds users, categories, products, and variants.
+If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
-```bash
-npx prisma migrate dev --name init
-npm run prisma:seed
-```
+The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-> If migrations are already applied, you can just run `npm run prisma:seed` to refresh seed data.
+Follow these steps:
 
-### 3. Start the API server
+```sh
+# Step 1: Clone the repository using the project's Git URL.
+git clone <YOUR_GIT_URL>
 
-```bash
-npm run dev:server
-```
+# Step 2: Navigate to the project directory.
+cd <YOUR_PROJECT_NAME>
 
-The API will run on `http://localhost:4000/api`.
+# Step 3: Install the necessary dependencies.
+npm i
 
-### 4. Start the frontend
-
-In a separate terminal:
-
-```bash
+# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
 
-The app will be available at `http://localhost:8080` (or the port Vite prints).
+**Edit a file directly in GitHub**
 
----
+- Navigate to the desired file(s).
+- Click the "Edit" button (pencil icon) at the top right of the file view.
+- Make your changes and commit the changes.
 
-## User accounts and roles
+**Use GitHub Codespaces**
 
-The login screen no longer asks for a role. The role is determined from the database user record.
+- Navigate to the main page of your repository.
+- Click on the "Code" button (green button) near the top right.
+- Select the "Codespaces" tab.
+- Click on "New codespace" to launch a new Codespace environment.
+- Edit files directly within the Codespace and commit and push your changes once you're done.
 
-- **Admin**
-  - **Email**: `john@example.com`
-  - **Role**: `admin`
-- **Cashier**
-  - **Email**: `cashier@example.com`
-  - **Role**: `cashier`
+## What technologies are used for this project?
 
-> Passwords are not enforced in this demo; any password will work as long as the email exists in the database.
+This project is built with:
 
-**Access rules**:
+- Vite
+- TypeScript
+- React
+- shadcn-ui
+- Tailwind CSS
 
-- **Cashier**: POS page only.
-- **Admin**: POS, Inventory, Sales, Settings.
+## How can I deploy this project?
 
----
+Simply open [Lovable](https://lovable.dev/projects/47cd3828-b124-4ae2-9a13-604301b27fe9) and click on Share -> Publish.
 
-## Features
+## Can I connect a custom domain to my Lovable project?
 
-### POS
+Yes, you can!
 
-- **Product browsing**
-  - Category tabs and search.
-  - Supports product variants (e.g., sizes).
-  - Optional product images.
-- **Cart and checkout**
-  - Add products/variants to cart, adjust quantities, remove items.
-  - Discount support (percentage-based, controlled by Settings).
-  - Configurable tax rate (defaults to **12%**).
-  - Ticket number generated for each sale and shown on the checkout modal.
-- **Receipt printing**
-  - After successful checkout, a printable receipt window is generated.
-  - Store name, address, and logo visibility come from Settings.
-- **Mobile-friendly layout**
-  - Optimized UI below 720px width.
-  - Items/search are prioritized; cart opens in a bottom sheet with a floating checkout button.
+To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
-### Inventory
-
-- **Product list**
-  - Shows item code, name, category, price/stock, status, and actions.
-- **Add / Edit product**
-  - Auto-generated **item code** (read-only) for new products.
-  - Optional image upload field used on the POS page.
-  - Supports products with or without variants.
-- **Delete product**
-  - Delete with confirmation; list updates immediately.
-- **Variants management**
-  - Per-product “Variants” dialog to add/edit/delete variants.
-  - Inline editing for name, price, stock.
-- **Export to Excel**
-  - Exports full inventory list with key fields using `xlsx`.
-
-### Sales
-
-- **Sales history table**
-  - Lists completed sales with ticket number, totals, payment method, and timestamps.
-- **Filter by date**
-  - Dialog to select custom date range (from / to).
-- **Print**
-  - Prints the currently visible sales table (respects active filters).
-- **Export comparison reports**
-  - Export dropdown: Today, This Week, This Month, This Quarter, This Year.
-  - Compares inventory in/out vs sales for the selected period in an Excel file.
-
-### Settings
-
-- **Store identity**
-  - Store name and address (used on receipts; falls back to defaults if empty).
-- **Receipt options**
-  - Auto-print on successful sale.
-  - Toggle to show/hide logo on receipt.
-- **POS options**
-  - Enable/disable discounts.
-  - Enable/disable barcode scanning (flag wired; scanner handling can be implemented later).
-- **Tax**
-  - Configurable tax rate (percentage), default **12%**.
-
----
-
-## Notes
-
-- The database is SQLite and lives in `prisma/dev.db`.
-- Seeding (`npm run prisma:seed`) **clears and recreates** data (users, categories, products, variants, sales). Only run it when you’re okay losing current data.
-- API base URL can be overridden with `VITE_API_URL`; by default the frontend uses `http://localhost:4000/api`.
+Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
