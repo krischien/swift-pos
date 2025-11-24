@@ -35,7 +35,7 @@ export const Cart = ({
   const total = netSubtotal + tax;
 
   return (
-    <div className="flex flex-col bg-pos-cart md:h-full md:border-l rounded-xl md:rounded-none shadow-sm">
+    <div className="flex flex-col h-full bg-pos-cart border-l shadow-sm md:rounded-none overflow-hidden">
       <div className="p-4 border-b bg-card">
         <div className="flex items-center gap-2 pr-10">
           <ShoppingCart className="w-5 h-5 text-primary" />
@@ -46,14 +46,15 @@ export const Cart = ({
         </div>
       </div>
 
-      <ScrollArea className="flex-1 p-4">
-        {items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-            <ShoppingCart className="w-16 h-16 mb-4 opacity-20" />
-            <p>Cart is empty</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
+      <div className="h-[500px] relative border-b">
+        <ScrollArea className="h-full p-4">
+          {items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+              <ShoppingCart className="w-16 h-16 mb-4 opacity-20" />
+              <p>Cart is empty</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
             {items.map((item) => (
               <div key={item.id} className="bg-card rounded-lg p-3 border">
                 <div className="flex items-start justify-between mb-2">
@@ -109,11 +110,12 @@ export const Cart = ({
                 </div>
               </div>
             ))}
-          </div>
-        )}
-      </ScrollArea>
+            </div>
+          )}
+        </ScrollArea>
+      </div>
 
-      <div className="p-4 border-t bg-card space-y-3">
+      <div className="p-4 pt-6 border-t bg-card space-y-3">
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Subtotal</span>
