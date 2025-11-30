@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DollarSign, Receipt } from "lucide-react";
+import { formatCurrency } from "@/lib/currency";
 
 interface CheckoutModalProps {
   open: boolean;
@@ -54,7 +55,7 @@ export const CheckoutModal = ({
           )}
           <div className="bg-primary/10 rounded-lg p-4 text-center">
             <p className="text-sm text-muted-foreground mb-1">Total Amount</p>
-            <p className="text-3xl font-bold text-primary">${total.toFixed(2)}</p>
+            <p className="text-3xl font-bold text-primary">{formatCurrency(total)}</p>
           </div>
 
           <div className="space-y-2">
@@ -78,7 +79,7 @@ export const CheckoutModal = ({
             <div className="bg-success/10 rounded-lg p-4 text-center border border-success/20">
               <p className="text-sm text-muted-foreground mb-1">Change</p>
               <p className={`text-2xl font-bold ${change >= 0 ? 'text-success' : 'text-destructive'}`}>
-                ${Math.abs(change).toFixed(2)}
+                {formatCurrency(Math.abs(change))}
               </p>
               {change < 0 && (
                 <p className="text-xs text-destructive mt-1">Insufficient amount</p>
@@ -94,7 +95,7 @@ export const CheckoutModal = ({
                 onClick={() => setAmountReceived(amount.toString())}
                 className="h-12"
               >
-                ${amount}
+                {formatCurrency(amount)}
               </Button>
             ))}
             <Button

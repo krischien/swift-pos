@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,9 +11,15 @@ import { Store } from "lucide-react";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/pos", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,11 +30,12 @@ const Login = () => {
         description: `Welcome back, ${user.role}!`,
       });
       navigate("/pos");
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Login error caught in component:", error);
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: "Invalid credentials",
+        description: error.message || "Invalid credentials",
       });
     }
   };

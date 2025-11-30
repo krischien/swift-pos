@@ -14,6 +14,9 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { api } from "@/lib/api";
 import { useEffect } from "react";
 import { useSettings } from "@/contexts/SettingsContext";
+import { Capacitor } from "@capacitor/core";
+import { printerService } from "@/lib/printer";
+import { formatCurrency } from "@/lib/currency";
 
 const POS = () => {
   const { user } = useAuth();
@@ -24,6 +27,7 @@ const POS = () => {
     showLogoOnReceipt,
     enableDiscounts,
     taxRatePercent,
+    selectedPrinter,
   } = useSettings();
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -82,7 +86,18 @@ const POS = () => {
   };
 
   const addToCart = (product: Product, variant?: Variant) => {
-    const price = variant?.price || product.price || 0;
+    // Calculate selling price
+    let price: number;
+    if (variant) {
+      // For variants: variant.price is base price, calculate selling price with margin percentage
+      const basePrice = variant.price;
+      const marginPercent = product.marginPercentage || 0;
+      price = basePrice * (1 + marginPercent / 100);
+    } else {
+      // For regular products: use product.price (which is already calculated with margin)
+      price = product.price || 0;
+    }
+
     const existingItemId = variant
       ? `${product.id}-${variant.id}`
       : product.id;
@@ -144,23 +159,40 @@ const POS = () => {
     setShowCheckoutModal(true);
   };
 
-  const buildReceiptHtml = (sale: any, fallbackItems: CartItem[], fallbackTotals: { total: number; amountReceived: number; change: number }) => {
-    const receiptItems =
-      Array.isArray(sale?.items) && sale.items.length
-        ? sale.items.map((item: any) => ({
+  type ReceiptFallbackTotals = {
+    total: number;
+    amountReceived: number;
+    change: number;
+    subtotal?: number;
+    tax?: number;
+    discount?: number;
+  };
+
+  const getReceiptItems = (sale: any, fallbackItems: CartItem[]) => {
+    if (Array.isArray(sale?.items) && sale.items.length) {
+      return sale.items.map((item: any) => ({
             name: item.productName,
             variant: item.variantName,
             quantity: item.quantity,
             price: item.price,
             subtotal: item.subtotal,
-          }))
-        : fallbackItems.map((item) => ({
+      }));
+    }
+    return fallbackItems.map((item) => ({
             name: item.name,
             variant: item.variantName,
             quantity: item.quantity,
             price: item.price,
             subtotal: item.subtotal,
           }));
+  };
+
+  const buildReceiptHtml = (
+    sale: any,
+    fallbackItems: CartItem[],
+    fallbackTotals: ReceiptFallbackTotals,
+  ) => {
+    const receiptItems = getReceiptItems(sale, fallbackItems);
 
     const itemsRows = receiptItems
       .map(
@@ -168,8 +200,8 @@ const POS = () => {
         <tr>
           <td>${item.name}${item.variant ? ` (${item.variant})` : ""}</td>
           <td style="text-align:right;">${item.quantity}</td>
-          <td style="text-align:right;">$${Number(item.price ?? 0).toFixed(2)}</td>
-          <td style="text-align:right;">$${Number(item.subtotal ?? 0).toFixed(2)}</td>
+          <td style="text-align:right;">${formatCurrency(item.price ?? 0)}</td>
+          <td style="text-align:right;">${formatCurrency(item.subtotal ?? 0)}</td>
         </tr>`,
       )
       .join("") || `<tr><td colspan="4" style="text-align:center;padding:8px 0;">No items</td></tr>`;
@@ -225,15 +257,15 @@ const POS = () => {
           <tfoot>
             <tr>
               <td colspan="3">Total</td>
-              <td style="text-align:right;">$${Number(totalDisplay ?? 0).toFixed(2)}</td>
+              <td style="text-align:right;">${formatCurrency(totalDisplay ?? 0)}</td>
             </tr>
             <tr>
               <td colspan="3">Amount Received</td>
-              <td style="text-align:right;">$${Number(amountReceivedDisplay ?? 0).toFixed(2)}</td>
+              <td style="text-align:right;">${formatCurrency(amountReceivedDisplay ?? 0)}</td>
             </tr>
             <tr>
               <td colspan="3">Change</td>
-              <td style="text-align:right;">$${Number(changeDisplay ?? 0).toFixed(2)}</td>
+              <td style="text-align:right;">${formatCurrency(changeDisplay ?? 0)}</td>
             </tr>
           </tfoot>
         </table>
@@ -242,7 +274,52 @@ const POS = () => {
     </html>`;
   };
 
-  const printReceipt = (sale: any, fallbackItems: CartItem[], fallbackTotals: { total: number; amountReceived: number; change: number }) => {
+  const printReceipt = async (
+    sale: any,
+    fallbackItems: CartItem[],
+    fallbackTotals: ReceiptFallbackTotals,
+  ) => {
+    const receiptItems = getReceiptItems(sale, fallbackItems);
+    const totalDisplay = typeof sale?.total === "number" ? sale.total : fallbackTotals.total;
+    const amountReceivedDisplay =
+      typeof sale?.amountReceived === "number" ? sale.amountReceived : fallbackTotals.amountReceived;
+    const changeDisplay =
+      typeof sale?.change === "number" ? sale.change : fallbackTotals.change;
+
+    if (Capacitor.isNativePlatform() && selectedPrinter) {
+      try {
+        await printerService.print(selectedPrinter.address, {
+          storeName,
+          storeAddress,
+          cashierName: sale?.cashierName ?? user?.name ?? "",
+          ticketNumber: sale?.ticketNumber ?? ticketNumber ?? "",
+          createdAt: sale?.createdAt ?? new Date().toISOString(),
+          items: receiptItems.map((item) => ({
+            name: item.name,
+            variantName: item.variant,
+            quantity: item.quantity,
+            price: item.price,
+            subtotal: item.subtotal,
+          })),
+          totals: {
+            total: Number(totalDisplay ?? 0),
+            amountReceived: Number(amountReceivedDisplay ?? 0),
+            change: Number(changeDisplay ?? 0),
+            subtotal: fallbackTotals.subtotal,
+            tax: fallbackTotals.tax,
+            discount: fallbackTotals.discount,
+          },
+        });
+        return;
+      } catch (error) {
+        console.error("Bluetooth printing failed, falling back to browser print.", error);
+        toast({
+          title: "Native printing failed",
+          description: (error as Error)?.message ?? "Falling back to browser print.",
+        });
+      }
+    }
+
     // Remove existing print frame if any
     const existingFrame = document.getElementById("receipt-print-frame");
     if (existingFrame) {
@@ -282,7 +359,8 @@ const POS = () => {
     const effectiveDiscount = enableDiscounts ? discountPercent : 0;
     const discountAmount = subtotal * (effectiveDiscount / 100);
     const netSubtotal = Math.max(0, subtotal - discountAmount);
-    const total = netSubtotal * (1 + taxRate);
+    const taxAmount = netSubtotal * taxRate;
+    const total = netSubtotal + taxAmount;
     const change = amountReceived - total;
 
     try {
@@ -303,12 +381,23 @@ const POS = () => {
 
       toast({
         title: "Sale completed",
-        description: `Total: $${total.toFixed(2)} | Change: $${change.toFixed(2)}`,
+        description: `Total: ${formatCurrency(total)} | Change: ${formatCurrency(change)}`,
       });
 
       if (autoPrintReceipt) {
         try {
-          printReceipt(sale, cartSnapshot, { total, amountReceived, change });
+          await printReceipt(sale, cartSnapshot, {
+            total,
+            amountReceived,
+            change,
+            subtotal: netSubtotal,
+            tax: taxAmount,
+            discount: discountAmount,
+          });
+          // Auto-close checkout modal on mobile after successful print
+          if (Capacitor.isNativePlatform()) {
+            setShowCheckoutModal(false);
+          }
         } catch (err: any) {
           console.error("Receipt print failed:", err);
           toast({
@@ -320,6 +409,11 @@ const POS = () => {
 
       setCart([]);
       setTicketNumber(null);
+      
+      // Auto-close checkout modal on mobile after sale completes (even if printing is disabled)
+      if (Capacitor.isNativePlatform() && !autoPrintReceipt) {
+        setShowCheckoutModal(false);
+      }
     } catch (e: any) {
       toast({
         variant: "destructive",

@@ -1,6 +1,7 @@
 import { Product } from "@/types/pos";
 import { Button } from "@/components/ui/button";
 import { Package } from "lucide-react";
+import { formatCurrency } from "@/lib/currency";
 
 interface ProductCardProps {
   product: Product;
@@ -8,9 +9,20 @@ interface ProductCardProps {
 }
 
 export const ProductCard = ({ product, onSelect }: ProductCardProps) => {
-  const displayPrice = product.hasVariants
-    ? product.variants?.[0]?.price
-    : product.price;
+  let displayPrice: number | undefined;
+  
+  if (product.hasVariants) {
+    // For variants: variant.price is base price, calculate selling price with margin percentage
+    const variant = product.variants?.[0];
+    if (variant) {
+      const basePrice = variant.price;
+      const marginPercent = product.marginPercentage || 0;
+      displayPrice = basePrice * (1 + marginPercent / 100);
+    }
+  } else {
+    // For regular products: use product.price (which is already calculated with margin)
+    displayPrice = product.price;
+  }
 
   return (
     <Button
@@ -33,7 +45,7 @@ export const ProductCard = ({ product, onSelect }: ProductCardProps) => {
         {product.name}
       </h3>
       <p className="text-primary font-bold text-lg">
-        ${displayPrice?.toFixed(2)}
+        {displayPrice ? formatCurrency(displayPrice) : "₱0.00"}
         {product.hasVariants && "+"}
       </p>
       <p className="text-xs text-muted-foreground mt-1 h-4">
