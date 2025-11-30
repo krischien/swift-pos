@@ -10,6 +10,8 @@ import {
   Settings,
   LogOut,
   Menu,
+  Users,
+  FolderTree,
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -28,6 +30,8 @@ const AppLayout = () => {
     { to: "/pos", icon: ShoppingCart, label: "POS", roles: ["admin", "cashier"] },
     { to: "/inventory", icon: Package, label: "Inventory", roles: ["admin"] },
     { to: "/sales", icon: TrendingUp, label: "Sales", roles: ["admin"] },
+    { to: "/categories", icon: FolderTree, label: "Categories", roles: ["admin"] },
+    { to: "/users", icon: Users, label: "Users", roles: ["admin"] },
     { to: "/settings", icon: Settings, label: "Settings", roles: ["admin"] },
   ];
 

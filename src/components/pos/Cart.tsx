@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Minus, Plus, X, ShoppingCart } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { formatCurrency } from "@/lib/currency";
 
 interface CartProps {
   items: CartItem[];
@@ -36,7 +37,7 @@ export const Cart = ({
 
   return (
     <div className="flex flex-col h-full bg-pos-cart border-l shadow-sm md:rounded-none overflow-hidden">
-      <div className="p-4 border-b bg-card">
+      <div className="p-4 border-b bg-card flex-shrink-0">
         <div className="flex items-center gap-2 pr-10">
           <ShoppingCart className="w-5 h-5 text-primary" />
           <h2 className="font-bold text-lg">Cart</h2>
@@ -46,7 +47,7 @@ export const Cart = ({
         </div>
       </div>
 
-      <div className="h-[500px] relative border-b">
+      <div className="h-[400px] relative border-b overflow-hidden">
         <ScrollArea className="h-full p-4">
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
@@ -103,9 +104,9 @@ export const Cart = ({
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground">
-                      ${item.price.toFixed(2)} each
+                      {formatCurrency(item.price)} each
                     </p>
-                    <p className="font-bold text-primary">${item.subtotal.toFixed(2)}</p>
+                    <p className="font-bold text-primary">{formatCurrency(item.subtotal)}</p>
                   </div>
                 </div>
               </div>
@@ -115,11 +116,11 @@ export const Cart = ({
         </ScrollArea>
       </div>
 
-      <div className="p-4 pt-6 border-t bg-card space-y-3">
+      <div className="p-4 pt-6 border-t bg-card space-y-3 flex-shrink-0">
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Subtotal</span>
-            <span className="font-semibold">${subtotal.toFixed(2)}</span>
+            <span className="font-semibold">{formatCurrency(subtotal)}</span>
           </div>
           {discountsEnabled && (
             <div className="flex items-center justify-between gap-2">
@@ -149,18 +150,18 @@ export const Cart = ({
             <div className="flex justify-between">
               <span className="text-muted-foreground">Discount</span>
               <span className="font-semibold text-destructive">
-                -${discountAmount.toFixed(2)}
+                -{formatCurrency(discountAmount)}
               </span>
             </div>
           )}
           <div className="flex justify-between">
             <span className="text-muted-foreground">Tax ({taxRatePercent}%)</span>
-            <span className="font-semibold">${tax.toFixed(2)}</span>
+            <span className="font-semibold">{formatCurrency(tax)}</span>
           </div>
           <Separator />
           <div className="flex justify-between text-lg">
             <span className="font-bold">Total</span>
-            <span className="font-bold text-primary">${total.toFixed(2)}</span>
+            <span className="font-bold text-primary">{formatCurrency(total)}</span>
           </div>
         </div>
         <Button

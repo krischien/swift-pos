@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import type { PrinterDevice } from "@/lib/printer";
 
 interface SettingsState {
   storeName: string;
@@ -15,6 +16,20 @@ interface SettingsState {
   enableBarcodeScanning: boolean;
   setEnableDiscounts: (value: boolean) => void;
   setEnableBarcodeScanning: (value: boolean) => void;
+  selectedPrinter: PrinterDevice | null;
+  setSelectedPrinter: (device: PrinterDevice | null) => void;
+}
+
+interface StoredSettings {
+  storeName: string;
+  storeAddress: string;
+  autoPrintReceipt: boolean;
+  showLogoOnReceipt: boolean;
+  taxRatePercent: number;
+  enableDiscounts: boolean;
+  enableBarcodeScanning: boolean;
+  printerName: string | null;
+  printerAddress: string | null;
 }
 
 const SettingsContext = createContext<SettingsState | undefined>(undefined);
@@ -29,20 +44,14 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   const [taxRatePercent, setTaxRatePercentState] = useState(12);
   const [enableDiscounts, setEnableDiscountsState] = useState(true);
   const [enableBarcodeScanning, setEnableBarcodeScanningState] = useState(false);
+  const [printerName, setPrinterNameState] = useState<string | null>(null);
+  const [printerAddress, setPrinterAddressState] = useState<string | null>(null);
 
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored) as {
-          storeName?: string;
-          storeAddress?: string;
-          autoPrintReceipt?: boolean;
-          showLogoOnReceipt?: boolean;
-          taxRatePercent?: number;
-          enableDiscounts?: boolean;
-          enableBarcodeScanning?: boolean;
-        };
+        const parsed = JSON.parse(stored) as Partial<StoredSettings>;
         setStoreNameState(parsed.storeName ?? "");
         setStoreAddressState(parsed.storeAddress ?? "");
         setAutoPrintReceiptState(
@@ -60,23 +69,30 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
         setEnableBarcodeScanningState(
           typeof parsed.enableBarcodeScanning === "boolean" ? parsed.enableBarcodeScanning : false,
         );
+        setPrinterNameState(parsed.printerName ?? null);
+        setPrinterAddressState(parsed.printerAddress ?? null);
       }
     } catch {
       // ignore parse errors
     }
   }, []);
 
-  const persist = (next: {
-    storeName: string;
-    storeAddress: string;
-    autoPrintReceipt: boolean;
-    showLogoOnReceipt: boolean;
-    taxRatePercent: number;
-    enableDiscounts: boolean;
-    enableBarcodeScanning: boolean;
-  }) => {
+  const buildPersistPayload = (overrides: Partial<StoredSettings> = {}): StoredSettings => ({
+    storeName,
+    storeAddress,
+    autoPrintReceipt,
+    showLogoOnReceipt,
+    taxRatePercent,
+    enableDiscounts,
+    enableBarcodeScanning,
+    printerName,
+    printerAddress,
+    ...overrides,
+  });
+
+  const persist = (overrides?: Partial<StoredSettings>) => {
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(buildPersistPayload(overrides)));
     } catch {
       // ignore storage errors
     }
@@ -84,95 +100,55 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
 
   const setStoreName = (name: string) => {
     setStoreNameState(name);
-    persist({
-      storeName: name,
-      storeAddress,
-      autoPrintReceipt,
-      showLogoOnReceipt,
-      taxRatePercent,
-      enableDiscounts,
-      enableBarcodeScanning,
-    });
+    persist({ storeName: name });
   };
 
   const setStoreAddress = (address: string) => {
     setStoreAddressState(address);
-    persist({
-      storeName,
-      storeAddress: address,
-      autoPrintReceipt,
-      showLogoOnReceipt,
-      taxRatePercent,
-      enableDiscounts,
-      enableBarcodeScanning,
-    });
+    persist({ storeAddress: address });
   };
 
   const setAutoPrintReceipt = (value: boolean) => {
     setAutoPrintReceiptState(value);
-    persist({
-      storeName,
-      storeAddress,
-      autoPrintReceipt: value,
-      showLogoOnReceipt,
-      taxRatePercent,
-      enableDiscounts,
-      enableBarcodeScanning,
-    });
+    persist({ autoPrintReceipt: value });
   };
 
   const setShowLogoOnReceipt = (value: boolean) => {
     setShowLogoOnReceiptState(value);
-    persist({
-      storeName,
-      storeAddress,
-      autoPrintReceipt,
-      showLogoOnReceipt: value,
-      taxRatePercent,
-      enableDiscounts,
-      enableBarcodeScanning,
-    });
+    persist({ showLogoOnReceipt: value });
   };
 
   const setEnableDiscounts = (value: boolean) => {
     setEnableDiscountsState(value);
-    persist({
-      storeName,
-      storeAddress,
-      autoPrintReceipt,
-      showLogoOnReceipt,
-      taxRatePercent,
-      enableDiscounts: value,
-      enableBarcodeScanning,
-    });
+    persist({ enableDiscounts: value });
   };
 
   const setEnableBarcodeScanning = (value: boolean) => {
     setEnableBarcodeScanningState(value);
-    persist({
-      storeName,
-      storeAddress,
-      autoPrintReceipt,
-      showLogoOnReceipt,
-      taxRatePercent,
-      enableDiscounts,
-      enableBarcodeScanning: value,
-    });
+    persist({ enableBarcodeScanning: value });
   };
 
   const setTaxRatePercent = (value: number) => {
     const safe = Number.isNaN(value) ? 12 : Math.max(0, Math.min(100, value));
     setTaxRatePercentState(safe);
+    persist({ taxRatePercent: safe });
+  };
+
+  const setSelectedPrinter = (device: PrinterDevice | null) => {
+    setPrinterNameState(device?.name ?? null);
+    setPrinterAddressState(device?.address ?? null);
     persist({
-      storeName,
-      storeAddress,
-      autoPrintReceipt,
-      showLogoOnReceipt,
-      taxRatePercent: safe,
-      enableDiscounts,
-      enableBarcodeScanning,
+      printerName: device?.name ?? null,
+      printerAddress: device?.address ?? null,
     });
   };
+
+  const selectedPrinter =
+    printerAddress && printerName
+      ? { name: printerName, address: printerAddress }
+      : printerAddress
+        ? { name: "Bluetooth printer", address: printerAddress }
+        : null;
 
   return (
     <SettingsContext.Provider
@@ -191,6 +167,8 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
         enableBarcodeScanning,
         setEnableDiscounts,
         setEnableBarcodeScanning,
+        selectedPrinter,
+        setSelectedPrinter,
       }}
     >
       {children}

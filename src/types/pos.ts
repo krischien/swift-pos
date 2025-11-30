@@ -25,13 +25,18 @@ export interface Product {
   name: string;
   categoryId: string;
   itemCode: string;
+  sku?: string;
   hasVariants: boolean;
+  basePrice?: number;
   price?: number;
   stock?: number;
   lowStockThreshold: number;
+  marginPercentage?: number;
   status: "active" | "inactive";
   variants?: Variant[];
   image?: string;
+  barcode?: string;
+  qrCode?: string;
 }
 
 export interface CartItem {

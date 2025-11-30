@@ -8,12 +8,13 @@ datasource db {
 }
 
 model User {
-  id     String   @id @default(cuid())
-  name   String
-  email  String   @unique
-  role   String   // "admin" | "cashier"
+  id       String   @id @default(cuid())
+  name     String
+  email    String   @unique
+  password String   @default("$2b$10$VwNM8YMo1sKEtKKbZ2tgMOtLdbBL2hjD9VtH003WfLW7C2iU0NICq")
+  role     String   // "admin" | "cashier"
 
-  sales  Sale[]
+  sales    Sale[]
 }
 
 model Category {
@@ -28,12 +29,17 @@ model Product {
   name               String
   categoryId         String
   itemCode           String?        @unique
+  sku                String?
   hasVariants        Boolean        @default(false)
+  basePrice          Float?
   price              Float?
   stock              Int?
   lowStockThreshold  Int            @default(0)
+  marginPercentage   Float?
   status             String         @default("active") // "active" | "inactive"
   image              String?
+  barcode            String?
+  qrCode             String?
 
   category           Category       @relation(fields: [categoryId], references: [id])
   variants           Variant[]

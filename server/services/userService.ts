@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import { prisma } from "../db";
 
 export async function getUserById(id: string) {
@@ -21,10 +22,15 @@ export async function listUsers() {
 export async function createUser(input: {
   name: string;
   email: string;
+  password: string;
   role: "admin" | "cashier";
 }) {
+  const hashedPassword = await bcrypt.hash(input.password, 10);
   return prisma.user.create({
-    data: input,
+    data: {
+      ...input,
+      password: hashedPassword,
+    },
   });
 }
 
@@ -33,12 +39,17 @@ export async function updateUser(
   input: Partial<{
     name: string;
     email: string;
+    password: string;
     role: "admin" | "cashier";
   }>,
 ) {
+  const data = { ...input } as typeof input;
+  if (input.password) {
+    (data as any).password = await bcrypt.hash(input.password, 10);
+  }
   return prisma.user.update({
     where: { id },
-    data: input,
+    data,
   });
 }
 

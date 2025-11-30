@@ -11,21 +11,52 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const USER_STORAGE_KEY = "quickpos:user";
+
+const getStoredUser = (): User | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  const raw = window.localStorage.getItem(USER_STORAGE_KEY);
+  if (!raw) {
+    return null;
+  }
+  try {
+    return JSON.parse(raw) as User;
+  } catch (error) {
+    console.warn("Failed to parse stored user", error);
+    window.localStorage.removeItem(USER_STORAGE_KEY);
+    return null;
+  }
+};
+
+const persistUser = (value: User | null) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  if (value) {
+    window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(value));
+  } else {
+    window.localStorage.removeItem(USER_STORAGE_KEY);
+  }
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => getStoredUser());
 
   const login = async (email: string, password: string) => {
-    // Simple API-based login without real password validation
     const loggedInUser = await api.login({
       email,
-      name: email.split("@")[0],
+      password,
     });
+    persistUser(loggedInUser as User);
     setUser(loggedInUser as User);
     return loggedInUser as User;
   };
 
   const logout = () => {
     setUser(null);
+    persistUser(null);
   };
 
   return (

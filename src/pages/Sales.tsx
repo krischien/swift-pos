@@ -8,9 +8,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DollarSign, Receipt, TrendingUp, Calendar, Printer, Download } from "lucide-react";
+import { Receipt, TrendingUp, Calendar, Printer, Download, DollarSign } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { formatCurrency } from "@/lib/currency";
 import {
   Dialog,
   DialogContent,
@@ -36,8 +37,16 @@ import {
   startOfYear,
 } from "date-fns";
 
+// Custom Peso Icon Component
+const PesoIcon = ({ className }: { className?: string }) => (
+  <span className={className} style={{ fontFamily: 'system-ui, sans-serif', fontWeight: 'bold' }}>
+    ₱
+  </span>
+);
+
 const Sales = () => {
   const [sales, setSales] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -54,11 +63,15 @@ const Sales = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.getSales({
-        from,
-        to,
-      });
-      setSales(data as any[]);
+      const [salesData, productsData] = await Promise.all([
+        api.getSales({ from, to }),
+        api.getProducts(), // This should return all products on server, but may filter on mobile
+      ]);
+      const salesArray = salesData as any[];
+      const productsArray = productsData as any[];
+      setSales(salesArray);
+      setProducts(productsArray);
+      console.log(`[SALES] Loaded ${salesArray.length} sales and ${productsArray.length} products`);
     } catch (e: any) {
       setError(e.message ?? "Failed to load sales");
     } finally {
@@ -197,9 +210,10 @@ const Sales = () => {
   const stats = useMemo(() => {
     if (!sales.length) {
       return [
-        { title: "Today's Sales", value: "$0.00", icon: DollarSign, trend: "" },
+        { title: "Today's Sales", value: formatCurrency(0), icon: PesoIcon, trend: "" },
         { title: "Transactions", value: "0", icon: Receipt, trend: "" },
-        { title: "Average Sale", value: "$0.00", icon: TrendingUp, trend: "" },
+        { title: "Average Sale", value: formatCurrency(0), icon: TrendingUp, trend: "" },
+        { title: "Total Profit", value: formatCurrency(0), icon: DollarSign, trend: "" },
       ];
     }
 
@@ -207,12 +221,66 @@ const Sales = () => {
     const count = sales.length;
     const avg = total / count;
 
+    // Calculate total profit using actual selling prices from sale items
+    let totalProfit = 0;
+    console.log(`[PROFIT] Starting calculation. Sales: ${sales.length}, Products: ${products.length}`);
+    
+    // Log first sale for debugging
+    if (sales.length > 0 && sales[0].items) {
+      console.log(`[PROFIT] Sample sale item:`, sales[0].items[0]);
+    }
+    
+    for (const sale of sales) {
+      if (!sale.items || sale.items.length === 0) {
+        console.warn(`[PROFIT] Sale ${sale.id} has no items`);
+        continue;
+      }
+      
+      for (const item of sale.items) {
+        // Get margin percentage from product (we still need this)
+        const product = products.find((p) => p.id === item.productId);
+        if (!product) {
+          console.warn(`[PROFIT] Product not found for sale item: ${item.productId}, Item: ${item.productName}`);
+          continue;
+        }
+
+        const marginPercent = product.marginPercentage ?? 0;
+        if (marginPercent === 0 || marginPercent === null || marginPercent === undefined) {
+          console.warn(`[PROFIT] Product "${product.name}" has no margin percentage set (value: ${product.marginPercentage})`);
+          continue;
+        }
+
+        // Use the actual selling price from the sale item (this is what was sold at)
+        const sellingPrice = item.price;
+        
+        if (!sellingPrice || sellingPrice <= 0) {
+          console.warn(`[PROFIT] Invalid selling price for item: ${item.productName}, price: ${sellingPrice}`);
+          continue;
+        }
+        
+        // Calculate base price from selling price
+        // sellingPrice = basePrice × (1 + marginPercent/100)
+        // basePrice = sellingPrice / (1 + marginPercent/100)
+        const basePrice = sellingPrice / (1 + marginPercent / 100);
+        
+        // Profit = basePrice × marginPercent/100 × quantity
+        const profitPerUnit = (basePrice * marginPercent) / 100;
+        const profitForItem = profitPerUnit * item.quantity;
+        totalProfit += profitForItem;
+        
+        console.log(`[PROFIT] Item: ${item.productName || product.name}, Selling Price: ${sellingPrice}, Margin: ${marginPercent}%, Base: ${basePrice.toFixed(2)}, Qty: ${item.quantity}, Profit: ${profitForItem.toFixed(2)}`);
+      }
+    }
+    
+    console.log(`[PROFIT] Total profit calculated: ${totalProfit.toFixed(2)}`);
+
     return [
-      { title: "Today's Sales", value: `$${total.toFixed(2)}`, icon: DollarSign, trend: "" },
+      { title: "Today's Sales", value: formatCurrency(total), icon: PesoIcon, trend: "" },
       { title: "Transactions", value: `${count}`, icon: Receipt, trend: "" },
-      { title: "Average Sale", value: `$${avg.toFixed(2)}`, icon: TrendingUp, trend: "" },
+      { title: "Average Sale", value: formatCurrency(avg), icon: TrendingUp, trend: "" },
+      { title: "Total Profit", value: formatCurrency(totalProfit), icon: DollarSign, trend: "" },
     ];
-  }, [sales]);
+  }, [sales, products]);
 
   const openSaleDetails = (sale: any) => {
     setDetailsSale(sale);
@@ -331,7 +399,7 @@ const Sales = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -385,7 +453,7 @@ const Sales = () => {
                         {new Date(sale.createdAt).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right font-bold">
-                        ${sale.total.toFixed(2)}
+                        {formatCurrency(sale.total)}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" onClick={() => openSaleDetails(sale)}>
@@ -412,7 +480,7 @@ const Sales = () => {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-lg">${sale.total.toFixed(2)}</p>
+                      <p className="font-bold text-lg">{formatCurrency(sale.total)}</p>
                       <p className="text-xs text-muted-foreground capitalize">{sale.paymentMethod}</p>
                     </div>
                   </div>
@@ -485,7 +553,7 @@ const Sales = () => {
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs">Total</p>
-                  <p className="font-semibold">${detailsSale.total.toFixed(2)}</p>
+                  <p className="font-semibold">{formatCurrency(detailsSale.total)}</p>
                 </div>
               </div>
               <div className="rounded-lg border">
@@ -508,9 +576,9 @@ const Sales = () => {
                           )}
                         </TableCell>
                         <TableCell className="text-right">{item.quantity}</TableCell>
-                        <TableCell className="text-right">${Number(item.price).toFixed(2)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(item.price)}</TableCell>
                         <TableCell className="text-right font-semibold">
-                          ${Number(item.subtotal).toFixed(2)}
+                          {formatCurrency(item.subtotal)}
                         </TableCell>
                       </TableRow>
                     ))}
