@@ -12,6 +12,7 @@ import {
   Menu,
   Users,
   FolderTree,
+  Coffee,
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -62,17 +63,17 @@ const AppLayout = () => {
   );
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="min-h-screen flex bg-background font-sans">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 bg-sidebar border-r flex-col">
-        <div className="p-6 border-b">
+      <aside className="hidden md:flex w-64 bg-sidebar border-r border-sidebar-border flex-col">
+        <div className="p-6 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-              <Store className="w-6 h-6 text-primary-foreground" />
+              <Coffee className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="font-bold text-lg">QuickPOS</h1>
-              <p className="text-xs text-muted-foreground">{user?.role}</p>
+              <h1 className="font-bold text-lg font-serif text-sidebar-foreground">Quick Brew</h1>
+              <p className="text-xs text-sidebar-foreground/70">{user?.role}</p>
             </div>
           </div>
         </div>
@@ -81,14 +82,14 @@ const AppLayout = () => {
           <NavLinks />
         </nav>
 
-        <div className="p-4 border-t">
+        <div className="p-4 border-t border-sidebar-border">
           <div className="mb-4 px-4 py-3 bg-sidebar-accent rounded-lg">
-            <p className="text-sm font-medium">{user?.name}</p>
-            <p className="text-xs text-muted-foreground">{user?.email}</p>
+            <p className="text-sm font-medium text-sidebar-foreground">{user?.name}</p>
+            <p className="text-xs text-sidebar-foreground/70">{user?.email}</p>
           </div>
           <Button
             variant="outline"
-            className="w-full justify-start gap-3"
+            className="w-full justify-start gap-3 border-sidebar-border bg-white text-black hover:bg-gray-100 hover:text-black"
             onClick={handleLogout}
           >
             <LogOut className="w-4 h-4" />
@@ -105,31 +106,31 @@ const AppLayout = () => {
               <Menu className="w-6 h-6" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-64 p-0">
-            <div className="p-6 border-b">
+          <SheetContent side="left" className="w-64 p-0 bg-sidebar border-sidebar-border flex flex-col [&>button]:text-sidebar-foreground [&>button]:hover:bg-sidebar-accent">
+            <div className="p-6 border-b border-sidebar-border">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-                  <Store className="w-6 h-6 text-primary-foreground" />
+                  <Coffee className="w-6 h-6 text-primary-foreground" />
                 </div>
                 <div>
-                  <h1 className="font-bold text-lg">QuickPOS</h1>
-                  <p className="text-xs text-muted-foreground">{user?.role}</p>
+                  <h1 className="font-bold text-lg font-serif text-sidebar-foreground">Quick Brew</h1>
+                  <p className="text-xs text-sidebar-foreground/70">{user?.role}</p>
                 </div>
               </div>
             </div>
 
-            <nav className="flex-1 p-4 space-y-1">
+            <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
               <NavLinks mobile />
             </nav>
 
-            <div className="p-4 border-t">
+            <div className="p-4 border-t border-sidebar-border">
               <div className="mb-4 px-4 py-3 bg-sidebar-accent rounded-lg">
-                <p className="text-sm font-medium">{user?.name}</p>
-                <p className="text-xs text-muted-foreground">{user?.email}</p>
+                <p className="text-sm font-medium text-sidebar-foreground">{user?.name}</p>
+                <p className="text-xs text-sidebar-foreground/70">{user?.email}</p>
               </div>
               <Button
                 variant="outline"
-                className="w-full justify-start gap-3"
+                className="w-full justify-start gap-3 border-sidebar-border bg-white text-black hover:bg-gray-100 hover:text-black"
                 onClick={handleLogout}
               >
                 <LogOut className="w-4 h-4" />
@@ -141,8 +142,8 @@ const AppLayout = () => {
 
         <div className="flex-1 flex justify-center">
           <div className="flex items-center gap-2">
-            <Store className="w-5 h-5 text-primary" />
-            <span className="font-bold">QuickPOS</span>
+            <Coffee className="w-5 h-5 text-primary" />
+            <span className="font-bold font-serif">Quick Brew</span>
           </div>
         </div>
       </div>

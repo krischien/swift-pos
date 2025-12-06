@@ -14,8 +14,10 @@ interface SettingsState {
   setTaxRatePercent: (value: number) => void;
   enableDiscounts: boolean;
   enableBarcodeScanning: boolean;
+  enableInventoryMonitoring: boolean;
   setEnableDiscounts: (value: boolean) => void;
   setEnableBarcodeScanning: (value: boolean) => void;
+  setEnableInventoryMonitoring: (value: boolean) => void;
   selectedPrinter: PrinterDevice | null;
   setSelectedPrinter: (device: PrinterDevice | null) => void;
 }
@@ -28,6 +30,7 @@ interface StoredSettings {
   taxRatePercent: number;
   enableDiscounts: boolean;
   enableBarcodeScanning: boolean;
+  enableInventoryMonitoring: boolean;
   printerName: string | null;
   printerAddress: string | null;
 }
@@ -44,6 +47,7 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   const [taxRatePercent, setTaxRatePercentState] = useState(12);
   const [enableDiscounts, setEnableDiscountsState] = useState(true);
   const [enableBarcodeScanning, setEnableBarcodeScanningState] = useState(false);
+  const [enableInventoryMonitoring, setEnableInventoryMonitoringState] = useState(true);
   const [printerName, setPrinterNameState] = useState<string | null>(null);
   const [printerAddress, setPrinterAddressState] = useState<string | null>(null);
 
@@ -69,6 +73,9 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
         setEnableBarcodeScanningState(
           typeof parsed.enableBarcodeScanning === "boolean" ? parsed.enableBarcodeScanning : false,
         );
+        setEnableInventoryMonitoringState(
+          typeof parsed.enableInventoryMonitoring === "boolean" ? parsed.enableInventoryMonitoring : true,
+        );
         setPrinterNameState(parsed.printerName ?? null);
         setPrinterAddressState(parsed.printerAddress ?? null);
       }
@@ -85,6 +92,7 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     taxRatePercent,
     enableDiscounts,
     enableBarcodeScanning,
+    enableInventoryMonitoring,
     printerName,
     printerAddress,
     ...overrides,
@@ -128,6 +136,11 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     persist({ enableBarcodeScanning: value });
   };
 
+  const setEnableInventoryMonitoring = (value: boolean) => {
+    setEnableInventoryMonitoringState(value);
+    persist({ enableInventoryMonitoring: value });
+  };
+
   const setTaxRatePercent = (value: number) => {
     const safe = Number.isNaN(value) ? 12 : Math.max(0, Math.min(100, value));
     setTaxRatePercentState(safe);
@@ -165,8 +178,10 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
         setTaxRatePercent,
         enableDiscounts,
         enableBarcodeScanning,
+        enableInventoryMonitoring,
         setEnableDiscounts,
         setEnableBarcodeScanning,
+        setEnableInventoryMonitoring,
         selectedPrinter,
         setSelectedPrinter,
       }}

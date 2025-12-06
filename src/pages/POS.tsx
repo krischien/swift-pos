@@ -206,7 +206,7 @@ const POS = () => {
       )
       .join("") || `<tr><td colspan="4" style="text-align:center;padding:8px 0;">No items</td></tr>`;
 
-    const headerName = storeName || "QuickPOS Receipt";
+    const headerName = storeName || "Quick Brew Receipt";
     const headerAddress = storeAddress || "";
     const createdAt = new Date(sale?.createdAt ?? Date.now());
     const totalDisplay = typeof sale?.total === "number" ? sale.total : fallbackTotals.total;

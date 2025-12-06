@@ -15,11 +15,4 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  optimizeDeps: {
-    exclude: [
-      "@capacitor/filesystem",
-      "@capacitor/share",
-      "@capacitor-community/sqlite",
-    ],
-  },
 }));

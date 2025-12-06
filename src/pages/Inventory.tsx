@@ -9,11 +9,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertTriangle, Trash2, Download, ChevronDown, Barcode, QrCode, FileSpreadsheet } from "lucide-react";
+import { Plus, Search, AlertTriangle, Trash2, Download, ChevronDown, Barcode, QrCode, FileSpreadsheet, Upload, ChevronUp, Scan } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { Category, Product, Variant } from "@/types/pos";
 import { formatCurrency } from "@/lib/currency";
+import { useSettings } from "@/contexts/SettingsContext";
 import {
   Dialog,
   DialogContent,
@@ -33,8 +34,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { OCRScanDialog } from "@/components/inventory/OCRScanDialog";
+import { useToast } from "@/hooks/use-toast";
 
 const Inventory = () => {
+  const { enableInventoryMonitoring } = useSettings();
   const [search, setSearch] = useState("");
   const [stockFilter, setStockFilter] = useState<"all" | "lowStock">("all");
   const [categories, setCategories] = useState<Category[]>([]);
@@ -60,6 +64,8 @@ const Inventory = () => {
   const [variantProduct, setVariantProduct] = useState<Product | null>(null);
   const [variantRows, setVariantRows] = useState<(Variant & { isNew?: boolean })[]>([]);
   const [variantSavingId, setVariantSavingId] = useState<string | null>(null);
+  const [ocrDialogOpen, setOcrDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   const load = async () => {
     try {
@@ -239,6 +245,76 @@ const Inventory = () => {
     }
   };
 
+  const handleBulkImport = async (
+    items: Array<{
+      name: string;
+      price?: number;
+      categoryId: string;
+      marginPercentage: number;
+      stock: number;
+      lowStockThreshold: number;
+    }>
+  ) => {
+    try {
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const item of items) {
+        try {
+          // Generate item code
+          const itemCode = `ITM-${Date.now().toString(36).toUpperCase().slice(-6)}-${successCount}`;
+          const sku = `SKU-${Date.now().toString(36).toUpperCase().slice(-8)}-${successCount}`;
+
+          // Calculate selling price from base price and margin
+          const basePrice = item.price || 0;
+          const sellingPrice = basePrice * (1 + item.marginPercentage / 100);
+
+          await api.createProduct({
+            name: item.name.trim(),
+            categoryId: item.categoryId,
+            itemCode,
+            sku,
+            basePrice,
+            price: sellingPrice,
+            stock: item.stock,
+            lowStockThreshold: item.lowStockThreshold,
+            marginPercentage: item.marginPercentage,
+            hasVariants: false,
+            status: "active",
+          });
+
+          successCount++;
+        } catch (error) {
+          console.error(`Failed to create product "${item.name}":`, error);
+          errorCount++;
+        }
+      }
+
+      await load();
+
+      if (successCount > 0) {
+        toast({
+          title: "Import successful",
+          description: `Successfully imported ${successCount} product${successCount !== 1 ? "s" : ""}${errorCount > 0 ? `. ${errorCount} failed.` : ""}`,
+        });
+      }
+
+      if (errorCount > 0 && successCount === 0) {
+        toast({
+          variant: "destructive",
+          title: "Import failed",
+          description: `Failed to import ${errorCount} product${errorCount !== 1 ? "s" : ""}. Please check the console for details.`,
+        });
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Import error",
+        description: error.message ?? "Failed to import products",
+      });
+    }
+  };
+
   const openVariantDialog = async (product: Product) => {
     setVariantProduct(product);
     setVariantDialogOpen(true);
@@ -337,55 +413,55 @@ const Inventory = () => {
   };
 
   const handleExportProductList = async () => {
-    const XLSX = await import("xlsx");
-    const rows: any[] = [];
-    products.forEach((product) => {
-      const category = categories.find((c) => c.id === product.categoryId);
-      if (product.hasVariants && product.variants?.length) {
-        product.variants.forEach((variant) => {
-          rows.push({
-            ItemCode: product.itemCode,
-            ProductName: product.name,
-            Category: category?.name ?? "",
-            Status: product.status,
-            HasVariants: product.hasVariants ? "Yes" : "No",
-            VariantName: variant.name,
-            VariantPrice: variant.price,
-            VariantStock: variant.stock,
-            BasePrice: "",
-            BaseStock: "",
-            LowStockThreshold: product.lowStockThreshold,
-          });
-        });
-      } else {
-        rows.push({
-          ItemCode: product.itemCode,
-          ProductName: product.name,
-          Category: category?.name ?? "",
-          Status: product.status,
-          HasVariants: product.hasVariants ? "Yes" : "No",
-          VariantName: "",
-          VariantPrice: "",
-          VariantStock: "",
-          BasePrice: product.price ?? "",
-          BaseStock: product.stock ?? "",
-          LowStockThreshold: product.lowStockThreshold,
-        });
-      }
-    });
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Items");
-    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    const blob = new Blob([wbout], { type: "application/octet-stream" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "inventory-items.xlsx";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+            const XLSX = await import("xlsx");
+            const rows: any[] = [];
+            products.forEach((product) => {
+              const category = categories.find((c) => c.id === product.categoryId);
+              if (product.hasVariants && product.variants?.length) {
+                product.variants.forEach((variant) => {
+                  rows.push({
+                    ItemCode: product.itemCode,
+                    ProductName: product.name,
+                    Category: category?.name ?? "",
+                    Status: product.status,
+                    HasVariants: product.hasVariants ? "Yes" : "No",
+                    VariantName: variant.name,
+                    VariantPrice: variant.price,
+                    VariantStock: variant.stock,
+                    BasePrice: "",
+                    BaseStock: "",
+                    LowStockThreshold: product.lowStockThreshold,
+                  });
+                });
+              } else {
+                rows.push({
+                  ItemCode: product.itemCode,
+                  ProductName: product.name,
+                  Category: category?.name ?? "",
+                  Status: product.status,
+                  HasVariants: product.hasVariants ? "Yes" : "No",
+                  VariantName: "",
+                  VariantPrice: "",
+                  VariantStock: "",
+                  BasePrice: product.price ?? "",
+                  BaseStock: product.stock ?? "",
+                  LowStockThreshold: product.lowStockThreshold,
+                });
+              }
+            });
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Items");
+            const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+            const blob = new Blob([wbout], { type: "application/octet-stream" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "inventory-items.xlsx";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
   };
 
   const handleExportLowStockList = async () => {
@@ -752,39 +828,50 @@ const Inventory = () => {
           <h1 className="text-3xl font-bold">Inventory Management</h1>
           <p className="text-muted-foreground">Manage your products and stock levels</p>
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex-1 md:flex-none">
-                <Download className="w-4 h-4 mr-2" />
-                Export
-                <ChevronDown className="w-4 h-4 ml-2" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExportProductList}>
-                <FileSpreadsheet className="w-4 h-4 mr-2" />
-                Product List
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportLowStockList}>
-                <AlertTriangle className="w-4 h-4 mr-2" />
-                Low Stock List
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportBarcodeList}>
-                <Barcode className="w-4 h-4 mr-2" />
-                Barcode List
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportQRList}>
-                <QrCode className="w-4 h-4 mr-2" />
-                QR List
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Dialog open={formOpen} onOpenChange={setFormOpen}>
-            <Button className="gap-2 flex-1 md:flex-none" onClick={openAddDialog}>
-              <Plus className="w-4 h-4" />
-              Add Product
+        <div className="flex flex-col gap-2 w-full md:flex-row md:w-auto">
+          <div className="flex gap-2 w-full md:w-auto">
+            <Button
+              variant="outline"
+              className="gap-2 flex-1 md:flex-none"
+              onClick={() => setOcrDialogOpen(true)}
+            >
+              <Scan className="w-4 h-4" />
+              Scan Menu
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex-1 md:flex-none">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                  <ChevronDown className="w-4 h-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportProductList}>
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Product List
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportLowStockList}>
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                  Low Stock List
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportBarcodeList}>
+                  <Barcode className="w-4 h-4 mr-2" />
+                  Barcode List
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportQRList}>
+                  <QrCode className="w-4 h-4 mr-2" />
+                  QR List
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <div className="flex gap-2 w-full md:w-auto">
+            <Dialog open={formOpen} onOpenChange={setFormOpen}>
+              <Button className="gap-2 flex-1 md:flex-none" onClick={openAddDialog}>
+                <Plus className="w-4 h-4" />
+                Add Product
+              </Button>
             <DialogContent className="max-h-[90vh] flex flex-col">
               <DialogHeader>
                 <DialogTitle>{isEditing ? "Edit Product" : "Add Product"}</DialogTitle>
@@ -793,7 +880,7 @@ const Inventory = () => {
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Item Code</p>
                   <Input
-                    value={formItemCode} 
+                    value={formItemCode}
                     className="bg-muted/50"
                   />
                 </div>
@@ -922,23 +1009,32 @@ const Inventory = () => {
                 )}
               </div>
               <div className="flex justify-end gap-2 pt-4 border-t mt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setFormOpen(false);
-                    setEditingProduct(null);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveProduct} disabled={saving}>
-                  {saving ? "Saving..." : isEditing ? "Save Changes" : "Save Product"}
-                </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setFormOpen(false);
+                      setEditingProduct(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSaveProduct} disabled={saving}>
+                    {saving ? "Saving..." : isEditing ? "Save Changes" : "Save Product"}
+                  </Button>
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </div>
+
+      {/* OCR Scan Dialog */}
+      <OCRScanDialog
+        open={ocrDialogOpen}
+        onClose={() => setOcrDialogOpen(false)}
+        categories={categories}
+        onImport={handleBulkImport}
+      />
 
       <div className="flex gap-4">
         <div className="relative flex-1">
@@ -969,9 +1065,11 @@ const Inventory = () => {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <div className="text-sm font-medium text-red-600">
-          Items Low in Stock: {lowStockCount}
-        </div>
+        {enableInventoryMonitoring && (
+          <div className="text-sm font-medium text-red-600">
+            Items Low in Stock: {lowStockCount}
+          </div>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -1016,10 +1114,10 @@ const Inventory = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            {isLowStock && (
+                            {enableInventoryMonitoring && isLowStock && (
                               <AlertTriangle className="w-4 h-4 text-destructive" />
                             )}
-                            <span className={isLowStock ? "text-destructive font-semibold" : ""}>
+                            <span className={enableInventoryMonitoring && isLowStock ? "text-destructive font-semibold" : ""}>
                               {totalStock}
                             </span>
                           </div>
@@ -1097,8 +1195,8 @@ const Inventory = () => {
                       <div>
                         <p className="text-muted-foreground">Stock</p>
                         <div className="flex items-center gap-1">
-                          {isLowStock && <AlertTriangle className="w-3 h-3 text-destructive" />}
-                          <span className={isLowStock ? "text-destructive font-medium" : "font-medium"}>
+                          {enableInventoryMonitoring && isLowStock && <AlertTriangle className="w-3 h-3 text-destructive" />}
+                          <span className={enableInventoryMonitoring && isLowStock ? "text-destructive font-medium" : "font-medium"}>
                             {totalStock}
                           </span>
                         </div>

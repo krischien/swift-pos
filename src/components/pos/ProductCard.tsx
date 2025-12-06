@@ -1,7 +1,7 @@
 import { Product } from "@/types/pos";
 import { Button } from "@/components/ui/button";
-import { Package } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
+import itemPlaceholder from "@/assets/item.jpg";
 
 interface ProductCardProps {
   product: Product;
@@ -30,7 +30,7 @@ export const ProductCard = ({ product, onSelect }: ProductCardProps) => {
       className="h-auto flex-col p-4 bg-pos-product hover:bg-accent hover:border-primary transition-all"
       onClick={() => onSelect(product)}
     >
-      <div className="w-full aspect-square bg-muted rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+      <div className="w-[60px] h-[60px] bg-muted rounded-lg mb-3 flex items-center justify-center overflow-hidden mx-auto">
         {product.image ? (
           <img
             src={product.image}
@@ -38,7 +38,11 @@ export const ProductCard = ({ product, onSelect }: ProductCardProps) => {
             className="w-full h-full object-cover"
           />
         ) : (
-          <Package className="w-10 h-10 text-muted-foreground" />
+          <img
+            src={itemPlaceholder}
+            alt="Product placeholder"
+            className="w-full h-full object-cover"
+          />
         )}
       </div>
       <h3 className="font-semibold text-sm mb-1 line-clamp-2 w-full text-center">

@@ -51,8 +51,10 @@ const Settings = () => {
     setTaxRatePercent,
     enableDiscounts,
     enableBarcodeScanning,
+    enableInventoryMonitoring,
     setEnableDiscounts,
     setEnableBarcodeScanning,
+    setEnableInventoryMonitoring,
     selectedPrinter,
     setSelectedPrinter,
   } = useSettings();
@@ -351,7 +353,7 @@ const Settings = () => {
             <Label htmlFor="store-name">Store name</Label>
             <Input
               id="store-name"
-              placeholder="QuickPOS"
+              placeholder="Quick Brew"
               value={storeName}
               onChange={(e) => setStoreName(e.target.value)}
             />
@@ -399,6 +401,20 @@ const Settings = () => {
               id="barcode"
               checked={enableBarcodeScanning}
               onCheckedChange={setEnableBarcodeScanning}
+            />
+          </div>
+          <Separator />
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="inventory-monitoring">Inventory Monitoring</Label>
+              <p className="text-sm text-muted-foreground">
+                Enable low stock alerts and inventory monitoring features
+              </p>
+            </div>
+            <Switch
+              id="inventory-monitoring"
+              checked={enableInventoryMonitoring}
+              onCheckedChange={setEnableInventoryMonitoring}
             />
           </div>
         </CardContent>
@@ -547,7 +563,7 @@ const Settings = () => {
             <CardDescription>Manage database backups and restore from previous backups</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="space-y-0.5">
                 <Label>Available Backups</Label>
                 <p className="text-sm text-muted-foreground">
@@ -562,6 +578,7 @@ const Settings = () => {
                   size="sm"
                   onClick={loadBackups}
                   disabled={loadingBackups}
+                  className="flex-1 md:flex-none"
                 >
                   {loadingBackups ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -575,6 +592,7 @@ const Settings = () => {
                   size="sm"
                   onClick={handleCreateBackup}
                   disabled={loadingBackups}
+                  className="flex-1 md:flex-none"
                 >
                   <Download className="mr-2 h-4 w-4" />
                   Create Backup
@@ -652,7 +670,7 @@ const Settings = () => {
             <CardDescription>Manage database backups and restore from previous backups</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="space-y-0.5">
                 <Label>Available Backups</Label>
                 <p className="text-sm text-muted-foreground">
@@ -667,6 +685,7 @@ const Settings = () => {
                   size="sm"
                   onClick={loadMobileBackups}
                   disabled={loadingMobileBackups}
+                  className="flex-1 md:flex-none"
                 >
                   {loadingMobileBackups ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -680,6 +699,7 @@ const Settings = () => {
                   size="sm"
                   onClick={handleCreateMobileBackup}
                   disabled={creatingMobileBackup || loadingMobileBackups}
+                  className="flex-1 md:flex-none"
                 >
                   {creatingMobileBackup ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -693,6 +713,7 @@ const Settings = () => {
                   size="sm"
                   onClick={handleExportMobileBackup}
                   disabled={exportingMobileBackup || loadingMobileBackups}
+                  className="flex-1 md:flex-none"
                 >
                   {exportingMobileBackup ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

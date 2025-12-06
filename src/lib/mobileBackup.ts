@@ -49,7 +49,26 @@ export async function createMobileBackup(): Promise<string> {
   }
 
   try {
-    const { CapacitorSQLite, SQLiteConnection } = await import("@capacitor-community/sqlite");
+    let CapacitorSQLite: any;
+    let SQLiteConnection: any;
+    
+    try {
+      // Use a more robust import that handles module resolution issues
+      const sqliteModule = await import("@capacitor-community/sqlite");
+      CapacitorSQLite = sqliteModule.CapacitorSQLite;
+      SQLiteConnection = sqliteModule.SQLiteConnection;
+      
+      // Verify the classes are available
+      if (!CapacitorSQLite || !SQLiteConnection) {
+        throw new Error("SQLite plugin classes not found in module");
+      }
+    } catch (error: any) {
+      console.error("Failed to import @capacitor-community/sqlite:", error);
+      throw new Error(
+        `SQLite plugin is not available: ${error?.message || "Unknown error"}. ` +
+        "Make sure you're running on a native platform and the plugin is properly installed."
+      );
+    }
     const sqlite = new SQLiteConnection(CapacitorSQLite);
     
     // Check if the database exists
@@ -166,7 +185,7 @@ export async function exportMobileBackup(): Promise<void> {
     // Share the file
     await Share.share({
       title: "Database Backup",
-      text: "QuickPOS Database Backup",
+      text: "Quick Brew Database Backup",
       url: fileUri.uri,
       dialogTitle: "Share Database Backup",
     });
@@ -246,7 +265,26 @@ export async function restoreMobileBackup(backupFilename: string): Promise<void>
       directory: Directory.Documents,
     });
     
-    const { CapacitorSQLite, SQLiteConnection } = await import("@capacitor-community/sqlite");
+    let CapacitorSQLite: any;
+    let SQLiteConnection: any;
+    
+    try {
+      // Use a more robust import that handles module resolution issues
+      const sqliteModule = await import("@capacitor-community/sqlite");
+      CapacitorSQLite = sqliteModule.CapacitorSQLite;
+      SQLiteConnection = sqliteModule.SQLiteConnection;
+      
+      // Verify the classes are available
+      if (!CapacitorSQLite || !SQLiteConnection) {
+        throw new Error("SQLite plugin classes not found in module");
+      }
+    } catch (error: any) {
+      console.error("Failed to import @capacitor-community/sqlite:", error);
+      throw new Error(
+        `SQLite plugin is not available: ${error?.message || "Unknown error"}. ` +
+        "Make sure you're running on a native platform and the plugin is properly installed."
+      );
+    }
     const sqlite = new SQLiteConnection(CapacitorSQLite);
     
     // Close the current database connection if it exists

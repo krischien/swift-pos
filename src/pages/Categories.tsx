@@ -145,12 +145,12 @@ const Categories = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Category Management</h1>
           <p className="text-muted-foreground">Organize your products by categories</p>
         </div>
-        <Button onClick={openAddDialog}>
+        <Button onClick={openAddDialog} className="w-full md:w-auto">
           <FolderPlus className="mr-2 h-4 w-4" />
           Add Category
         </Button>
