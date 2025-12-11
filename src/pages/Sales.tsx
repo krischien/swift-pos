@@ -30,6 +30,7 @@ import {
   endOfQuarter,
   endOfWeek,
   endOfYear,
+  isSameDay,
   startOfDay,
   startOfMonth,
   startOfQuarter,
@@ -148,14 +149,35 @@ const Sales = () => {
             variantId: item.variantId,
             quantitySold: 0,
             salesAmount: 0,
+            totalProfit: 0,
           };
           existing.quantitySold += item.quantity;
           existing.salesAmount += item.subtotal;
+          
+          // Calculate profit for this item using the same formula as stats
+          const product = productsArr.find((p) => p.id === item.productId);
+          if (product) {
+            const marginPercent = product.marginPercentage ?? 0;
+            if (marginPercent > 0 && item.price > 0) {
+              // Calculate base price from selling price
+              // sellingPrice = basePrice × (1 + marginPercent/100)
+              // basePrice = sellingPrice / (1 + marginPercent/100)
+              const basePrice = item.price / (1 + marginPercent / 100);
+              // Profit = basePrice × marginPercent/100 × quantity
+              const profitPerUnit = (basePrice * marginPercent) / 100;
+              const profitForItem = profitPerUnit * item.quantity;
+              existing.totalProfit += profitForItem;
+            }
+          }
+          
           rowsMap.set(key, existing);
         }
       }
 
       const rows: any[] = [];
+      // Calculate grand totals from actual sale totals (includes tax/discounts) to match Sales History page
+      let grandTotalSales = salesArr.reduce((sum, sale) => sum + (sale.total || 0), 0);
+      let grandTotalProfit = 0;
 
       rowsMap.forEach((value) => {
         const product = productsArr.find((p) => p.id === value.productId);
@@ -168,16 +190,26 @@ const Sales = () => {
         const currentStock = variant ? variant.stock : product.stock ?? 0;
         const openingStockApprox = currentStock + value.quantitySold;
 
+        grandTotalProfit += value.totalProfit || 0;
+
+        // Calculate profit margin percentage
+        const profitMarginPercent = value.salesAmount > 0 
+          ? ((value.totalProfit || 0) / value.salesAmount) * 100 
+          : 0;
+
         rows.push({
           ItemCode: product.itemCode,
           ProductName: product.name,
           VariantName: variant?.name ?? "",
           Category: product.category?.name ?? "",
           DateRange: label,
-          QuantitySold: value.quantitySold,
-          SalesAmount: value.salesAmount,
           ApproxOpeningStock: openingStockApprox,
           ClosingStock: currentStock,
+          QuantitySold: value.quantitySold,
+          ProfitMarginPercentage: profitMarginPercent,
+          SalesAmount: value.salesAmount,
+          TotalSales: value.salesAmount,
+          TotalProfit: value.totalProfit || 0,
         });
       });
 
@@ -185,6 +217,27 @@ const Sales = () => {
         alert("No sales found for the selected period.");
         return;
       }
+
+      // Calculate grand total profit margin percentage
+      const grandTotalProfitMarginPercent = grandTotalSales > 0 
+        ? (grandTotalProfit / grandTotalSales) * 100 
+        : 0;
+
+      // Add grand total row
+      rows.push({
+        ItemCode: "",
+        ProductName: "GRAND TOTAL",
+        VariantName: "",
+        Category: "",
+        DateRange: "",
+        ApproxOpeningStock: "",
+        ClosingStock: "",
+        QuantitySold: "",
+        ProfitMarginPercentage: grandTotalProfitMarginPercent,
+        SalesAmount: "",
+        TotalSales: grandTotalSales,
+        TotalProfit: grandTotalProfit,
+      });
 
       const XLSX = await import("xlsx");
       const ws = XLSX.utils.json_to_sheet(rows);
@@ -208,7 +261,11 @@ const Sales = () => {
   };
 
   const stats = useMemo(() => {
-    if (!sales.length) {
+    // Filter sales for today
+    const today = new Date();
+    const todaySales = sales.filter(s => isSameDay(new Date(s.createdAt), today));
+
+    if (!todaySales.length) {
       return [
         { title: "Today's Sales", value: formatCurrency(0), icon: PesoIcon, trend: "" },
         { title: "Transactions", value: "0", icon: Receipt, trend: "" },
@@ -217,20 +274,14 @@ const Sales = () => {
       ];
     }
 
-    const total = sales.reduce((sum, s) => sum + s.total, 0);
-    const count = sales.length;
+    const total = todaySales.reduce((sum, s) => sum + s.total, 0);
+    const count = todaySales.length;
     const avg = total / count;
 
     // Calculate total profit using actual selling prices from sale items
     let totalProfit = 0;
-    console.log(`[PROFIT] Starting calculation. Sales: ${sales.length}, Products: ${products.length}`);
     
-    // Log first sale for debugging
-    if (sales.length > 0 && sales[0].items) {
-      console.log(`[PROFIT] Sample sale item:`, sales[0].items[0]);
-    }
-    
-    for (const sale of sales) {
+    for (const sale of todaySales) {
       if (!sale.items || sale.items.length === 0) {
         console.warn(`[PROFIT] Sale ${sale.id} has no items`);
         continue;
@@ -289,56 +340,61 @@ const Sales = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-4 tablet-landscape:flex-row tablet-landscape:items-center tablet-landscape:justify-between lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Sales History</h1>
           <p className="text-muted-foreground">
             View and manage your sales transactions{activeRangeLabel ? ` (${activeRangeLabel})` : ""}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2 flex-1 md:flex-none" disabled={exporting}>
-                <Download className="w-4 h-4" />
-                Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleExport("today")}>
-                Today
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("weekly")}>
-                This Week
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("monthly")}>
-                This Month
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("quarterly")}>
-                This Quarter
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("annual")}>
-                This Year
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button
-            variant="outline"
-            className="gap-2 flex-1 md:flex-none"
-            onClick={() => window.print()}
-          >
-            <Printer className="w-4 h-4" />
-            Print
-          </Button>
-          <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
+        <div className="flex flex-col tablet-portrait:flex-row tablet-portrait:justify-end tablet-landscape:flex-row lg:flex-row gap-2 w-full tablet-landscape:w-auto tablet-landscape:justify-end lg:w-auto lg:justify-end">
+          {/* Row 1 on mobile, all buttons in one row on tablet/desktop */}
+          <div className="flex flex-row gap-2 w-full tablet-portrait:w-auto tablet-landscape:w-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2 flex-1 tablet-portrait:flex-none tablet-portrait:w-auto tablet-landscape:flex-none tablet-landscape:w-auto lg:flex-none lg:w-auto" disabled={exporting}>
+                  <Download className="w-4 h-4" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleExport("today")}>
+                  Today
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport("weekly")}>
+                  This Week
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport("monthly")}>
+                  This Month
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport("quarterly")}>
+                  This Quarter
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport("annual")}>
+                  This Year
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               variant="outline"
-              className="gap-2 w-full md:w-auto"
-              onClick={() => setFilterOpen(true)}
+              className="gap-2 flex-1 tablet-portrait:flex-none tablet-portrait:w-auto tablet-landscape:flex-none tablet-landscape:w-auto lg:flex-none lg:w-auto"
+              onClick={() => window.print()}
             >
-              <Calendar className="w-4 h-4" />
-              Filter by Date
+              <Printer className="w-4 h-4" />
+              Print
             </Button>
+          </div>
+          {/* Row 2 on mobile, continues in same row on tablet/desktop */}
+          <div className="flex flex-row gap-2 w-full tablet-portrait:w-auto tablet-landscape:w-auto">
+            <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
+              <Button
+                variant="outline"
+                className="gap-2 flex-1 tablet-portrait:flex-none tablet-portrait:w-auto tablet-landscape:flex-none tablet-landscape:w-auto lg:flex-none lg:w-auto"
+                onClick={() => setFilterOpen(true)}
+              >
+                <Calendar className="w-4 h-4" />
+                Filter by Date
+              </Button>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Filter by Date</DialogTitle>
@@ -396,6 +452,7 @@ const Sales = () => {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </div>
 

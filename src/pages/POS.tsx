@@ -9,6 +9,7 @@ import { CheckoutModal } from "@/components/pos/CheckoutModal";
 import { CartItem, Product, Variant, Category } from "@/types/pos";
 import { useAuth } from "@/contexts/AuthContext";
 import { Search, Calendar, ShoppingCart } from "lucide-react";
+import { ImageSearchDialog } from "@/components/inventory/ImageSearchDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { api } from "@/lib/api";
@@ -16,6 +17,7 @@ import { useEffect } from "react";
 import { useSettings } from "@/contexts/SettingsContext";
 import { Capacitor } from "@capacitor/core";
 import { printerService } from "@/lib/printer";
+import { useScanDetection } from "@/hooks/use-scan-detection";
 import { formatCurrency } from "@/lib/currency";
 
 const POS = () => {
@@ -28,9 +30,41 @@ const POS = () => {
     enableDiscounts,
     taxRatePercent,
     selectedPrinter,
+    enableImageSearch,
+    enableBarcodeScanning,
   } = useSettings();
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  // Barcode scanning
+  useScanDetection({
+    onScan: (code) => {
+      if (!enableBarcodeScanning) return;
+      
+      const scannedProduct = products.find(
+        (p) => 
+          p.itemCode === code || 
+          p.barcode === code || 
+          p.sku === code ||
+          p.qrCode === code
+      );
+
+      if (scannedProduct) {
+        handleProductSelect(scannedProduct);
+        toast({
+          title: "Product Scanned",
+          description: `Added ${scannedProduct.name} to cart`,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Product Not Found",
+          description: `No product found with code: ${code}`,
+        });
+      }
+    },
+  });
+
   const [searchQuery, setSearchQuery] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -67,7 +101,17 @@ const POS = () => {
   const filteredProducts = products.filter((product) => {
     const matchesCategory = !selectedCategory || product.categoryId === selectedCategory;
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch && product.status === "active";
+    
+    // Check stock at variant level
+    if (product.hasVariants && product.variants) {
+      // For products with variants: only show if at least one variant has stock > 0
+      const hasAvailableVariant = product.variants.some(v => v.stock > 0);
+      return matchesCategory && matchesSearch && product.status === "active" && hasAvailableVariant;
+    } else {
+      // For products without variants: only show if stock > 0
+      const hasStock = (product.stock || 0) > 0;
+      return matchesCategory && matchesSearch && product.status === "active" && hasStock;
+    }
   });
 
   const handleProductSelect = (product: Product) => {
@@ -432,8 +476,8 @@ const POS = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header - desktop/tablet only */}
-      <header className="bg-card border-b p-4 items-center justify-between hidden md:flex">
+      {/* Header - tablet landscape/desktop only */}
+      <header className="bg-card border-b p-4 items-center justify-between hidden tablet-portrait:hidden tablet-landscape:flex lg:flex">
         <div className="flex items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold">Point of Sale</h1>
@@ -451,9 +495,9 @@ const POS = () => {
         </div>
       </header>
 
-      <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden md:h-[calc(100vh-96px)] md:max-h-[calc(100vh-96px)]">
+      <div className="flex-1 flex flex-col tablet-portrait:flex-col tablet-landscape:flex-row tablet-landscape:overflow-hidden tablet-landscape:h-[calc(100vh-96px)] tablet-landscape:max-h-[calc(100vh-96px)] lg:flex-row lg:overflow-hidden lg:h-[calc(100vh-96px)] lg:max-h-[calc(100vh-96px)]">
         {/* Products Section */}
-        <div className="flex-1 flex flex-col md:overflow-hidden">
+        <div className="flex-1 flex flex-col tablet-portrait:flex-col tablet-landscape:overflow-hidden lg:overflow-hidden">
           <div className="p-4 space-y-4 border-b bg-background">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -461,8 +505,17 @@ const POS = () => {
                 placeholder="Search products..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-12 text-base"
+                className="pl-10 pr-12 h-12 text-base"
               />
+              {/* Show camera if either Image Search OR Barcode Scanning is enabled */}
+              {(enableImageSearch || enableBarcodeScanning) && (
+                <ImageSearchDialog 
+                  products={products} 
+                  onSelectProduct={handleProductSelect}
+                  enableImageSearch={enableImageSearch}
+                  enableBarcodeScanning={enableBarcodeScanning}
+                />
+              )}
             </div>
             <CategoryTabs
               categories={categories}
@@ -490,8 +543,8 @@ const POS = () => {
           </div>
         </div>
 
-        {/* Cart Section - desktop/tablet */}
-        <div className="hidden md:flex md:flex-col md:w-96 lg:w-[420px] md:h-full">
+        {/* Cart Section - tablet landscape/desktop */}
+        <div className="hidden tablet-portrait:hidden tablet-landscape:flex tablet-landscape:flex-col tablet-landscape:w-96 lg:flex lg:flex-col lg:w-[420px] tablet-landscape:h-full lg:h-full">
           <Cart
             items={cart}
             onUpdateQuantity={handleUpdateQuantity}
@@ -505,10 +558,10 @@ const POS = () => {
         </div>
       </div>
 
-      {/* Floating Cart Button & Sheet - mobile */}
+      {/* Floating Cart Button & Sheet - mobile/tablet portrait */}
       <Sheet open={showCartSheet} onOpenChange={setShowCartSheet}>
         <Button
-          className="md:hidden fixed bottom-20 right-4 z-40 rounded-full w-14 h-14 shadow-lg bg-primary text-primary-foreground flex items-center justify-center"
+          className="tablet-portrait:flex tablet-landscape:hidden lg:hidden fixed bottom-20 right-4 z-40 rounded-full w-14 h-14 shadow-lg bg-primary text-primary-foreground flex items-center justify-center"
           onClick={() => setShowCartSheet(true)}
         >
           <div className="relative flex items-center justify-center w-full h-full">
@@ -520,7 +573,7 @@ const POS = () => {
             )}
           </div>
         </Button>
-        <SheetContent side="bottom" className="md:hidden h-[75vh] p-0">
+        <SheetContent side="bottom" className="tablet-portrait:block tablet-landscape:hidden lg:hidden h-[75vh] p-0">
           <Cart
             items={cart}
             onUpdateQuantity={handleUpdateQuantity}

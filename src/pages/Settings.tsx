@@ -51,8 +51,10 @@ const Settings = () => {
     setTaxRatePercent,
     enableDiscounts,
     enableBarcodeScanning,
+    enableImageSearch,
     setEnableDiscounts,
     setEnableBarcodeScanning,
+    setEnableImageSearch,
     selectedPrinter,
     setSelectedPrinter,
   } = useSettings();
@@ -374,6 +376,19 @@ const Settings = () => {
           <CardDescription>Enable or disable optional features</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Enable Image Search</Label>
+              <div className="text-sm text-muted-foreground">
+                Show camera button for product search
+              </div>
+            </div>
+            <Switch
+              checked={enableImageSearch}
+              onCheckedChange={setEnableImageSearch}
+            />
+          </div>
+          <Separator />
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="discounts">Enable Discounts</Label>

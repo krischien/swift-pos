@@ -145,15 +145,17 @@ const Categories = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 tablet-landscape:flex-row tablet-landscape:items-center tablet-landscape:justify-between lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Category Management</h1>
           <p className="text-muted-foreground">Organize your products by categories</p>
         </div>
-        <Button onClick={openAddDialog}>
-          <FolderPlus className="mr-2 h-4 w-4" />
-          Add Category
-        </Button>
+        <div className="flex flex-row gap-2 w-full tablet-portrait:w-auto tablet-portrait:justify-end tablet-landscape:w-auto tablet-landscape:justify-end lg:w-auto lg:justify-end">
+          <Button onClick={openAddDialog} className="flex-1 tablet-portrait:flex-none tablet-portrait:w-auto tablet-landscape:flex-none tablet-landscape:w-auto lg:flex-none lg:w-auto">
+            <FolderPlus className="mr-2 h-4 w-4" />
+            Add Category
+          </Button>
+        </div>
       </div>
 
       <div className="relative">

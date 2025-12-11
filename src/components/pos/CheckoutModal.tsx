@@ -8,7 +8,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DollarSign, Receipt } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 
 interface CheckoutModalProps {
@@ -42,7 +41,7 @@ export const CheckoutModal = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl flex items-center gap-2">
-            <Receipt className="w-5 h-5" />
+            <span className="text-xl font-semibold">₱</span>
             Complete Payment
           </DialogTitle>
         </DialogHeader>
@@ -61,7 +60,7 @@ export const CheckoutModal = ({
           <div className="space-y-2">
             <Label htmlFor="amount">Amount Received</Label>
             <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-lg font-semibold">₱</span>
               <Input
                 id="amount"
                 type="number"

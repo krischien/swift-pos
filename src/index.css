@@ -113,3 +113,36 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Hide scrollbar but keep scrolling functionality */
+  .scrollbar-hidden {
+    -ms-overflow-style: none !important; /* IE and Edge */
+    scrollbar-width: none !important; /* Firefox */
+  }
+
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none !important; /* Chrome, Safari, Opera */
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+    -webkit-appearance: none !important;
+  }
+
+  .scrollbar-hidden::-webkit-scrollbar-track {
+    display: none !important;
+    background: transparent !important;
+  }
+
+  .scrollbar-hidden::-webkit-scrollbar-thumb {
+    display: none !important;
+    background: transparent !important;
+  }
+
+  /* Mobile Safari specific */
+  @supports (-webkit-touch-callout: none) {
+    .scrollbar-hidden {
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+}

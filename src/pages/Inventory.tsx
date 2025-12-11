@@ -9,7 +9,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertTriangle, Trash2, Download, ChevronDown, Barcode, QrCode, FileSpreadsheet } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Plus, Search, AlertTriangle, Trash2, Download, ChevronDown, Barcode, QrCode, FileSpreadsheet, Package } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { Category, Product, Variant } from "@/types/pos";
@@ -19,6 +20,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -31,12 +33,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { OCRScanDialog } from "@/components/inventory/OCRScanDialog";
 
 const Inventory = () => {
   const [search, setSearch] = useState("");
-  const [stockFilter, setStockFilter] = useState<"all" | "lowStock">("all");
+  const [stockFilter, setStockFilter] = useState<"all" | "lowStock" | "fastMoving" | "slowMoving" | "outOfStock">("all");
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
@@ -60,6 +64,56 @@ const Inventory = () => {
   const [variantProduct, setVariantProduct] = useState<Product | null>(null);
   const [variantRows, setVariantRows] = useState<(Variant & { isNew?: boolean })[]>([]);
   const [variantSavingId, setVariantSavingId] = useState<string | null>(null);
+  const [monthlySoldCounts, setMonthlySoldCounts] = useState<Record<string, number>>({});
+  const [restockDialogOpen, setRestockDialogOpen] = useState(false);
+
+  // Calculate monthly sold count for each product
+  const calculateMonthlySold = async () => {
+    try {
+      // Get current month start and end dates
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      
+      const sales = await api.getSales({
+        from: monthStart.toISOString(),
+        to: monthEnd.toISOString(),
+      });
+
+      // Count sold quantities per product
+      const counts: Record<string, number> = {};
+      
+      (sales as any[]).forEach((sale) => {
+        if (sale.items && Array.isArray(sale.items)) {
+          sale.items.forEach((item: any) => {
+            // For products with variants, count by variantId
+            // For products without variants, count by productId
+            const key = item.variantId || item.productId;
+            counts[key] = (counts[key] || 0) + (item.quantity || 0);
+          });
+        }
+      });
+
+      setMonthlySoldCounts(counts);
+    } catch (e) {
+      console.error("Failed to load monthly sales:", e);
+      // Don't show error to user, just set empty counts
+      setMonthlySoldCounts({});
+    }
+  };
+
+  // Get monthly sold count for a product
+  const getMonthlySoldCount = (product: Product): number => {
+    if (product.hasVariants && product.variants) {
+      // Sum up all variant sales
+      return product.variants.reduce((sum, variant) => {
+        return sum + (monthlySoldCounts[variant.id] || 0);
+      }, 0);
+    } else {
+      // Direct product sales
+      return monthlySoldCounts[product.id] || 0;
+    }
+  };
 
   const load = async () => {
     try {
@@ -80,6 +134,7 @@ const Inventory = () => {
 
   useEffect(() => {
     void load();
+    void calculateMonthlySold();
   }, []);
 
   // Auto-calculate selling price from base price and margin percentage
@@ -99,25 +154,105 @@ const Inventory = () => {
     }
   }, [formBasePrice, formMarginPercentage]);
 
-  // Helper function to check if product is low in stock
-  const isLowStock = (product: Product): boolean => {
-    const totalStock = product.hasVariants
-      ? product.variants?.reduce((sum, v) => sum + v.stock, 0)
-      : product.stock;
-    return (totalStock || 0) <= product.lowStockThreshold;
+  // Helper to check if product is out of stock
+  // Returns true if main stock is 0 OR if ANY variant has 0 stock
+  const isOutOfStock = (product: Product): boolean => {
+    if (product.hasVariants && product.variants) {
+      // Check if any variant has 0 stock
+      return product.variants.some(v => v.stock === 0);
+    }
+    // Check main stock
+    return (product.stock || 0) === 0;
   };
 
-  const filtered = products.filter((p) => {
-    // Apply search filter
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-    if (!matchesSearch) return false;
-    
-    // Apply stock filter
-    if (stockFilter === "lowStock") {
-      return isLowStock(p);
+  // Helper function to check if product is low in stock
+  // Returns true if main stock is low (but NOT zero) OR if ANY variant is low (but NOT zero)
+  const isLowStock = (product: Product): boolean => {
+    if (product.hasVariants && product.variants) {
+      // Check if any variant is below threshold but greater than 0
+      return product.variants.some(v => v.stock > 0 && v.stock <= product.lowStockThreshold);
     }
-    return true; // "all" - show all products
-  });
+    // Check main stock - must be > 0 and <= threshold
+    const stock = product.stock || 0;
+    return stock > 0 && stock <= product.lowStockThreshold;
+  };
+
+  // Calculate fast/slow moving thresholds based on monthly sales
+  // Uses median-based approach: Fast moving = above median, Slow moving = below median (including zero)
+  const getSalesThresholds = () => {
+    if (products.length === 0) return { median: 0 };
+    
+    // Get all monthly sold counts (including zeros)
+    const salesCounts = products.map((p) => getMonthlySoldCount(p));
+    
+    if (salesCounts.length === 0) {
+      return { median: 0 };
+    }
+    
+    // Sort sales counts
+    const sorted = [...salesCounts].sort((a, b) => a - b);
+    
+    // Calculate median
+    const mid = Math.floor(sorted.length / 2);
+    const median = sorted.length % 2 === 0
+      ? (sorted[mid - 1] + sorted[mid]) / 2
+      : sorted[mid];
+    
+    return { median };
+  };
+
+  const { median } = getSalesThresholds();
+
+  // Helper to check if product is fast moving
+  // Fast moving: Monthly sales above median (or top 50% of items with sales)
+  const isFastMoving = (product: Product): boolean => {
+    const monthlySold = getMonthlySoldCount(product);
+    // Only consider items with actual sales, and they must be above median
+    return monthlySold > 0 && monthlySold > median;
+  };
+
+  // Helper to check if product is slow moving
+  // Slow moving: Monthly sales at or below median, or zero sales
+  const isSlowMoving = (product: Product): boolean => {
+    const monthlySold = getMonthlySoldCount(product);
+    return monthlySold === 0 || monthlySold <= median;
+  };
+
+  const filtered = products
+    .filter((p) => {
+      // Apply search filter
+      const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
+      if (!matchesSearch) return false;
+      
+      // Apply stock filter
+      if (stockFilter === "lowStock") {
+        return isLowStock(p);
+      }
+      if (stockFilter === "fastMoving") {
+        return isFastMoving(p);
+      }
+      if (stockFilter === "slowMoving") {
+        return isSlowMoving(p);
+      }
+      if (stockFilter === "outOfStock") {
+        return isOutOfStock(p);
+      }
+      return true; // "all" - show all products
+    })
+    .sort((a, b) => {
+      // Sort by monthly sold count
+      if (stockFilter === "fastMoving") {
+        const aSold = getMonthlySoldCount(a);
+        const bSold = getMonthlySoldCount(b);
+        return bSold - aSold; // Descending order (highest first)
+      }
+      if (stockFilter === "slowMoving") {
+        const aSold = getMonthlySoldCount(a);
+        const bSold = getMonthlySoldCount(b);
+        return aSold - bSold; // Ascending order (lowest first)
+      }
+      return 0; // No sorting for other filters
+    });
   
   // Calculate low stock count (from all products, not filtered)
   const lowStockCount = products.filter((product) => isLowStock(product)).length;
@@ -212,6 +347,7 @@ const Inventory = () => {
       setFormImage("");
 
       await load();
+      await calculateMonthlySold();
     } catch (e: any) {
       setFormError(e.message ?? "Failed to create product");
     } finally {
@@ -232,6 +368,7 @@ const Inventory = () => {
       setProducts((prev) => prev.filter((p) => p.id !== product.id));
       // Optionally re-load from server in background to stay in sync
       void load();
+      void calculateMonthlySold();
     } catch (e: any) {
       alert(e.message ?? "Failed to delete product");
     } finally {
@@ -299,6 +436,7 @@ const Inventory = () => {
       }
       // Refresh main list so POS / inventory gets latest variants
       void load();
+      void calculateMonthlySold();
     } catch (e: any) {
       alert(e.message ?? "Failed to save variant");
     } finally {
@@ -321,6 +459,7 @@ const Inventory = () => {
       await api.deleteVariant(row.id);
       setVariantRows((rows) => rows.filter((r) => r.id !== row.id));
       void load();
+      void calculateMonthlySold();
     } catch (e: any) {
       alert(e.message ?? "Failed to delete variant");
     } finally {
@@ -337,55 +476,55 @@ const Inventory = () => {
   };
 
   const handleExportProductList = async () => {
-    const XLSX = await import("xlsx");
-    const rows: any[] = [];
-    products.forEach((product) => {
-      const category = categories.find((c) => c.id === product.categoryId);
-      if (product.hasVariants && product.variants?.length) {
-        product.variants.forEach((variant) => {
-          rows.push({
-            ItemCode: product.itemCode,
-            ProductName: product.name,
-            Category: category?.name ?? "",
-            Status: product.status,
-            HasVariants: product.hasVariants ? "Yes" : "No",
-            VariantName: variant.name,
-            VariantPrice: variant.price,
-            VariantStock: variant.stock,
-            BasePrice: "",
-            BaseStock: "",
-            LowStockThreshold: product.lowStockThreshold,
-          });
-        });
-      } else {
-        rows.push({
-          ItemCode: product.itemCode,
-          ProductName: product.name,
-          Category: category?.name ?? "",
-          Status: product.status,
-          HasVariants: product.hasVariants ? "Yes" : "No",
-          VariantName: "",
-          VariantPrice: "",
-          VariantStock: "",
-          BasePrice: product.price ?? "",
-          BaseStock: product.stock ?? "",
-          LowStockThreshold: product.lowStockThreshold,
-        });
-      }
-    });
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Items");
-    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    const blob = new Blob([wbout], { type: "application/octet-stream" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "inventory-items.xlsx";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+            const XLSX = await import("xlsx");
+            const rows: any[] = [];
+            products.forEach((product) => {
+              const category = categories.find((c) => c.id === product.categoryId);
+              if (product.hasVariants && product.variants?.length) {
+                product.variants.forEach((variant) => {
+                  rows.push({
+                    ItemCode: product.itemCode,
+                    ProductName: product.name,
+                    Category: category?.name ?? "",
+                    Status: product.status,
+                    HasVariants: product.hasVariants ? "Yes" : "No",
+                    VariantName: variant.name,
+                    VariantPrice: variant.price,
+                    VariantStock: variant.stock,
+                    BasePrice: "",
+                    BaseStock: "",
+                    LowStockThreshold: product.lowStockThreshold,
+                  });
+                });
+              } else {
+                rows.push({
+                  ItemCode: product.itemCode,
+                  ProductName: product.name,
+                  Category: category?.name ?? "",
+                  Status: product.status,
+                  HasVariants: product.hasVariants ? "Yes" : "No",
+                  VariantName: "",
+                  VariantPrice: "",
+                  VariantStock: "",
+                  BasePrice: product.price ?? "",
+                  BaseStock: product.stock ?? "",
+                  LowStockThreshold: product.lowStockThreshold,
+                });
+              }
+            });
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Items");
+            const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+            const blob = new Blob([wbout], { type: "application/octet-stream" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "inventory-items.xlsx";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
   };
 
   const handleExportLowStockList = async () => {
@@ -587,6 +726,67 @@ const Inventory = () => {
     }
   };
 
+  const handleExportOutOfStock = async () => {
+    const XLSX = await import("xlsx");
+    
+    const rows: any[] = [];
+
+    products.forEach((product) => {
+      if (product.status !== "active") return;
+
+      if (product.hasVariants && product.variants) {
+        // Check each variant
+        product.variants.forEach((v) => {
+          if (v.stock === 0) {
+            const category = categories.find((c) => c.id === product.categoryId);
+            rows.push({
+              ItemCode: product.itemCode,
+              ProductName: product.name,
+              VariantName: v.name,
+              Category: category?.name ?? "",
+              Stock: 0,
+              LowStockThreshold: product.lowStockThreshold,
+              Status: product.status,
+            });
+          }
+        });
+      } else {
+        // Check main product
+        if ((product.stock || 0) === 0) {
+          const category = categories.find((c) => c.id === product.categoryId);
+          rows.push({
+            ItemCode: product.itemCode,
+            ProductName: product.name,
+            VariantName: "",
+            Category: category?.name ?? "",
+            Stock: 0,
+            LowStockThreshold: product.lowStockThreshold,
+            Status: product.status,
+          });
+        }
+      }
+    });
+
+    if (rows.length === 0) {
+      alert("No out of stock items found.");
+      return;
+    }
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Out of Stock");
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([wbout], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "out-of-stock-items.xlsx";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const handleExportQRList = async () => {
     // Filter products that have QR codes
     const productsWithQRCodes = products.filter(
@@ -745,47 +945,205 @@ const Inventory = () => {
     }
   };
 
+  const handleImportItems = async (items: any[]) => {
+    try {
+      setLoading(true);
+      // Process in sequence to avoid overwhelming the server/DB
+      for (const item of items) {
+        await api.createProduct(item);
+      }
+      await load();
+      await calculateMonthlySold();
+      alert(`Successfully imported ${items.length} items`);
+    } catch (e: any) {
+      alert(`Failed to import items: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRestockProduct = async (productId: string, quantity: number, variantId?: string) => {
+    try {
+      const product = products.find((p) => p.id === productId);
+      if (!product) return;
+
+      if (variantId && product.hasVariants && product.variants) {
+        const variant = product.variants.find((v) => v.id === variantId);
+        if (variant) {
+          await api.updateVariant(variantId, {
+            stock: (variant.stock || 0) + quantity,
+          });
+        }
+      } else {
+        const currentStock = product.stock || 0;
+        await api.updateProduct(productId, {
+          stock: currentStock + quantity,
+        });
+      }
+
+      await load();
+    } catch (e: any) {
+      alert(`Failed to restock: ${e.message}`);
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-4 tablet-landscape:flex-row tablet-landscape:items-center tablet-landscape:justify-between lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Inventory Management</h1>
           <p className="text-muted-foreground">Manage your products and stock levels</p>
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex-1 md:flex-none">
-                <Download className="w-4 h-4 mr-2" />
-                Export
-                <ChevronDown className="w-4 h-4 ml-2" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExportProductList}>
-                <FileSpreadsheet className="w-4 h-4 mr-2" />
-                Product List
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportLowStockList}>
-                <AlertTriangle className="w-4 h-4 mr-2" />
-                Low Stock List
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportBarcodeList}>
-                <Barcode className="w-4 h-4 mr-2" />
-                Barcode List
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportQRList}>
-                <QrCode className="w-4 h-4 mr-2" />
-                QR List
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <div className="flex flex-col tablet-portrait:flex-row tablet-portrait:justify-end tablet-landscape:flex-row lg:flex-row gap-2 w-full tablet-landscape:w-auto tablet-landscape:justify-end lg:w-auto lg:justify-end">
+          {/* Row 1 on mobile, all buttons in one row on tablet/desktop */}
+          <div className="flex flex-row gap-2 w-full tablet-portrait:w-auto tablet-landscape:w-auto">
+            <OCRScanDialog categories={categories} onImport={handleImportItems} />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex-1 tablet-portrait:flex-none tablet-portrait:w-auto tablet-landscape:flex-none tablet-landscape:w-auto lg:flex-none lg:w-auto">
+                  <Download className="w-4 h-4 mr-2" />
+            Export
+                  <ChevronDown className="w-4 h-4 ml-2" />
+          </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportProductList}>
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Product List
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportLowStockList}>
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                  Low Stock List
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportOutOfStock}>
+                  <Package className="w-4 h-4 mr-2" />
+                  Out of Stock List
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleExportBarcodeList}>
+                  <Barcode className="w-4 h-4 mr-2" />
+                  Barcode List
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportQRList}>
+                  <QrCode className="w-4 h-4 mr-2" />
+                  QR List
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          {/* Row 2 on mobile, continues in same row on tablet/desktop */}
+          <div className="flex flex-row gap-2 w-full tablet-portrait:w-auto tablet-landscape:w-auto">
+            <Dialog open={restockDialogOpen} onOpenChange={setRestockDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="gap-2 flex-1 tablet-portrait:flex-none tablet-portrait:w-auto tablet-landscape:flex-none tablet-landscape:w-auto lg:flex-none lg:w-auto">
+                  <Package className="w-4 h-4" />
+                  Restock
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-h-[90vh] flex flex-col">
+                <DialogHeader>
+                  <DialogTitle>Restock Products</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 overflow-y-auto flex-1 pr-2">
+                  <p className="text-sm text-muted-foreground">
+                    Select products to restock. Enter the quantity to add to current stock.
+                  </p>
+                  <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                    {products
+                      .filter((p) => p.status === "active")
+                      .flatMap((product) => {
+                        if (product.hasVariants && product.variants && product.variants.length > 0) {
+                          return product.variants.map((variant) => ({
+                            id: variant.id, // Use variant ID as key
+                            productId: product.id,
+                            variantId: variant.id,
+                            name: `${product.name} (${variant.name})`,
+                            stock: variant.stock || 0,
+                            lowStockThreshold: product.lowStockThreshold,
+                            isVariant: true
+                          }));
+                        }
+                        return [{
+                          id: product.id,
+                          productId: product.id,
+                          variantId: undefined,
+                          name: product.name,
+                          stock: product.stock || 0,
+                          lowStockThreshold: product.lowStockThreshold,
+                          isVariant: false
+                        }];
+                      })
+                      .sort((a, b) => {
+                        const aLow = a.stock <= a.lowStockThreshold;
+                        const bLow = b.stock <= b.lowStockThreshold;
+                        if (aLow && !bLow) return -1;
+                        if (!aLow && bLow) return 1;
+                        return 0; // Maintain original order otherwise (or sort by name if desired)
+                      })
+                      .map((item) => {
+                        const isLow = item.stock <= item.lowStockThreshold;
+                        return (
+                          <div key={item.id} className="flex items-center gap-4 p-3 border rounded-lg">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className={cn("font-medium", isLow && "text-destructive")}>{item.name}</p>
+                                {isLow && <AlertTriangle className="w-4 h-4 text-destructive" />}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                Current Stock: {item.stock}
+                              </p>
+                            </div>
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder="Qty to add"
+                            className="w-32"
+                            id={`restock-${item.id}`}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                const input = e.currentTarget;
+                                const qty = parseInt(input.value) || 0;
+                                if (qty > 0) {
+                                  handleRestockProduct(item.productId, qty, item.variantId);
+                                  input.value = "";
+                                }
+                              }
+                            }}
+                          />
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              const input = document.getElementById(`restock-${item.id}`) as HTMLInputElement;
+                              const qty = parseInt(input?.value || "0") || 0;
+                              if (qty > 0) {
+                                handleRestockProduct(item.productId, qty, item.variantId);
+                                input.value = "";
+                              }
+                            }}
+                          >
+                            Add
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-4 border-t mt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setRestockDialogOpen(false)}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           <Dialog open={formOpen} onOpenChange={setFormOpen}>
-            <Button className="gap-2 flex-1 md:flex-none" onClick={openAddDialog}>
+              <Button className="gap-2 flex-1 tablet-portrait:flex-none tablet-portrait:w-auto tablet-landscape:flex-none tablet-landscape:w-auto lg:flex-none lg:w-auto" onClick={openAddDialog}>
               <Plus className="w-4 h-4" />
               Add Product
             </Button>
-            <DialogContent className="max-h-[90vh] flex flex-col">
+              <DialogContent className="max-h-[90vh] flex flex-col">
               <DialogHeader>
                 <DialogTitle>{isEditing ? "Edit Product" : "Add Product"}</DialogTitle>
               </DialogHeader>
@@ -793,7 +1151,7 @@ const Inventory = () => {
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Item Code</p>
                   <Input
-                    value={formItemCode} 
+                    value={formItemCode}
                     className="bg-muted/50"
                   />
                 </div>
@@ -922,21 +1280,22 @@ const Inventory = () => {
                 )}
               </div>
               <div className="flex justify-end gap-2 pt-4 border-t mt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setFormOpen(false);
-                    setEditingProduct(null);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveProduct} disabled={saving}>
-                  {saving ? "Saving..." : isEditing ? "Save Changes" : "Save Product"}
-                </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setFormOpen(false);
+                      setEditingProduct(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSaveProduct} disabled={saving}>
+                    {saving ? "Saving..." : isEditing ? "Save Changes" : "Save Product"}
+                  </Button>
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </div>
 
@@ -956,7 +1315,13 @@ const Inventory = () => {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm">
-              View: {stockFilter === "all" ? "All" : "Low Stock"}
+              View: {
+                stockFilter === "all" ? "All" :
+                stockFilter === "lowStock" ? "Low Stock" :
+                stockFilter === "fastMoving" ? "Fast Moving" :
+                stockFilter === "slowMoving" ? "Slow Moving" :
+                "Out of Stock"
+              }
               <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -966,6 +1331,15 @@ const Inventory = () => {
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setStockFilter("lowStock")}>
               Low Stock
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setStockFilter("fastMoving")}>
+              Fast Moving
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setStockFilter("slowMoving")}>
+              Slow Moving
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setStockFilter("outOfStock")}>
+              Out of Stock
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -991,6 +1365,7 @@ const Inventory = () => {
                     <TableHead>Variants</TableHead>
                     <TableHead>Stock</TableHead>
                     <TableHead>Price</TableHead>
+                    <TableHead>Monthly Sold</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -1001,11 +1376,27 @@ const Inventory = () => {
                     const totalStock = product.hasVariants
                       ? product.variants?.reduce((sum, v) => sum + v.stock, 0)
                       : product.stock;
-                    const isLowStock = (totalStock || 0) <= product.lowStockThreshold;
+                    const isProductLowStock = isLowStock(product);
+                    // Check if any variant has 0 stock (for products with variants)
+                    const hasZeroStockVariant = product.hasVariants && product.variants
+                      ? product.variants.some(v => v.stock === 0)
+                      : (product.stock || 0) === 0;
+                    const monthlySold = getMonthlySoldCount(product);
 
                     return (
                       <TableRow key={product.id}>
-                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className={cn("font-medium", isProductLowStock && "text-destructive")}>
+                              {product.name}
+                            </span>
+                            {product.sku && (
+                              <span className="text-xs text-muted-foreground">
+                                {product.sku}
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>{category?.name}</TableCell>
                         <TableCell>
                           {product.hasVariants ? (
@@ -1016,10 +1407,10 @@ const Inventory = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            {isLowStock && (
+                            {(isProductLowStock || totalStock === 0) && (
                               <AlertTriangle className="w-4 h-4 text-destructive" />
                             )}
-                            <span className={isLowStock ? "text-destructive font-semibold" : ""}>
+                            <span className={isProductLowStock || totalStock === 0 ? "text-destructive font-semibold" : ""}>
                               {totalStock}
                             </span>
                           </div>
@@ -1029,9 +1420,24 @@ const Inventory = () => {
                           {product.hasVariants && "+"}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={product.status === "active" ? "default" : "secondary"}>
-                            {product.status}
-                          </Badge>
+                          <span className="font-medium">{monthlySold}</span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-row items-center gap-1">
+                            {hasZeroStockVariant ? (
+                              <Badge className="bg-gray-500 hover:bg-gray-600 text-white">Disabled</Badge>
+                            ) : (
+                              <Badge variant={product.status === "active" ? "default" : "secondary"}>
+                                {product.status}
+                              </Badge>
+                            )}
+                            
+                            {hasZeroStockVariant ? (
+                              <Badge variant="destructive">Restock</Badge>
+                            ) : isProductLowStock ? (
+                              <Badge variant="destructive">Low Stock</Badge>
+                            ) : null}
+                          </div>
                         </TableCell>
                         <TableCell className="text-right space-x-1">
                           <Button
@@ -1072,21 +1478,44 @@ const Inventory = () => {
                 const totalStock = product.hasVariants
                   ? product.variants?.reduce((sum, v) => sum + v.stock, 0)
                   : product.stock;
-                const isLowStock = (totalStock || 0) <= product.lowStockThreshold;
+                
+                const hasZeroStockVariant = product.hasVariants 
+                  ? product.variants?.some(v => v.stock === 0)
+                  : (product.stock || 0) === 0;
+
+                const isProductLowStock = isLowStock(product);
+                const monthlySold = getMonthlySoldCount(product);
+                
+                const showRestock = totalStock === 0 || hasZeroStockVariant;
+                const showDisabled = totalStock === 0 || hasZeroStockVariant;
 
                 return (
                   <div key={product.id} className="bg-card rounded-lg border p-4 space-y-3 shadow-sm">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-semibold">{product.name}</h3>
+                        <h3 className={cn("font-semibold", (isProductLowStock || showRestock) && "text-destructive")}>
+                          {product.name}
+                        </h3>
                         <p className="text-sm text-muted-foreground">{category?.name}</p>
                       </div>
-                      <Badge variant={product.status === "active" ? "default" : "secondary"}>
-                        {product.status}
-                      </Badge>
+                      <div className="flex flex-row items-center gap-1">
+                        {showDisabled ? (
+                          <Badge className="bg-gray-500 hover:bg-gray-600 text-white">Disabled</Badge>
+                        ) : (
+                          <Badge variant={product.status === "active" ? "default" : "secondary"}>
+                            {product.status}
+                          </Badge>
+                        )}
+                        
+                        {showRestock ? (
+                          <Badge variant="destructive" className="h-5 text-[10px] px-1">Restock</Badge>
+                        ) : isProductLowStock ? (
+                          <Badge variant="destructive" className="h-5 text-[10px] px-1">Low Stock</Badge>
+                        ) : null}
+                      </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-3 gap-4 text-sm">
                       <div>
                         <p className="text-muted-foreground">Price</p>
                         <p className="font-medium">
@@ -1097,11 +1526,19 @@ const Inventory = () => {
                       <div>
                         <p className="text-muted-foreground">Stock</p>
                         <div className="flex items-center gap-1">
-                          {isLowStock && <AlertTriangle className="w-3 h-3 text-destructive" />}
-                          <span className={isLowStock ? "text-destructive font-medium" : "font-medium"}>
+                          {totalStock === 0 ? (
+                            <Badge variant="destructive" className="h-5 text-[10px] px-1">Restock</Badge>
+                          ) : isProductLowStock ? (
+                            <Badge variant="destructive" className="h-5 text-[10px] px-1">Low Stock</Badge>
+                          ) : null}
+                          <span className={isProductLowStock || totalStock === 0 ? "text-destructive font-medium" : "font-medium"}>
                             {totalStock}
                           </span>
                         </div>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Monthly Sold</p>
+                        <p className="font-medium">{monthlySold}</p>
                       </div>
                     </div>
 

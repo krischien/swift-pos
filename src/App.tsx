@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 import POS from "./pages/POS";
 import Inventory from "./pages/Inventory";
 import Sales from "./pages/Sales";
+import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Users from "./pages/Users";
 import Categories from "./pages/Categories";
@@ -60,6 +61,14 @@ const App = () => {
                     element={
                       <ProtectedRoute allowedRoles={["admin"]}>
                         <Sales />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/reports"
+                    element={
+                      <ProtectedRoute allowedRoles={["admin"]}>
+                        <Reports />
                       </ProtectedRoute>
                     }
                   />
