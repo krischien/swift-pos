@@ -15,6 +15,7 @@ interface CartProps {
   discountPercent?: number;
   onDiscountChange?: (percent: number) => void;
   taxRatePercent?: number;
+  enablePerKiloPurchase?: boolean;
 }
 
 export const Cart = ({
@@ -26,6 +27,7 @@ export const Cart = ({
   discountPercent = 0,
   onDiscountChange,
   taxRatePercent = 12,
+  enablePerKiloPurchase = false,
 }: CartProps) => {
   const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
   const effectiveDiscount = discountsEnabled ? discountPercent : 0;
@@ -80,24 +82,36 @@ export const Cart = ({
                       variant="outline"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
+                      onClick={() => {
+                        const step = enablePerKiloPurchase ? 0.1 : 1;
+                        const minQty = enablePerKiloPurchase ? 0.1 : 1;
+                        const newQuantity = Math.max(minQty, item.quantity - step);
+                        onUpdateQuantity(item.id, enablePerKiloPurchase ? newQuantity : Math.floor(newQuantity));
+                      }}
                     >
                       <Minus className="w-3 h-3" />
                     </Button>
                     <Input
                       type="number"
                       value={item.quantity}
-                      onChange={(e) =>
-                        onUpdateQuantity(item.id, parseInt(e.target.value) || 1)
-                      }
+                      onChange={(e) => {
+                        const value = enablePerKiloPurchase 
+                          ? parseFloat(e.target.value) || 0.1
+                          : parseInt(e.target.value) || 1;
+                        onUpdateQuantity(item.id, Math.max(enablePerKiloPurchase ? 0.1 : 1, value));
+                      }}
                       className="w-16 h-8 text-center"
-                      min="1"
+                      min={enablePerKiloPurchase ? "0.1" : "1"}
+                      step={enablePerKiloPurchase ? "0.1" : "1"}
                     />
                     <Button
                       variant="outline"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                      onClick={() => {
+                        const step = enablePerKiloPurchase ? 0.1 : 1;
+                        onUpdateQuantity(item.id, item.quantity + step);
+                      }}
                     >
                       <Plus className="w-3 h-3" />
                     </Button>

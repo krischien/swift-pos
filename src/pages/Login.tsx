@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Store } from "lucide-react";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -45,11 +44,11 @@ const Login = () => {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center">
-              <Store className="w-10 h-10 text-primary-foreground" />
-            </div>
+            {/* <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center"> */}
+              <img src="/favico.png" alt="QuickScale" className="w-24 h-24" />
+            {/* </div> */}
           </div>
-          <CardTitle className="text-3xl font-bold">QuickPOS</CardTitle>
+          <CardTitle className="text-3xl font-bold">QuickScale</CardTitle>
           <CardDescription>Sign in to your account</CardDescription>
         </CardHeader>
         <CardContent>

@@ -16,6 +16,7 @@ import Sales from "./pages/Sales";
 import Settings from "./pages/Settings";
 import Users from "./pages/Users";
 import Categories from "./pages/Categories";
+import StickerGenerator from "./pages/StickerGenerator";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,14 @@ const App = () => {
                   }
                 >
                   <Route path="/pos" element={<POS />} />
+                  <Route
+                    path="/sticker-generator"
+                    element={
+                      <ProtectedRoute allowedRoles={["admin", "cashier"]}>
+                        <StickerGenerator />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route
                     path="/inventory"
                     element={

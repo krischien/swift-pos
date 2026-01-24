@@ -162,7 +162,7 @@ const buildEscPosReceipt = (payload: ReceiptPayload) => {
   encoder.initialize().setPinterType(PrinterWidthEnum._58).codepage("cp437");
 
   encoder.align("center").bold();
-  encoder.line(payload.storeName || "QuickPOS");
+  encoder.line(payload.storeName || "QuickScale");
   encoder.bold(false);
   if (payload.storeAddress) {
     encoder.line(payload.storeAddress);
@@ -246,7 +246,7 @@ export const printerService = {
 
   async test(address: string, storeName?: string, storeAddress?: string) {
     await printerService.print(address, {
-      storeName: storeName || "QuickPOS",
+      storeName: storeName || "QuickScale",
       storeAddress,
       cashierName: "Test Print",
       ticketNumber: `TEST-${Date.now().toString(36).toUpperCase()}`,

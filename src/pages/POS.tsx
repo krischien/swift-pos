@@ -28,6 +28,7 @@ const POS = () => {
     enableDiscounts,
     taxRatePercent,
     selectedPrinter,
+    enablePerKiloPurchase,
   } = useSettings();
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -103,20 +104,24 @@ const POS = () => {
       : product.id;
     
     const existingItem = cart.find((item) => item.id === existingItemId);
+    const incrementAmount = enablePerKiloPurchase ? 0.1 : 1;
+    // (debug) enablePerKiloPurchase influences increment and initial quantity
 
     if (existingItem) {
+      const newQuantity = existingItem.quantity + incrementAmount;
       setCart(
         cart.map((item) =>
           item.id === existingItemId
             ? {
                 ...item,
-                quantity: item.quantity + 1,
-                subtotal: (item.quantity + 1) * item.price,
+                quantity: newQuantity,
+                subtotal: newQuantity * item.price,
               }
             : item
         )
       );
     } else {
+      const initialQuantity = enablePerKiloPurchase ? 0.1 : 1;
       const newItem: CartItem = {
         id: existingItemId,
         productId: product.id,
@@ -124,15 +129,90 @@ const POS = () => {
         name: product.name,
         variantName: variant?.name,
         price,
-        quantity: 1,
-        subtotal: price,
+        quantity: initialQuantity,
+        subtotal: initialQuantity * price,
       };
       setCart([...cart, newItem]);
     }
   };
 
+  // Handle scanned weighted item sticker (from barcode/QR code)
+  const handleScannedWeightedItem = (scannedData: string) => {
+    try {
+      // Try to parse JSON data from scanned barcode/QR code
+      const data = JSON.parse(scannedData);
+      
+      if (data.sku && typeof data.weight === "number" && typeof data.price === "number") {
+        // Find product by SKU or itemCode
+        const product = products.find(
+          (p) => p.sku === data.sku || p.itemCode === data.sku
+        );
+
+        if (!product) {
+          toast({
+            variant: "destructive",
+            title: "Product not found",
+            description: `Product with SKU "${data.sku}" not found`,
+          });
+          return;
+        }
+
+        // Create a unique ID for this weighted item
+        const weightedItemId = `weighted-${product.id}-${Date.now()}`;
+        
+        const newItem: CartItem = {
+          id: weightedItemId,
+          productId: product.id,
+          name: product.name,
+          variantName: data.productName ? undefined : `${data.weight} kg`,
+          price: data.price,
+          quantity: data.weight,
+          subtotal: data.price,
+        };
+
+        setCart([...cart, newItem]);
+        
+        toast({
+          title: "Item added",
+          description: `${product.name} (${data.weight} kg) added to cart`,
+        });
+      } else {
+        // Not a weighted item sticker, try normal product lookup
+        const product = products.find(
+          (p) => p.sku === scannedData || p.itemCode === scannedData || p.barcode === scannedData
+        );
+        
+        if (product) {
+          handleProductSelect(product);
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Product not found",
+            description: "Scanned code not recognized",
+          });
+        }
+      }
+    } catch (error) {
+      // Not JSON, try to find product by SKU/itemCode/barcode
+      const product = products.find(
+        (p) => p.sku === scannedData || p.itemCode === scannedData || p.barcode === scannedData
+      );
+      
+      if (product) {
+        handleProductSelect(product);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Product not found",
+          description: "Scanned code not recognized",
+        });
+      }
+    }
+  };
+
   const handleUpdateQuantity = (itemId: string, quantity: number) => {
-    if (quantity < 1) {
+    const minQuantity = enablePerKiloPurchase ? 0.1 : 1;
+    if (quantity < minQuantity) {
       handleRemoveItem(itemId);
       return;
     }
@@ -206,7 +286,7 @@ const POS = () => {
       )
       .join("") || `<tr><td colspan="4" style="text-align:center;padding:8px 0;">No items</td></tr>`;
 
-    const headerName = storeName || "QuickPOS Receipt";
+    const headerName = storeName || "QuickScale Receipt";
     const headerAddress = storeAddress || "";
     const createdAt = new Date(sale?.createdAt ?? Date.now());
     const totalDisplay = typeof sale?.total === "number" ? sale.total : fallbackTotals.total;
@@ -501,6 +581,7 @@ const POS = () => {
             discountPercent={discountPercent}
             onDiscountChange={setDiscountPercent}
             taxRatePercent={taxRatePercent}
+            enablePerKiloPurchase={enablePerKiloPurchase}
           />
         </div>
       </div>
@@ -530,6 +611,7 @@ const POS = () => {
             discountPercent={discountPercent}
             onDiscountChange={setDiscountPercent}
             taxRatePercent={taxRatePercent}
+            enablePerKiloPurchase={enablePerKiloPurchase}
           />
         </SheetContent>
       </Sheet>

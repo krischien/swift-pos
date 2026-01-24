@@ -1,5 +1,5 @@
 import { Capacitor } from "@capacitor/core";
-import { getDatabase } from "./mobileDb";
+import { getDatabase, resetDatabaseConnection } from "./mobileDb";
 
 const DB_NAME = "quickpos";
 
@@ -8,35 +8,6 @@ export interface MobileBackup {
   size: number;
   date: Date;
   path: string;
-}
-
-/**
- * Get the database file path on the device
- * The capacitor-community/sqlite plugin stores databases in a specific location
- * We need to access it through the plugin's methods or known file paths
- */
-async function getDatabasePath(): Promise<{ path: string; directory: any }> {
-  if (!Capacitor.isNativePlatform()) {
-    throw new Error("Backup is only available on native platforms");
-  }
-
-  const { Directory } = await import("@capacitor/filesystem");
-  const platform = Capacitor.getPlatform();
-  
-  // The capacitor-community/sqlite plugin stores databases in:
-  // Android: Internal storage, typically accessible via Directory.Data
-  // iOS: Similar location
-  // The actual path structure may vary, so we'll try multiple approaches
-  
-  if (platform === "android") {
-    // Try the standard Android database location
-    return { path: `databases/${DB_NAME}.db`, directory: Directory.Data };
-  } else if (platform === "ios") {
-    // iOS database location
-    return { path: `Library/LocalDatabase/${DB_NAME}.db`, directory: Directory.Data };
-  }
-  
-  throw new Error(`Unsupported platform: ${platform}`);
 }
 
 /**
@@ -49,75 +20,31 @@ export async function createMobileBackup(): Promise<string> {
   }
 
   try {
-    const { CapacitorSQLite, SQLiteConnection } = await import("@capacitor-community/sqlite");
-    const sqlite = new SQLiteConnection(CapacitorSQLite);
-    
-    // Check if the database exists
-    const isDb = await sqlite.isDatabase(DB_NAME);
-    if (!isDb.result) {
-      throw new Error("Database not found");
-    }
-    
+    // Ensure db is initialized/open then export using plugin APIs.
+    const db = await getDatabase();
+
     // Create backup filename with timestamp
     const now = new Date();
     const dateStr = now.toISOString().split("T")[0];
     const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-");
-    const backupFilename = `backup-${dateStr}_${timeStr}.db`;
+    const backupFilename = `backup-${dateStr}_${timeStr}.json`;
     
-    const { Filesystem, Directory } = await import("@capacitor/filesystem");
-    
-    // Get the database path
-    const dbPathInfo = await getDatabasePath();
-    let dbData: string;
-    
-    try {
-      // Try to read the database file
-      const readResult = await Filesystem.readFile({
-        path: dbPathInfo.path,
-        directory: dbPathInfo.directory,
-      });
-      dbData = readResult.data as string;
-    } catch (error: any) {
-      // If direct file access fails, try alternative paths
-      console.warn("Could not read database from primary path, trying alternatives...");
-      
-      // Try alternative path structures
-      const alternatives = [
-        { path: `${DB_NAME}.db`, directory: Directory.Data },
-        { path: `databases/${DB_NAME}`, directory: Directory.Data },
-        { path: `SQLite/${DB_NAME}.db`, directory: Directory.Data },
-      ];
-      
-      let found = false;
-      for (const alt of alternatives) {
-        try {
-          const readResult = await Filesystem.readFile({
-            path: alt.path,
-            directory: alt.directory,
-          });
-          dbData = readResult.data as string;
-          found = true;
-          break;
-        } catch {
-          // Continue to next alternative
-        }
-      }
-      
-      if (!found) {
-        throw new Error(
-          "Could not access database file. The database may be stored in a location that requires special permissions. " +
-          "Error: " + (error?.message || "Unknown error")
-        );
-      }
-    }
-    
+    const { Filesystem, Directory, Encoding } = await import("@capacitor/filesystem");
+
+    // Export entire database to JSON (portable, no filesystem DB path guessing).
+    // "full" includes schema + data.
+    // NOTE: The native import/validation expects the JsonSQLite object, not the { export: ... } wrapper.
+    const exportJson = await db.exportToJson("full");
+    const jsonString = JSON.stringify((exportJson && exportJson.export) ? exportJson.export : exportJson);
+
     // Save backup to Documents directory (user-accessible)
     const backupPath = `backups/${backupFilename}`;
     await Filesystem.writeFile({
       path: backupPath,
-      data: dbData,
+      data: jsonString,
       directory: Directory.Documents,
       recursive: true,
+      encoding: Encoding.UTF8,
     });
     
     console.log(`[MOBILE BACKUP] Created backup: ${backupFilename}`);
@@ -133,7 +60,7 @@ export async function createMobileBackup(): Promise<string> {
  */
 export async function exportMobileBackup(): Promise<void> {
   try {
-    const { Filesystem, Directory } = await import("@capacitor/filesystem");
+    const { Filesystem, Directory, Encoding } = await import("@capacitor/filesystem");
     const { Share } = await import("@capacitor/share");
     
     const backupPath = await createMobileBackup();
@@ -142,6 +69,7 @@ export async function exportMobileBackup(): Promise<void> {
     const readResult = await Filesystem.readFile({
       path: backupPath,
       directory: Directory.Documents,
+      encoding: Encoding.UTF8,
     });
     
     // Get the filename from the path
@@ -155,6 +83,7 @@ export async function exportMobileBackup(): Promise<void> {
       data: readResult.data,
       directory: Directory.Cache,
       recursive: true,
+      encoding: Encoding.UTF8,
     });
     
     // Get the full file URI
@@ -166,7 +95,7 @@ export async function exportMobileBackup(): Promise<void> {
     // Share the file
     await Share.share({
       title: "Database Backup",
-      text: "QuickPOS Database Backup",
+      text: "QuickScale Database Backup",
       url: fileUri.uri,
       dialogTitle: "Share Database Backup",
     });
@@ -198,7 +127,7 @@ export async function listMobileBackups(): Promise<MobileBackup[]> {
       });
       
       for (const file of result.files) {
-        if (file.name.startsWith("backup-") && file.name.endsWith(".db")) {
+        if (file.name.startsWith("backup-") && file.name.endsWith(".json")) {
           const filePath = `backups/${file.name}`;
           const stat = await Filesystem.stat({
             path: filePath,
@@ -237,17 +166,60 @@ export async function restoreMobileBackup(backupFilename: string): Promise<void>
   }
 
   try {
-    const { Filesystem, Directory } = await import("@capacitor/filesystem");
+    if (!backupFilename.toLowerCase().endsWith(".json")) {
+      throw new Error(
+        "Unsupported backup format. Please create a new mobile backup (JSON) using the updated app before restoring.",
+      );
+    }
+
+    const { Filesystem, Directory, Encoding } = await import("@capacitor/filesystem");
     const backupPath = `backups/${backupFilename}`;
     
     // Read the backup file
     const readResult = await Filesystem.readFile({
       path: backupPath,
       directory: Directory.Documents,
+      encoding: Encoding.UTF8,
     });
     
     const { CapacitorSQLite, SQLiteConnection } = await import("@capacitor-community/sqlite");
     const sqlite = new SQLiteConnection(CapacitorSQLite);
+    let jsonstring = typeof readResult.data === "string" ? readResult.data : String(readResult.data);
+
+    // Backward compatibility: older backups might have been written without Encoding.UTF8,
+    // causing the file content to be base64. Try to detect/decode.
+    const looksLikeJson = (value: string) => value.trim().startsWith("{") && value.trim().endsWith("}");
+    const looksLikeBase64 = (value: string) =>
+      /^[A-Za-z0-9+/=\r\n]+$/.test(value) && value.length % 4 === 0 && value.length > 32;
+
+    if (!looksLikeJson(jsonstring) && looksLikeBase64(jsonstring)) {
+      try {
+        const decoded = atob(jsonstring.replace(/\s+/g, ""));
+        if (looksLikeJson(decoded)) {
+          jsonstring = decoded;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // Normalize payload shape:
+    // - backups should be the JsonSQLite shape
+    // - but older files might have been saved as { export: JsonSQLite }
+    try {
+      const parsed = JSON.parse(jsonstring);
+      if (parsed && typeof parsed === "object" && "export" in parsed && parsed.export) {
+        jsonstring = JSON.stringify(parsed.export);
+      }
+    } catch {
+      // keep as-is; plugin will reject if malformed
+    }
+
+    // Validate JSON before applying
+    const valid = await CapacitorSQLite.isJsonValid({ jsonstring });
+    if (!valid.result) {
+      throw new Error("Invalid backup file (JSON validation failed)");
+    }
     
     // Close the current database connection if it exists
     try {
@@ -259,26 +231,9 @@ export async function restoreMobileBackup(backupFilename: string): Promise<void>
       console.warn("Could not close existing connection:", error);
     }
     
-    // Create a backup of current database before restore
+    // Create a backup of current database before restore (best-effort)
     try {
-      const preRestoreBackup = `backup-pre-restore-${Date.now()}.db`;
-      const dbPathInfo = await getDatabasePath();
-      
-      try {
-        const currentDbData = await Filesystem.readFile({
-          path: dbPathInfo.path,
-          directory: dbPathInfo.directory,
-        });
-        await Filesystem.writeFile({
-          path: `backups/${preRestoreBackup}`,
-          data: currentDbData.data,
-          directory: Directory.Documents,
-          recursive: true,
-        });
-        console.log(`[MOBILE RESTORE] Created pre-restore backup: ${preRestoreBackup}`);
-      } catch (error) {
-        console.warn("[MOBILE RESTORE] Could not create pre-restore backup (database may not exist yet):", error);
-      }
+      await createMobileBackup();
     } catch (error) {
       console.warn("[MOBILE RESTORE] Could not create pre-restore backup:", error);
     }
@@ -292,23 +247,12 @@ export async function restoreMobileBackup(backupFilename: string): Promise<void>
     } catch (error) {
       console.warn("Could not delete existing database:", error);
     }
-    
-    // Get the database path and copy the backup file to the database location
-    const dbPathInfo = await getDatabasePath();
-    
-    await Filesystem.writeFile({
-      path: dbPathInfo.path,
-      data: readResult.data,
-      directory: dbPathInfo.directory,
-      recursive: true,
-    });
-    
-    // Reinitialize the database connection
-    // Clear the cached database instance
-    const mobileDbModule = await import("./mobileDb");
-    (mobileDbModule as any).db = null;
-    
-    // Reopen the database
+
+    // Import the backup JSON to recreate the database
+    await CapacitorSQLite.importFromJson({ jsonstring });
+
+    // Force app code to reopen a fresh connection
+    resetDatabaseConnection();
     await getDatabase();
     
     console.log(`[MOBILE RESTORE] Successfully restored from: ${backupFilename}`);

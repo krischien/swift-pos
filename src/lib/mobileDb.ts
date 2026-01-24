@@ -365,3 +365,8 @@ export const getDatabase = async (): Promise<any> => {
   return db;
 };
 
+// Used by mobile restore flows to force a fresh connection after import/delete.
+export const resetDatabaseConnection = () => {
+  db = null;
+};
+

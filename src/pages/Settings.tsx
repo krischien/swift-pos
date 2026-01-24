@@ -51,8 +51,12 @@ const Settings = () => {
     setTaxRatePercent,
     enableDiscounts,
     enableBarcodeScanning,
+    enablePerKiloPurchase,
+    stickerCodeType,
     setEnableDiscounts,
     setEnableBarcodeScanning,
+    setEnablePerKiloPurchase,
+    setStickerCodeType,
     selectedPrinter,
     setSelectedPrinter,
   } = useSettings();
@@ -242,7 +246,10 @@ const Settings = () => {
     try {
       const backupList = await listMobileBackups();
       setMobileBackups(backupList);
-      if (backupList.length > 0 && !selectedMobileBackup) {
+      const filenames = new Set(backupList.map((b) => b.filename));
+      if (backupList.length === 0) {
+        setSelectedMobileBackup("");
+      } else if (!selectedMobileBackup || !filenames.has(selectedMobileBackup)) {
         setSelectedMobileBackup(backupList[0].filename);
       }
     } catch (error: any) {
@@ -351,7 +358,7 @@ const Settings = () => {
             <Label htmlFor="store-name">Store name</Label>
             <Input
               id="store-name"
-              placeholder="QuickPOS"
+              placeholder="QuickScale"
               value={storeName}
               onChange={(e) => setStoreName(e.target.value)}
             />
@@ -400,6 +407,42 @@ const Settings = () => {
               checked={enableBarcodeScanning}
               onCheckedChange={setEnableBarcodeScanning}
             />
+          </div>
+          <Separator />
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="per-kilo">Per Kilo Purchase</Label>
+              <p className="text-sm text-muted-foreground">
+                Allow decimal quantities (e.g., 1.5 kg) instead of whole numbers
+              </p>
+            </div>
+            <Switch
+              id="per-kilo"
+              checked={enablePerKiloPurchase}
+              onCheckedChange={setEnablePerKiloPurchase}
+            />
+          </div>
+          <Separator />
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="sticker-code-type">Sticker Code Type</Label>
+              <p className="text-sm text-muted-foreground">
+                Choose QR code or barcode for sticker generator
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`text-sm ${stickerCodeType === "barcode" ? "font-medium" : "text-muted-foreground"}`}>
+                Barcode
+              </span>
+              <Switch
+                id="sticker-code-type"
+                checked={stickerCodeType === "qr"}
+                onCheckedChange={(checked) => setStickerCodeType(checked ? "qr" : "barcode")}
+              />
+              <span className={`text-sm ${stickerCodeType === "qr" ? "font-medium" : "text-muted-foreground"}`}>
+                QR Code
+              </span>
+            </div>
           </div>
         </CardContent>
       </Card>

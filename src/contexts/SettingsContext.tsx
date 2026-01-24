@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import type { PrinterDevice } from "@/lib/printer";
 
 interface SettingsState {
@@ -14,8 +15,12 @@ interface SettingsState {
   setTaxRatePercent: (value: number) => void;
   enableDiscounts: boolean;
   enableBarcodeScanning: boolean;
+  enablePerKiloPurchase: boolean;
+  stickerCodeType: "qr" | "barcode";
   setEnableDiscounts: (value: boolean) => void;
   setEnableBarcodeScanning: (value: boolean) => void;
+  setEnablePerKiloPurchase: (value: boolean) => void;
+  setStickerCodeType: (value: "qr" | "barcode") => void;
   selectedPrinter: PrinterDevice | null;
   setSelectedPrinter: (device: PrinterDevice | null) => void;
 }
@@ -28,6 +33,8 @@ interface StoredSettings {
   taxRatePercent: number;
   enableDiscounts: boolean;
   enableBarcodeScanning: boolean;
+  enablePerKiloPurchase: boolean;
+  stickerCodeType: "qr" | "barcode";
   printerName: string | null;
   printerAddress: string | null;
 }
@@ -37,6 +44,7 @@ const SettingsContext = createContext<SettingsState | undefined>(undefined);
 const STORAGE_KEY = "swift_pos_settings";
 
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
+  const isNativePlatform = Capacitor.isNativePlatform();
   const [storeName, setStoreNameState] = useState("");
   const [storeAddress, setStoreAddressState] = useState("");
   const [autoPrintReceipt, setAutoPrintReceiptState] = useState(true);
@@ -44,36 +52,70 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   const [taxRatePercent, setTaxRatePercentState] = useState(12);
   const [enableDiscounts, setEnableDiscountsState] = useState(true);
   const [enableBarcodeScanning, setEnableBarcodeScanningState] = useState(false);
+  // On native installs, default to per-kilo ON unless user explicitly disables it in Settings.
+  // This avoids "fresh install" behavior differences between Web and Android devices.
+  const [enablePerKiloPurchase, setEnablePerKiloPurchaseState] = useState(isNativePlatform);
+  const [stickerCodeType, setStickerCodeTypeState] = useState<"qr" | "barcode">("qr");
   const [printerName, setPrinterNameState] = useState<string | null>(null);
   const [printerAddress, setPrinterAddressState] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as Partial<StoredSettings>;
-        setStoreNameState(parsed.storeName ?? "");
-        setStoreAddressState(parsed.storeAddress ?? "");
-        setAutoPrintReceiptState(
-          typeof parsed.autoPrintReceipt === "boolean" ? parsed.autoPrintReceipt : true,
-        );
-        setShowLogoOnReceiptState(
-          typeof parsed.showLogoOnReceipt === "boolean" ? parsed.showLogoOnReceipt : true,
-        );
-        setTaxRatePercentState(
-          typeof parsed.taxRatePercent === "number" ? parsed.taxRatePercent : 12,
-        );
-        setEnableDiscountsState(
-          typeof parsed.enableDiscounts === "boolean" ? parsed.enableDiscounts : true,
-        );
-        setEnableBarcodeScanningState(
-          typeof parsed.enableBarcodeScanning === "boolean" ? parsed.enableBarcodeScanning : false,
-        );
-        setPrinterNameState(parsed.printerName ?? null);
-        setPrinterAddressState(parsed.printerAddress ?? null);
+    const loadSettings = () => {
+      try {
+        if (typeof window === "undefined" || !window.localStorage) {
+          return;
+        }
+        const stored = window.localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored) as Partial<StoredSettings>;
+          setStoreNameState(parsed.storeName ?? "");
+          setStoreAddressState(parsed.storeAddress ?? "");
+          setAutoPrintReceiptState(
+            typeof parsed.autoPrintReceipt === "boolean" ? parsed.autoPrintReceipt : true,
+          );
+          setShowLogoOnReceiptState(
+            typeof parsed.showLogoOnReceipt === "boolean" ? parsed.showLogoOnReceipt : true,
+          );
+          setTaxRatePercentState(
+            typeof parsed.taxRatePercent === "number" ? parsed.taxRatePercent : 12,
+          );
+          setEnableDiscountsState(
+            typeof parsed.enableDiscounts === "boolean" ? parsed.enableDiscounts : true,
+          );
+          setEnableBarcodeScanningState(
+            typeof parsed.enableBarcodeScanning === "boolean" ? parsed.enableBarcodeScanning : false,
+          );
+          setEnablePerKiloPurchaseState(
+            typeof parsed.enablePerKiloPurchase === "boolean"
+              ? parsed.enablePerKiloPurchase
+              : isNativePlatform,
+          );
+          setStickerCodeTypeState(
+            parsed.stickerCodeType === "barcode" || parsed.stickerCodeType === "qr"
+              ? parsed.stickerCodeType
+              : "qr"
+          );
+          setPrinterNameState(parsed.printerName ?? null);
+          setPrinterAddressState(parsed.printerAddress ?? null);
+        } else {
+          // First-run defaults for native installs
+          if (isNativePlatform) {
+            setEnablePerKiloPurchaseState(true);
+            persist({ enablePerKiloPurchase: true });
+          }
+        }
+      } catch (error) {
+        // ignore parse errors
       }
-    } catch {
-      // ignore parse errors
+    };
+
+    // On mobile, wait a bit for Capacitor to initialize
+    if (typeof window !== "undefined" && (window as any).Capacitor) {
+      // If Capacitor is available, settings should load immediately
+      loadSettings();
+    } else {
+      // For web or if Capacitor isn't ready, try loading immediately
+      loadSettings();
     }
   }, []);
 
@@ -85,6 +127,8 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     taxRatePercent,
     enableDiscounts,
     enableBarcodeScanning,
+    enablePerKiloPurchase,
+    stickerCodeType,
     printerName,
     printerAddress,
     ...overrides,
@@ -128,6 +172,16 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     persist({ enableBarcodeScanning: value });
   };
 
+  const setEnablePerKiloPurchase = (value: boolean) => {
+    setEnablePerKiloPurchaseState(value);
+    persist({ enablePerKiloPurchase: value });
+  };
+
+  const setStickerCodeType = (value: "qr" | "barcode") => {
+    setStickerCodeTypeState(value);
+    persist({ stickerCodeType: value });
+  };
+
   const setTaxRatePercent = (value: number) => {
     const safe = Number.isNaN(value) ? 12 : Math.max(0, Math.min(100, value));
     setTaxRatePercentState(safe);
@@ -165,8 +219,12 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
         setTaxRatePercent,
         enableDiscounts,
         enableBarcodeScanning,
+        enablePerKiloPurchase,
+        stickerCodeType,
         setEnableDiscounts,
         setEnableBarcodeScanning,
+        setEnablePerKiloPurchase,
+        setStickerCodeType,
         selectedPrinter,
         setSelectedPrinter,
       }}

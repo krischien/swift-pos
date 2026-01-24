@@ -3,7 +3,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { NavLink } from "@/components/NavLink";
 import {
-  Store,
   ShoppingCart,
   Package,
   TrendingUp,
@@ -12,6 +11,7 @@ import {
   Menu,
   Users,
   FolderTree,
+  QrCode,
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -28,6 +28,7 @@ const AppLayout = () => {
 
   const navItems = [
     { to: "/pos", icon: ShoppingCart, label: "POS", roles: ["admin", "cashier"] },
+    { to: "/sticker-generator", icon: QrCode, label: "Sticker Generator", roles: ["admin", "cashier"] },
     { to: "/inventory", icon: Package, label: "Inventory", roles: ["admin"] },
     { to: "/sales", icon: TrendingUp, label: "Sales", roles: ["admin"] },
     { to: "/categories", icon: FolderTree, label: "Categories", roles: ["admin"] },
@@ -65,13 +66,13 @@ const AppLayout = () => {
     <div className="min-h-screen flex bg-background">
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex w-64 bg-sidebar border-r flex-col">
-        <div className="p-6 border-b">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-              <Store className="w-6 h-6 text-primary-foreground" />
-            </div>
+        <div className="p-4 border-b">
+          <div className="flex items-center">
+            {/* <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center"> */}
+              <img src="/favico.png" alt="QuickScale" className="w-14 h-14" />
+            {/* </div> */}
             <div>
-              <h1 className="font-bold text-lg">QuickPOS</h1>
+              <h1 className="font-bold text-lg">QuickScale</h1>
               <p className="text-xs text-muted-foreground">{user?.role}</p>
             </div>
           </div>
@@ -109,10 +110,10 @@ const AppLayout = () => {
             <div className="p-6 border-b">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-                  <Store className="w-6 h-6 text-primary-foreground" />
+                  <img src="/favico.png" alt="QuickScale" className="w-6 h-6" />
                 </div>
                 <div>
-                  <h1 className="font-bold text-lg">QuickPOS</h1>
+                  <h1 className="font-bold text-lg">QuickScale</h1>
                   <p className="text-xs text-muted-foreground">{user?.role}</p>
                 </div>
               </div>
@@ -141,8 +142,8 @@ const AppLayout = () => {
 
         <div className="flex-1 flex justify-center">
           <div className="flex items-center gap-2">
-            <Store className="w-5 h-5 text-primary" />
-            <span className="font-bold">QuickPOS</span>
+            <img src="/favico.png" alt="QuickScale" className="w-5 h-5" />
+            <span className="font-bold">QuickScale</span>
           </div>
         </div>
       </div>
