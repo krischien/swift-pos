@@ -40,6 +40,7 @@ model Product {
   image              String?
   barcode            String?
   qrCode             String?
+  unitOfMeasure      String?        @default("PCS")
 
   category           Category       @relation(fields: [categoryId], references: [id])
   variants           Variant[]

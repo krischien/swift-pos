@@ -34,6 +34,9 @@ import {
 } from "./services/userService";
 import { prisma } from "./db";
 import cron from "node-cron";
+import { mapPosToInventoryList } from "./report/mapPosToInventoryList";
+import { generateBirInventoryListXlsx } from "./report/birInventoryXlsx";
+import { generateBirInventoryListPdf } from "./report/birInventoryPdf";
 import { performBackup, cleanupOldBackups, listBackups, restoreFromBackup, getLatestBackup } from "./utils/backupService";
 
 const app = express();
@@ -416,6 +419,49 @@ app.post("/api/backups/create", async (_req, res) => {
   } catch (error: any) {
     console.error(error);
     res.status(500).json({ message: error.message ?? "Failed to create backup" });
+  }
+});
+
+// BIR Annex A Inventory Report (XLSX or PDF)
+app.post("/api/reports/bir-inventory", async (req, res) => {
+  try {
+    const { companyName, tin, address, inventoryDate, format } = req.body as {
+      companyName?: string;
+      tin?: string;
+      address?: string;
+      inventoryDate?: string;
+      format?: "xlsx" | "pdf";
+    };
+
+    const company = {
+      name: companyName?.trim() || "Company",
+      tin: tin?.trim() || "",
+      address: address?.trim() || "",
+    };
+
+    const date = inventoryDate || `${new Date().getFullYear()}-12-31`;
+
+    const products = await listProductsService({ status: "active" });
+    const inventoryList = mapPosToInventoryList(products, company, date);
+
+    const safeName = (company.name || "inventory").replace(/[^a-zA-Z0-9-_]/g, "-").slice(0, 50);
+
+    if (format === "pdf") {
+      const buffer = await generateBirInventoryListPdf(inventoryList);
+      const filename = `inventory-annex-a-${safeName}.pdf`;
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.send(buffer);
+    } else {
+      const buffer = await generateBirInventoryListXlsx(inventoryList);
+      const filename = `inventory-annex-a-${safeName}.xlsx`;
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.send(buffer);
+    }
+  } catch (error: any) {
+    console.error("[BIR Report]", error);
+    res.status(500).json({ message: error?.message ?? "Failed to generate BIR inventory report" });
   }
 });
 

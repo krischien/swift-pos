@@ -168,11 +168,6 @@ const buildEscPosReceipt = (payload: ReceiptPayload) => {
     encoder.line(payload.storeAddress);
   }
   encoder.line(`Ticket: ${payload.ticketNumber ?? ""}`);
-  encoder.line(
-    new Date(payload.createdAt ?? Date.now()).toLocaleString(undefined, {
-      hour12: true,
-    }),
-  );
   encoder.line(`Cashier: ${payload.cashierName || ""}`);
   encoder.printLine("-", "", false);
   encoder.align("left");

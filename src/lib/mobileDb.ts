@@ -168,6 +168,7 @@ const createTables = async (db: any) => {
       image TEXT,
       barcode TEXT,
       qrCode TEXT,
+      unitOfMeasure TEXT DEFAULT 'PCS',
       FOREIGN KEY (categoryId) REFERENCES Category(id)
     )
   `);

@@ -37,6 +37,7 @@ export interface Product {
   image?: string;
   barcode?: string;
   qrCode?: string;
+  unitOfMeasure?: string;
 }
 
 export interface CartItem {

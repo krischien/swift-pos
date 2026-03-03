@@ -1,6 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import {
   Table,
   TableBody,
   TableCell,
@@ -8,7 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Receipt, TrendingUp, Calendar, Printer, Download, DollarSign } from "lucide-react";
+import { Receipt, TrendingUp, Calendar, Download, DollarSign } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { formatCurrency } from "@/lib/currency";
@@ -25,16 +31,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  eachDayOfInterval,
+  eachHourOfInterval,
+  eachMonthOfInterval,
   endOfDay,
   endOfMonth,
   endOfQuarter,
   endOfWeek,
   endOfYear,
+  format,
   startOfDay,
   startOfMonth,
   startOfQuarter,
   startOfWeek,
   startOfYear,
+  subDays,
+  subMonths,
+  subYears,
 } from "date-fns";
 
 // Custom Peso Icon Component
@@ -58,6 +71,8 @@ const Sales = () => {
   const [exporting, setExporting] = useState(false);
 
   type ExportRange = "today" | "weekly" | "monthly" | "quarterly" | "annual";
+  type QuickRange = "all" | "today" | "week" | "month" | "year" | "custom";
+  const [quickRange, setQuickRange] = useState<QuickRange>("all");
 
   const loadSales = async (from?: string, to?: string) => {
     try {
@@ -123,6 +138,59 @@ const Sales = () => {
       toISO: to.toISOString(),
       label,
     };
+  };
+
+  const getQuickRangeBounds = (range: QuickRange) => {
+    const now = new Date();
+    let from: Date | undefined;
+    let to: Date | undefined;
+    let label = "All time";
+
+    switch (range) {
+      case "today":
+        from = startOfDay(now);
+        to = endOfDay(now);
+        label = "Today";
+        break;
+      case "week":
+        from = startOfWeek(now, { weekStartsOn: 1 });
+        to = endOfWeek(now, { weekStartsOn: 1 });
+        label = "This Week";
+        break;
+      case "month":
+        from = startOfMonth(now);
+        to = endOfMonth(now);
+        label = "This Month";
+        break;
+      case "year":
+        from = startOfYear(now);
+        to = endOfYear(now);
+        label = "This Year";
+        break;
+      case "custom":
+        label = "Custom";
+        break;
+      case "all":
+      default:
+        from = undefined;
+        to = undefined;
+        label = "All time";
+        break;
+    }
+
+    return { from, to, label };
+  };
+
+  const applyQuickRange = (range: QuickRange) => {
+    if (range === "custom") {
+      return;
+    }
+    const { from, to, label } = getQuickRangeBounds(range);
+    setQuickRange(range);
+    setFromDate("");
+    setToDate("");
+    setActiveRangeLabel(label);
+    void loadSales(from?.toISOString(), to?.toISOString());
   };
 
   const handleExport = async (range: ExportRange) => {
@@ -282,10 +350,188 @@ const Sales = () => {
     ];
   }, [sales, products]);
 
+  const comparativeSales = useMemo(() => {
+    const now = new Date();
+    const sumRange = (from: Date, to: Date) =>
+      sales.reduce((sum, sale) => {
+        const createdAt = new Date(sale.createdAt);
+        if (createdAt >= from && createdAt <= to) {
+          return sum + sale.total;
+        }
+        return sum;
+      }, 0);
+
+    const todayStart = startOfDay(now);
+    const todayEnd = endOfDay(now);
+    const yesterday = subDays(now, 1);
+    const yesterdayStart = startOfDay(yesterday);
+    const yesterdayEnd = endOfDay(yesterday);
+
+    const thisMonthStart = startOfMonth(now);
+    const thisMonthEnd = endOfMonth(now);
+    const lastMonthDate = subMonths(now, 1);
+    const lastMonthStart = startOfMonth(lastMonthDate);
+    const lastMonthEnd = endOfMonth(lastMonthDate);
+
+    const thisYearStart = startOfYear(now);
+    const thisYearEnd = endOfYear(now);
+    const lastYearDate = subYears(now, 1);
+    const lastYearStart = startOfYear(lastYearDate);
+    const lastYearEnd = endOfYear(lastYearDate);
+
+    return {
+      today: sumRange(todayStart, todayEnd),
+      yesterday: sumRange(yesterdayStart, yesterdayEnd),
+      thisMonth: sumRange(thisMonthStart, thisMonthEnd),
+      lastMonth: sumRange(lastMonthStart, lastMonthEnd),
+      thisYear: sumRange(thisYearStart, thisYearEnd),
+      lastYear: sumRange(lastYearStart, lastYearEnd),
+    };
+  }, [sales]);
+
+  const topSalesData = useMemo(() => {
+    const rowsMap = new Map<
+      string,
+      { name: string; salesAmount: number; quantitySold: number }
+    >();
+
+    for (const sale of sales) {
+      for (const item of sale.items ?? []) {
+        const product = products.find((p) => p.id === item.productId);
+        const baseName = item.productName || product?.name || "Unknown Item";
+        const variantName = item.variantName ? ` - ${item.variantName}` : "";
+        const name = `${baseName}${variantName}`;
+        const key = `${item.productId}-${item.variantId || "base"}`;
+        const current = rowsMap.get(key) ?? { name, salesAmount: 0, quantitySold: 0 };
+        current.salesAmount += item.subtotal ?? item.price * item.quantity;
+        current.quantitySold += item.quantity ?? 0;
+        rowsMap.set(key, current);
+      }
+    }
+
+    return Array.from(rowsMap.values())
+      .sort((a, b) => b.salesAmount - a.salesAmount)
+      .slice(0, 5);
+  }, [sales, products]);
+
+  const topSalesChartConfig = {
+    salesAmount: {
+      label: "Sales",
+      color: "hsl(var(--primary))",
+    },
+  } as const;
+
+  const salesOverTimeData = useMemo(() => {
+    if (!sales.length) {
+      return [];
+    }
+
+    const customFrom = fromDate ? new Date(fromDate) : undefined;
+    const customTo = toDate ? new Date(toDate) : undefined;
+    const { from: quickFrom, to: quickTo } = getQuickRangeBounds(quickRange);
+
+    let from = quickFrom;
+    let to = quickTo;
+
+    if (quickRange === "custom" && (customFrom || customTo)) {
+      from = customFrom ?? customTo;
+      to = customTo ?? customFrom;
+    }
+
+    if (!from || !to) {
+      const timestamps = sales
+        .map((sale) => new Date(sale.createdAt).getTime())
+        .filter((value) => Number.isFinite(value));
+      if (!timestamps.length) {
+        return [];
+      }
+      from = new Date(Math.min(...timestamps));
+      to = new Date(Math.max(...timestamps));
+    }
+
+    if (from > to) {
+      [from, to] = [to, from];
+    }
+
+    const getBucketKey = (date: Date) => {
+      if (quickRange === "today") {
+        return format(date, "yyyy-MM-dd HH");
+      }
+      if (quickRange === "year") {
+        return format(date, "yyyy-MM");
+      }
+      return format(date, "yyyy-MM-dd");
+    };
+
+    const getLabel = (date: Date) => {
+      if (quickRange === "today") {
+        return format(date, "ha");
+      }
+      if (quickRange === "year") {
+        return format(date, "MMM");
+      }
+      return format(date, "MMM d");
+    };
+
+    const ticks =
+      quickRange === "today"
+        ? eachHourOfInterval({ start: from, end: to })
+        : quickRange === "year"
+        ? eachMonthOfInterval({ start: from, end: to })
+        : eachDayOfInterval({ start: from, end: to });
+
+    const totals = new Map<string, number>();
+    for (const tick of ticks) {
+      totals.set(getBucketKey(tick), 0);
+    }
+
+    for (const sale of sales) {
+      const createdAt = new Date(sale.createdAt);
+      if (createdAt < from || createdAt > to) {
+        continue;
+      }
+      const key = getBucketKey(createdAt);
+      totals.set(key, (totals.get(key) ?? 0) + (sale.total ?? 0));
+    }
+
+    return ticks.map((tick) => ({
+      label: getLabel(tick),
+      total: totals.get(getBucketKey(tick)) ?? 0,
+    }));
+  }, [sales, quickRange, fromDate, toDate]);
+
+  const salesOverTimeChartConfig = {
+    total: {
+      label: "Sales",
+      color: "hsl(var(--primary))",
+    },
+  } as const;
+
+  const formatComparison = (current: number, previous: number) => {
+    const diff = current - previous;
+    if (previous <= 0) {
+      return {
+        diff,
+        percentLabel: "—",
+        diffClass: diff >= 0 ? "text-success" : "text-destructive",
+      };
+    }
+    const percent = (diff / previous) * 100;
+    const sign = percent > 0 ? "+" : "";
+    return {
+      diff,
+      percentLabel: `${sign}${percent.toFixed(1)}%`,
+      diffClass: diff >= 0 ? "text-success" : "text-destructive",
+    };
+  };
+
   const openSaleDetails = (sale: any) => {
     setDetailsSale(sale);
     setDetailsOpen(true);
   };
+
+  const truncateLabel = (value: string, maxLength = 12) =>
+    value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
 
   return (
     <div className="p-6 space-y-6">
@@ -322,14 +568,6 @@ const Sales = () => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button
-            variant="outline"
-            className="gap-2 flex-1 md:flex-none"
-            onClick={() => window.print()}
-          >
-            <Printer className="w-4 h-4" />
-            Print
-          </Button>
           <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
             <Button
               variant="outline"
@@ -370,6 +608,7 @@ const Sales = () => {
                     onClick={() => {
                       setFromDate("");
                       setToDate("");
+                      setQuickRange("all");
                       setActiveRangeLabel("All time");
                       void loadSales();
                       setFilterOpen(false);
@@ -381,6 +620,7 @@ const Sales = () => {
                     onClick={() => {
                       const from = fromDate ? new Date(fromDate).toISOString() : undefined;
                       const to = toDate ? new Date(toDate).toISOString() : undefined;
+                      setQuickRange("custom");
                       void loadSales(from, to);
                       const label =
                         fromDate || toDate
@@ -418,6 +658,240 @@ const Sales = () => {
           );
         })}
       </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {(() => {
+          const comparison = formatComparison(
+            comparativeSales.today,
+            comparativeSales.yesterday
+          );
+          return (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Today vs Yesterday
+                </CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(comparativeSales.today)}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  vs {formatCurrency(comparativeSales.yesterday)}
+                </p>
+                <p className={`text-xs mt-1 ${comparison.diffClass}`}>
+                  {formatCurrency(comparison.diff)} ({comparison.percentLabel})
+                </p>
+              </CardContent>
+            </Card>
+          );
+        })()}
+        {(() => {
+          const comparison = formatComparison(
+            comparativeSales.thisMonth,
+            comparativeSales.lastMonth
+          );
+          return (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  This Month vs Last Month
+                </CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(comparativeSales.thisMonth)}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  vs {formatCurrency(comparativeSales.lastMonth)}
+                </p>
+                <p className={`text-xs mt-1 ${comparison.diffClass}`}>
+                  {formatCurrency(comparison.diff)} ({comparison.percentLabel})
+                </p>
+              </CardContent>
+            </Card>
+          );
+        })()}
+        {(() => {
+          const comparison = formatComparison(
+            comparativeSales.thisYear,
+            comparativeSales.lastYear
+          );
+          return (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  This Year vs Last Year
+                </CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(comparativeSales.thisYear)}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  vs {formatCurrency(comparativeSales.lastYear)}
+                </p>
+                <p className={`text-xs mt-1 ${comparison.diffClass}`}>
+                  {formatCurrency(comparison.diff)} ({comparison.percentLabel})
+                </p>
+              </CardContent>
+            </Card>
+          );
+        })()}
+      </div>
+
+      <Card>
+        <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Sales Over Time
+          </CardTitle>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={quickRange === "today" ? "default" : "outline"}
+              size="sm"
+              onClick={() => applyQuickRange("today")}
+            >
+              Today
+            </Button>
+            <Button
+              variant={quickRange === "week" ? "default" : "outline"}
+              size="sm"
+              onClick={() => applyQuickRange("week")}
+            >
+              Week
+            </Button>
+            <Button
+              variant={quickRange === "month" ? "default" : "outline"}
+              size="sm"
+              onClick={() => applyQuickRange("month")}
+            >
+              Month
+            </Button>
+            <Button
+              variant={quickRange === "year" ? "default" : "outline"}
+              size="sm"
+              onClick={() => applyQuickRange("year")}
+            >
+              Year
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {salesOverTimeData.length ? (
+            <ChartContainer config={salesOverTimeChartConfig} className="h-64 w-full">
+              <LineChart data={salesOverTimeData} margin={{ left: 12, right: 12 }}>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tickFormatter={(value) => formatCurrency(Number(value))}
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={
+                    <ChartTooltipContent
+                      labelKey="label"
+                      formatter={(value) => formatCurrency(Number(value))}
+                    />
+                  }
+                />
+                <Line
+                  dataKey="total"
+                  type="monotone"
+                  stroke="var(--color-total)"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </LineChart>
+            </ChartContainer>
+          ) : (
+            <p className="text-sm text-muted-foreground">No sales data available yet.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Top Sales
+          </CardTitle>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={quickRange === "today" ? "default" : "outline"}
+              size="sm"
+              onClick={() => applyQuickRange("today")}
+            >
+              Today
+            </Button>
+            <Button
+              variant={quickRange === "week" ? "default" : "outline"}
+              size="sm"
+              onClick={() => applyQuickRange("week")}
+            >
+              Week
+            </Button>
+            <Button
+              variant={quickRange === "month" ? "default" : "outline"}
+              size="sm"
+              onClick={() => applyQuickRange("month")}
+            >
+              Month
+            </Button>
+            <Button
+              variant={quickRange === "year" ? "default" : "outline"}
+              size="sm"
+              onClick={() => applyQuickRange("year")}
+            >
+              Year
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {topSalesData.length ? (
+            <ChartContainer config={topSalesChartConfig} className="h-64 w-full">
+              <BarChart data={topSalesData} margin={{ left: 12, right: 12 }}>
+                <XAxis
+                  dataKey="name"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  interval={0}
+                  tickFormatter={(value) => truncateLabel(String(value))}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tickFormatter={(value) => formatCurrency(Number(value))}
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={
+                    <ChartTooltipContent
+                      labelKey="name"
+                      formatter={(value) => formatCurrency(Number(value))}
+                    />
+                  }
+                />
+                <Bar dataKey="salesAmount" fill="var(--color-salesAmount)" radius={6} />
+              </BarChart>
+            </ChartContainer>
+          ) : (
+            <p className="text-sm text-muted-foreground">No sales data available yet.</p>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="space-y-4">
         {loading && <p className="text-sm text-muted-foreground">Loading sales...</p>}

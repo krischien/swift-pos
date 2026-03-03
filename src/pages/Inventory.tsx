@@ -9,11 +9,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertTriangle, Trash2, Download, ChevronDown, Barcode, QrCode, FileSpreadsheet } from "lucide-react";
+import { Plus, Search, AlertTriangle, Trash2, Download, ChevronDown, Barcode, QrCode, FileSpreadsheet, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { api } from "@/lib/api";
 import { Category, Product, Variant } from "@/types/pos";
 import { formatCurrency } from "@/lib/currency";
+import { useSettings } from "@/contexts/SettingsContext";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const Inventory = () => {
+  const { storeName, storeAddress } = useSettings();
   const [search, setSearch] = useState("");
   const [stockFilter, setStockFilter] = useState<"all" | "lowStock">("all");
   const [categories, setCategories] = useState<Category[]>([]);
@@ -53,6 +56,7 @@ const Inventory = () => {
   const [formSku, setFormSku] = useState("");
   const [formMarginPercentage, setFormMarginPercentage] = useState("");
   const [formImage, setFormImage] = useState("");
+  const [formUnitOfMeasure, setFormUnitOfMeasure] = useState("PCS");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -134,6 +138,7 @@ const Inventory = () => {
     setFormLowStock("");
     setFormMarginPercentage("0");
     setFormImage("");
+    setFormUnitOfMeasure("PCS");
     // Generate a simple item code we can later use for QR codes
     const code = `ITM-${Date.now().toString(36).toUpperCase().slice(-6)}`;
     setFormItemCode(code);
@@ -160,6 +165,7 @@ const Inventory = () => {
     setFormSku(product.sku ?? "");
     setFormMarginPercentage(product.marginPercentage?.toString() ?? "0");
     setFormImage(product.image ?? "");
+    setFormUnitOfMeasure(product.unitOfMeasure ?? "PCS");
     setFormError(null);
     setFormOpen(true);
   };
@@ -186,6 +192,7 @@ const Inventory = () => {
         lowStockThreshold: formLowStock ? parseInt(formLowStock, 10) : undefined,
         marginPercentage: formMarginPercentage ? parseFloat(formMarginPercentage) : undefined,
         image: formImage || undefined,
+        unitOfMeasure: formUnitOfMeasure || "PCS",
       };
 
       if (isEditing && editingProduct) {
@@ -210,6 +217,7 @@ const Inventory = () => {
       setFormSku("");
       setFormMarginPercentage("");
       setFormImage("");
+      setFormUnitOfMeasure("PCS");
 
       await load();
     } catch (e: any) {
@@ -745,6 +753,230 @@ const Inventory = () => {
     }
   };
 
+  const handleExportBIRInventory = async (format: "xlsx" | "pdf" = "xlsx") => {
+    const currentYear = new Date().getFullYear();
+    const inventoryDate = `${currentYear}-12-31`;
+    const companyName = storeName?.trim() || "";
+    const companyAddress = storeAddress?.trim() || "";
+
+    // PDF is server-only; XLSX can fallback to client-side on mobile
+    const useApi = !Capacitor.isNativePlatform() || format === "pdf";
+    if (useApi) {
+      try {
+        const blob = await api.getBirInventoryReport({
+          companyName,
+          tin: "",
+          address: companyAddress,
+          inventoryDate,
+          format,
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `BIR-Inventory-Report-${currentYear}.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        return;
+      } catch (_apiError) {
+        if (format === "pdf") {
+          alert("PDF export requires server connection. Please ensure the server is running.");
+          return;
+        }
+        // Fallback to client-side XLSX
+      }
+    }
+
+    // Client-side XLSX fallback (mobile or when server unavailable)
+    try {
+      const productsData = await api.getProducts();
+      const productsArr = productsData as Product[];
+
+      if (productsArr.length === 0) {
+        alert("No inventory items found to export.");
+        return;
+      }
+
+      const rows: any[] = [];
+      let grandTotal = 0;
+
+      for (const product of productsArr) {
+        const unitOfMeasure = product.unitOfMeasure || "PCS";
+        const unitPrice = product.basePrice || product.price || 0;
+        const locationAddr = companyAddress || "";
+
+        if (product.hasVariants && product.variants?.length) {
+          for (const variant of product.variants) {
+            const qty = variant.stock || 0;
+            const totalCost = unitPrice * qty;
+            grandTotal += totalCost;
+            rows.push({
+              "PRODUCT / INVENTORY CODE": product.itemCode || product.sku || "",
+              "ITEM DESCRIPTION": `${product.name} - ${variant.name}`,
+              "LOCATION - ADDRESS": locationAddr,
+              "LOCATION - CODE": "",
+              "LOCATION - REMARKS": "",
+              "INVENTORY VALUATION METHOD": "FIFO",
+              "UNIT PRICE": unitPrice,
+              "QUANTITY IN STOCKS": qty,
+              "UNIT OF MEASUREMENT": unitOfMeasure,
+              "TOTAL WEIGHT / VOLUME": "",
+              "TOTAL COST": totalCost,
+            });
+          }
+        } else {
+          const qty = product.stock || 0;
+          const totalCost = unitPrice * qty;
+          grandTotal += totalCost;
+          rows.push({
+            "PRODUCT / INVENTORY CODE": product.itemCode || product.sku || "",
+            "ITEM DESCRIPTION": product.name,
+            "LOCATION - ADDRESS": locationAddr,
+            "LOCATION - CODE": "",
+            "LOCATION - REMARKS": "",
+            "INVENTORY VALUATION METHOD": "FIFO",
+            "UNIT PRICE": unitPrice,
+            "QUANTITY IN STOCKS": qty,
+            "UNIT OF MEASUREMENT": unitOfMeasure,
+            "TOTAL WEIGHT / VOLUME": "",
+            "TOTAL COST": totalCost,
+          });
+        }
+      }
+
+      const XLSX = await import("xlsx");
+      const pad = (arr: any[], len = 11) => [...arr, ...Array(Math.max(0, len - arr.length)).fill("")];
+      const sheetData: any[][] = [];
+
+      sheetData.push(pad(["For Retail / Manufacturing Industry"]));
+      sheetData.push(pad([]));
+      sheetData.push(pad([], 14)); // row3 - ANNEX A in col N (index 13)
+      sheetData[2][13] = "ANNEX A";
+      sheetData.push(pad([]));
+      const row5 = pad([]);
+      row5[5] = companyName;
+      sheetData.push(row5);
+      const row6 = pad([]);
+      row6[4] = "MERCHANDISE/ RAW MATERIALS/GOODS IN PROCESS / FINISHED GOODS INVENTORY";
+      sheetData.push(row6);
+      const row7 = pad([]);
+      row7[5] = `As of December 31, ${currentYear}`;
+      sheetData.push(row7);
+      sheetData.push(pad([]));
+      sheetData.push([
+        "PRODUCT / INVENTORY CODE",
+        "ITEM DESCRIPTION",
+        "LOCATION (Note 1)",
+        "",
+        "",
+        "INVENTORY VALUATION METHOD (Note 2)",
+        "UNIT PRICE",
+        "QUANTITY IN STOCKS",
+        "UNIT OF MEASUREMENT",
+        "",
+        "TOTAL COST",
+      ]);
+      sheetData.push([
+        "",
+        "",
+        "ADDRESS",
+        "CODE",
+        "REMARKS",
+        "",
+        "",
+        "",
+        "(In weight or volume e.g., kilos, grams, liters, etc.)",
+        "TOTAL WEIGHT / VOLUME",
+        "",
+      ]);
+      sheetData.push([]);
+
+      for (const row of rows) {
+        sheetData.push([
+          row["PRODUCT / INVENTORY CODE"],
+          row["ITEM DESCRIPTION"],
+          row["LOCATION - ADDRESS"],
+          row["LOCATION - CODE"],
+          row["LOCATION - REMARKS"],
+          row["INVENTORY VALUATION METHOD"],
+          row["UNIT PRICE"],
+          row["QUANTITY IN STOCKS"],
+          row["UNIT OF MEASUREMENT"],
+          row["TOTAL WEIGHT / VOLUME"],
+          row["TOTAL COST"],
+        ]);
+      }
+
+      // Total row
+      sheetData.push([
+        "TOTAL",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        grandTotal,
+      ]);
+      sheetData.push(pad([]));
+      // Note a: A="Note a", B="a", C-K=paragraph (reference layout - NOT all in column A)
+      const note1a =
+        "Include all goods whether taxpayer has title thereto or not, provided these goods are actually situated in location/address at the Head Office or Branch or Facilities (with or without sales activity of the taxpayer). Facilities shall include but not limited to place of production, showroom, warehouse, storage place, leased property, etc. Include also goods out on consignment, though not physically present are nonetheless owned by the taxpayer.";
+      sheetData.push(["Note a", "a", note1a, "", "", "", "", "", "", "", ""]);
+      // Note b: A=empty, B="b", C-K="Use the following codes:"
+      sheetData.push(["", "b", "Use the following codes:", "", "", "", "", "", "", "", ""]);
+      // Note 1b rows: A=empty, B=empty, C=code, D-E=desc, G-K=remark
+      sheetData.push(["", "", "CH", "Goods on consignment held by the taxpayer", "", "", "Indicate the name of the consignor in the Remarks column", "", "", "", ""]);
+      sheetData.push(["", "", "P", "Parked goods or goods owned by related parties", "", "", "Indicate the name of related party/owner in the Remarks column", "", "", "", ""]);
+      sheetData.push(["", "", "O", "Goods owned by the taxpayer", "", "", "", "", "", "", ""]);
+      sheetData.push(["", "", "CO", "Goods out on consignment held in the hands of entity other than taxpayer", "", "", "Indicate the name of the entity in the Remarks column", "", "", "", ""]);
+      // Note 2: A="Note 2", B=empty, C-K=text
+      sheetData.push(["Note 2", "", "Indicate costing method applied, e.g., Standard Costing, FIFO, Weighted Average, Specific Identification, etc.", "", "", "", "", "", "", "", ""]);
+      sheetData.push(pad([]));
+      // Signature block: B-K=declaration, F-J=signature line + labels (reference layout)
+      const declaration =
+        "We declare, under the penalties of perjury, that this schedule has been made in good faith, verified by us, and to the best of our knowledge and belief, is true and correct pursuant to the provisions of the National Internal Revenue Code, as amended, and the regulations issued under authority thereof.";
+      sheetData.push(["", declaration, "", "", "", "", "", "", "", "", ""]);
+      sheetData.push(["", "", "", "", "", "_________________________", "", "", "", "", ""]);
+      sheetData.push(["", "", "", "", "", "Name and Signature of Authorized Representative", "", "", "", "", ""]);
+      sheetData.push(["", "", "", "", "", "TIN: _________________________", "", "", "", "", ""]);
+
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+      ws["!cols"] = [
+        { wch: 20 },
+        { wch: 30 },
+        { wch: 25 },
+        { wch: 15 },
+        { wch: 20 },
+        { wch: 25 },
+        { wch: 12 },
+        { wch: 18 },
+        { wch: 20 },
+        { wch: 18 },
+        { wch: 15 },
+      ];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "ANNEX A");
+      const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([wbout], { type: "application/octet-stream" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `BIR-Inventory-Report-${currentYear}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      console.error("BIR Export Error:", e);
+      alert(e.message ?? "Failed to export BIR inventory report");
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -765,6 +997,14 @@ const Inventory = () => {
               <DropdownMenuItem onClick={handleExportProductList}>
                 <FileSpreadsheet className="w-4 h-4 mr-2" />
                 Product List
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExportBIRInventory("xlsx")}>
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                BIR Inventory Report (XLSX)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExportBIRInventory("pdf")}>
+                <FileText className="w-4 h-4 mr-2" />
+                BIR Inventory Report (PDF)
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleExportLowStockList}>
                 <AlertTriangle className="w-4 h-4 mr-2" />
@@ -804,6 +1044,15 @@ const Inventory = () => {
                     onChange={(e) => setFormSku(e.target.value)}
                     placeholder="Stock Keeping Unit"
                   />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Unit of Measure</p>
+                  <Input
+                    value={formUnitOfMeasure}
+                    onChange={(e) => setFormUnitOfMeasure(e.target.value)}
+                    placeholder="PCS, KLS, etc."
+                  />
+                  <p className="text-xs text-muted-foreground">e.g., PCS, KLS, BOX, BTL</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Name</p>

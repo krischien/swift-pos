@@ -147,6 +147,7 @@ export const mobileServices = {
       image: row.image,
       barcode: row.barcode,
       qrCode: row.qrCode,
+      unitOfMeasure: row.unitOfMeasure || "PCS",
     })) as Product[];
 
     // Load variants for products that have them
@@ -173,14 +174,15 @@ export const mobileServices = {
     marginPercentage?: number;
     status?: "active" | "inactive";
     image?: string;
+    unitOfMeasure?: string;
   }): Promise<Product> {
     const db = await getDatabase();
     const id = generateId();
 
     await dbExecute(
       db,
-      `INSERT INTO Product (id, name, categoryId, itemCode, sku, hasVariants, basePrice, price, stock, lowStockThreshold, marginPercentage, status, image, barcode, qrCode)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO Product (id, name, categoryId, itemCode, sku, hasVariants, basePrice, price, stock, lowStockThreshold, marginPercentage, status, image, barcode, qrCode, unitOfMeasure)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         payload.name,
@@ -197,6 +199,7 @@ export const mobileServices = {
         payload.image || null,
         payload.barcode || null,
         payload.qrCode || null,
+        payload.unitOfMeasure || "PCS",
       ]
     );
 
@@ -220,6 +223,7 @@ export const mobileServices = {
       image?: string;
       barcode?: string;
       qrCode?: string;
+      unitOfMeasure?: string;
     }>
   ): Promise<Product> {
     const db = await getDatabase();
@@ -273,6 +277,10 @@ export const mobileServices = {
     if (payload.image !== undefined) {
       updates.push("image = ?");
       values.push(payload.image);
+    }
+    if (payload.unitOfMeasure !== undefined) {
+      updates.push("unitOfMeasure = ?");
+      values.push(payload.unitOfMeasure);
     }
 
     if (updates.length > 0) {

@@ -1,0 +1,200 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        font-size: 11px;
+        color: #111827;
+        margin: 18px;
+      }
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        font-weight: 700;
+      }
+      .topline {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .header {
+        text-align: center;
+        margin: 10px 0 8px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+      }
+      th,
+      td {
+        border: 1px solid #111827;
+        padding: 4px;
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        font-weight: 700;
+        text-align: center;
+      }
+      .total {
+        text-align: right;
+        font-weight: 600;
+      }
+      .note {
+        margin-top: 10px;
+        font-size: 10px;
+        line-height: 1.35;
+      }
+      .note-label {
+        float: left;
+        font-weight: 700;
+        margin-right: 6px;
+      }
+      .note-content {
+        overflow: hidden;
+      }
+      .note-sub {
+        margin-left: 16px;
+        margin-top: 4px;
+      }
+      .note-codes {
+        margin-top: 4px;
+        margin-left: 16px;
+      }
+      .note-codes table {
+        margin-top: 4px;
+        border: none;
+        width: auto;
+      }
+      .note-codes td {
+        border: none;
+        padding: 0 12px 2px 0;
+        vertical-align: top;
+      }
+      .note-codes td:first-child {
+        white-space: nowrap;
+        font-weight: 700;
+      }
+      .signature {
+        margin-top: 14px;
+        font-size: 10px;
+      }
+      .sig-block {
+        text-align: right;
+        margin-top: 8px;
+      }
+      .sig-line {
+        display: block;
+        width: 220px;
+        margin: 8px 0 4px auto;
+        border-bottom: 1px solid #111827;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="topline">
+      <span>For Retail / Manufacturing Industry</span>
+      <span>ANNEX A</span>
+    </div>
+
+    <div class="header">
+      <h3>NAME OF COMPANY</h3>
+      <div><strong>{{companyName}}</strong></div>
+      <div>MERCHANDISE/ RAW MATERIALS / GOODS IN PROCESS / FINISHED GOODS INVENTORY</div>
+      <div>As of {{inventoryDateLong}}</div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th rowspan="2" style="width: 90px;">PRODUCT / INVENTORY CODE</th>
+          <th rowspan="2" style="width: 160px;">ITEM DESCRIPTION</th>
+          <th colspan="3">LOCATION (Note 1)</th>
+          <th rowspan="2" style="width: 110px;">INVENTORY VALUATION METHOD (Note 2)</th>
+          <th rowspan="2" style="width: 80px;">UNIT PRICE</th>
+          <th rowspan="2" style="width: 80px;">QUANTITY IN STOCKS</th>
+          <th rowspan="2" style="width: 110px;">UNIT OF MEASUREMENT (in weight or volume)</th>
+          <th rowspan="2" style="width: 90px;">TOTAL WEIGHT / VOLUME</th>
+          <th rowspan="2" style="width: 90px;">TOTAL COST</th>
+        </tr>
+        <tr>
+          <th style="width: 130px;">ADDRESS</th>
+          <th style="width: 70px;">CODE</th>
+          <th style="width: 90px;">REMARKS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{itemsRows}}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="10" class="total">Total</td>
+          <td class="total">{{totalCost}}</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <div class="note">
+      <div style="overflow: hidden;">
+        <span class="note-label">Note</span>
+        <div class="note-content">
+          <strong>a</strong> Include all goods whether taxpayer has title thereto or not, provided these
+          goods are actually situated in location/address at the Head Office or Branch or Facilities (with or
+          without sales activity of the taxpayer). Facilities shall include but not limited to place of
+          production, showroom, warehouse, storage place, leased property, etc. Include also goods out on
+          consignment, though not physically present are nonetheless owned by the taxpayer.
+        </div>
+      </div>
+      <div class="note-sub">
+        <strong>b</strong> Use the following codes:
+      </div>
+      <div class="note-codes">
+        <table>
+          <tr>
+            <td><strong>C<sub>H</sub></strong></td>
+            <td>Goods on consignment held by the taxpayer</td>
+            <td>Indicate the name of the consignor in the Remarks column</td>
+          </tr>
+          <tr>
+            <td><strong>P</strong></td>
+            <td>Parked goods or goods owned by related parties</td>
+            <td>Indicate the name of related party/owner in the Remarks column</td>
+          </tr>
+          <tr>
+            <td><strong>O</strong></td>
+            <td>Goods owned by the taxpayer</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td><strong>C<sub>O</sub></strong></td>
+            <td>Goods out on consignment held in the hands of entity other than taxpayer</td>
+            <td>Indicate the name of the entity in the Remarks column</td>
+          </tr>
+        </table>
+      </div>
+      <div style="overflow: hidden; margin-top: 8px;">
+        <span class="note-label">Note 2</span>
+        <div class="note-content">
+          Indicate costing method applied, e.g., Standard Costing, FIFO, Weighted Average,
+          Specific Identification, etc.
+        </div>
+      </div>
+    </div>
+
+    <div class="signature">
+      We declare, under the penalties of perjury, that this schedule has been made in good faith, verified by
+      us, and to the best of our knowledge and belief, is true and correct pursuant to the provisions of the
+      National Internal Revenue Code, as amended, and the regulations issued under authority thereof.
+      <div class="sig-block">
+        <div class="sig-line"></div>
+        <div>Name and Signature of Authorized Representative</div>
+        <div style="margin-top: 6px;">TIN: {{tin}}</div>
+      </div>
+    </div>
+  </body>
+</html>

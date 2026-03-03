@@ -286,9 +286,8 @@ const POS = () => {
       )
       .join("") || `<tr><td colspan="4" style="text-align:center;padding:8px 0;">No items</td></tr>`;
 
-    const headerName = storeName || "QuickScale Receipt";
+    const headerName = storeName || "QuickScale";
     const headerAddress = storeAddress || "";
-    const createdAt = new Date(sale?.createdAt ?? Date.now());
     const totalDisplay = typeof sale?.total === "number" ? sale.total : fallbackTotals.total;
     const amountReceivedDisplay =
       typeof sale?.amountReceived === "number" ? sale.amountReceived : fallbackTotals.amountReceived;
@@ -298,8 +297,9 @@ const POS = () => {
     <html>
       <head>
         <meta charset="utf-8" />
-        <title>Receipt</title>
+        <title></title>
         <style>
+          @page { margin: 0; size: auto; }
           body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 16px; color: #111827; }
           h1 { font-size: 18px; margin: 0 0 8px; text-align: center; }
           .meta { font-size: 12px; margin-bottom: 12px; text-align: center; }
@@ -309,17 +309,11 @@ const POS = () => {
           tfoot td { border-top: 1px solid #ddd; font-weight: bold; }
         </style>
       </head>
-      <body>
-        ${
-          showLogoOnReceipt
-            ? `<div style="text-align:center;margin-bottom:4px;font-weight:bold;">${headerName}</div>`
-            : ""
-        }
+      <body>      
         <h1>${headerName}</h1>
         <div class="meta">
           ${headerAddress ? `<div>${headerAddress}</div>` : ""}
           <div>Ticket: <strong>${sale?.ticketNumber ?? ticketNumber ?? ""}</strong></div>
-          <div>Date: ${createdAt.toLocaleString()}</div>
           <div>Cashier: ${sale?.cashierName ?? user?.name ?? ""}</div>
         </div>
         <table>
