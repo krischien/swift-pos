@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Receipt, TrendingUp, Calendar, Download, DollarSign } from "lucide-react";
+import { Receipt, TrendingUp, Calendar, Download, DollarSign, Printer } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
@@ -530,6 +530,80 @@ const Sales = () => {
     setDetailsOpen(true);
   };
 
+  const handlePrint = () => {
+    const esc = (s: string) =>
+      String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    const rows = sales
+      .map(
+        (sale) => `
+      <tr>
+        <td>#${String(sale.id).slice(-6).padStart(6, "0")}</td>
+        <td>${esc(sale.cashierName ?? "")}</td>
+        <td>${sale.items?.length ?? 0}</td>
+        <td>${String(sale.paymentMethod ?? "cash").toUpperCase()}</td>
+        <td>${new Date(sale.createdAt).toLocaleString()}</td>
+        <td style="text-align:right;">${formatCurrency(sale.total)}</td>
+      </tr>`
+      )
+      .join("");
+    const totalAmount = sales.reduce((sum, s) => sum + (s.total ?? 0), 0);
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sales History</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 20px; font-size: 12px; }
+    h1 { font-size: 18px; margin-bottom: 4px; }
+    .meta { color: #666; font-size: 11px; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #333; padding: 8px; text-align: left; }
+    th { background: #f0f0f0; font-weight: 600; }
+    .total-row { font-weight: bold; background: #f5f5f5; }
+    .total-row td { border-top: 2px solid #333; }
+    @media print { body { margin: 0; } }
+  </style>
+</head>
+<body>
+  <h1>Sales History</h1>
+  <div class="meta">${activeRangeLabel ? `Period: ${activeRangeLabel}` : "All time"} | Generated: ${new Date().toLocaleString()} | ${sales.length} transaction(s)</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Transaction ID</th>
+        <th>Cashier</th>
+        <th>Items</th>
+        <th>Payment</th>
+        <th>Date & Time</th>
+        <th style="text-align:right;">Total</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+    <tfoot>
+      <tr class="total-row">
+        <td colspan="5">Total</td>
+        <td style="text-align:right;">${formatCurrency(totalAmount)}</td>
+      </tr>
+    </tfoot>
+  </table>
+</body>
+</html>`;
+    const win = window.open("", "_blank");
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => {
+        win.print();
+        win.close();
+      }, 250);
+    }
+  };
+
   const truncateLabel = (value: string, maxLength = 12) =>
     value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
 
@@ -543,6 +617,15 @@ const Sales = () => {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            className="gap-2 flex-1 md:flex-none"
+            disabled={sales.length === 0}
+            onClick={handlePrint}
+          >
+            <Printer className="w-4 h-4" />
+            Print
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="gap-2 flex-1 md:flex-none" disabled={exporting}>
