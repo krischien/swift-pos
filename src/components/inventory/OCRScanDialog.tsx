@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Camera, Upload, Loader2, Trash2, ChevronDown, ChevronUp } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { processImage, parseMenuItems, MenuItem } from "@/lib/ocrService";
 import { Category } from "@/types/pos";
 import {
@@ -48,12 +48,76 @@ export function OCRScanDialog({ categories, onImport }: OCRScanDialogProps) {
   const [ocrText, setOcrText] = useState<string>("");
   const [showOcrText, setShowOcrText] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [cameraMode, setCameraMode] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Default settings for import
   const [defaultCategory, setDefaultCategory] = useState<string>("");
   const [defaultStock, setDefaultStock] = useState<string>("100");
   const [defaultLowStock, setDefaultLowStock] = useState<string>("10");
   const [defaultMargin, setDefaultMargin] = useState<string>("30");
+
+  const stopCamera = useCallback(() => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach((t) => t.stop());
+      setCameraStream(null);
+    }
+    setCameraMode(false);
+    setCameraError(null);
+  }, [cameraStream]);
+
+  useEffect(() => {
+    if (cameraStream && videoRef.current) {
+      videoRef.current.srcObject = cameraStream;
+    }
+  }, [cameraStream]);
+
+  useEffect(() => {
+    if (!open) stopCamera();
+  }, [open, stopCamera]);
+
+  const startCamera = useCallback(async () => {
+    setCameraError(null);
+    try {
+      const stream = await navigator.mediaDevices
+        .getUserMedia({ video: { facingMode: "environment" } })
+        .catch(() => navigator.mediaDevices.getUserMedia({ video: true }));
+      setCameraStream(stream);
+      setCameraMode(true);
+      if (image) URL.revokeObjectURL(image);
+      setImage(null);
+      setImageFile(null);
+      setItems([]);
+    } catch (e: unknown) {
+      setCameraError(e instanceof Error ? e.message : "Camera access denied");
+    }
+  }, [image]);
+
+  const handleCaptureFromCamera = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !cameraStream) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0);
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return;
+        const file = new File([blob], `capture-${Date.now()}.jpg`, { type: "image/jpeg" });
+        if (image) URL.revokeObjectURL(image);
+        setImage(URL.createObjectURL(file));
+        setImageFile(file);
+        setItems([]);
+        stopCamera();
+      },
+      "image/jpeg",
+      0.9
+    );
+  }, [cameraStream, stopCamera, image]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -185,38 +249,57 @@ export function OCRScanDialog({ categories, onImport }: OCRScanDialogProps) {
           `}</style>
           {/* Upload Section */}
           <div className="space-y-4">
-            <Label>Upload Menu Image</Label>
-            <div className="flex gap-4">
-              <Button
-                variant="outline"
-                className="flex-1 h-10 flex  items-center justify-center gap-2"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="w-5 h-5" />
-                <span>Upload File</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1 h-10 flex items-center justify-center gap-2"
-                onClick={() => {
-                  if (fileInputRef.current) {
-                    fileInputRef.current.setAttribute("capture", "environment");
-                    fileInputRef.current.click();
-                    fileInputRef.current.removeAttribute("capture");
-                  }
-                }}
-              >
-                <Camera className="w-5 h-5" />
-                <span>Camera</span>
-              </Button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*"
-                onChange={handleFileSelect}
-              />
-            </div>
+            <Label>Upload or Capture Menu Image</Label>
+            {!cameraMode ? (
+              <div className="flex gap-4">
+                <Button
+                  variant="outline"
+                  type="button"
+                  className="flex-1 h-10 flex items-center justify-center gap-2"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="w-5 h-5" />
+                  <span>Upload File</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  type="button"
+                  className="flex-1 h-10 flex items-center justify-center gap-2"
+                  onClick={startCamera}
+                >
+                  <Camera className="w-5 h-5" />
+                  <span>Camera</span>
+                </Button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full max-h-64 rounded-lg border bg-black object-contain"
+                />
+                <div className="flex gap-2">
+                  <Button type="button" onClick={handleCaptureFromCamera} size="sm">
+                    Capture Photo
+                  </Button>
+                  <Button type="button" variant="outline" onClick={stopCamera} size="sm">
+                    Cancel
+                  </Button>
+                </div>
+                {cameraError && (
+                  <p className="text-sm text-destructive">{cameraError}</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Image Preview and Extract Section */}
