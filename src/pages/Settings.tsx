@@ -45,8 +45,10 @@ const Settings = () => {
     setStoreAddress,
     autoPrintReceipt,
     showLogoOnReceipt,
+    receiptLogoUrl,
     setAutoPrintReceipt,
     setShowLogoOnReceipt,
+    setReceiptLogoUrl,
     taxRatePercent,
     setTaxRatePercent,
     enableDiscounts,
@@ -561,6 +563,75 @@ const Settings = () => {
               checked={showLogoOnReceipt}
               onCheckedChange={setShowLogoOnReceipt}
             />
+          </div>
+          <Separator />
+          <div className="space-y-3">
+            <Label>Receipt Logo</Label>
+            <p className="text-sm text-muted-foreground">
+              Upload a logo image to display on receipts (recommended: square image, max 300×300px)
+            </p>
+            <div className="flex items-center gap-4">
+              {receiptLogoUrl ? (
+                <div className="flex items-center gap-3">
+                  <img
+                    src={receiptLogoUrl}
+                    alt="Receipt logo"
+                    className="h-20 w-20 rounded border object-contain bg-muted"
+                  />
+                  <div className="flex gap-2">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      id="receipt-logo-upload"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = () => setReceiptLogoUrl(reader.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                        e.target.value = "";
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      onClick={() => document.getElementById("receipt-logo-upload")?.click()}
+                    >
+                      Change
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setReceiptLogoUrl(null)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    id="receipt-logo-upload"
+                    className="max-w-xs"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = () => setReceiptLogoUrl(reader.result as string);
+                        reader.readAsDataURL(file);
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
           <Separator />
           <div className="flex items-center justify-between">

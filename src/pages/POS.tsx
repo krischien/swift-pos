@@ -25,6 +25,7 @@ const POS = () => {
     storeAddress,
     autoPrintReceipt,
     showLogoOnReceipt,
+    receiptLogoUrl,
     enableDiscounts,
     taxRatePercent,
     selectedPrinter,
@@ -288,6 +289,7 @@ const POS = () => {
 
     const headerName = storeName || "QuickScale";
     const headerAddress = storeAddress || "";
+    const showLogo = showLogoOnReceipt && receiptLogoUrl;
     const totalDisplay = typeof sale?.total === "number" ? sale.total : fallbackTotals.total;
     const amountReceivedDisplay =
       typeof sale?.amountReceived === "number" ? sale.amountReceived : fallbackTotals.amountReceived;
@@ -310,6 +312,7 @@ const POS = () => {
         </style>
       </head>
       <body>      
+        ${showLogo ? `<div style="text-align:center;margin-bottom:8px;"><img src="${receiptLogoUrl}" alt="Logo" style="max-width:120px;max-height:80px;object-fit:contain;" /></div>` : ""}
         <h1>${headerName}</h1>
         <div class="meta">
           ${headerAddress ? `<div>${headerAddress}</div>` : ""}

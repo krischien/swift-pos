@@ -49,12 +49,10 @@ interface OCRScanDialogProps {
   }>) => Promise<void>;
 }
 
-type ImageInputMode = "upload" | "camera";
-
 export function OCRScanDialog({ categories, onImport }: OCRScanDialogProps) {
   const [open, setOpen] = useState(false);
-  const [imageInputMode, setImageInputMode] = useState<ImageInputMode>("upload");
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [items, setItems] = useState<ParsedMenuItem[]>([]);
   const [extracting, setExtracting] = useState(false);
@@ -138,15 +136,6 @@ export function OCRScanDialog({ categories, onImport }: OCRScanDialogProps) {
       0.9
     );
   }, [cameraStream, stopCamera]);
-
-  const handleModeChange = useCallback((mode: ImageInputMode) => {
-    setImageInputMode(mode);
-    setImageFile(null);
-    setImagePreview(null);
-    setItems([]);
-    setCameraError(null);
-    if (mode === "upload") stopCamera();
-  }, [stopCamera]);
 
   const handleExtract = useCallback(async () => {
     if (!imageFile) {
@@ -243,87 +232,81 @@ export function OCRScanDialog({ categories, onImport }: OCRScanDialogProps) {
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] flex flex-col max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Scan Menu (OCR)</DialogTitle>
+          <DialogTitle className="text-center">Scan Menu with OCR</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 overflow-y-auto flex-1 pr-2">
-          <div className="space-y-2">
-            <p className="text-sm font-medium">1. Upload or capture menu image</p>
-            <div className="flex gap-2">
+          {/* Upload Section - matches reference layout */}
+          <div className="space-y-4">
+            <p className="text-sm font-medium text-foreground">Upload Menu Image</p>
+            <div className="flex gap-4">
               <Button
                 type="button"
-                variant={imageInputMode === "upload" ? "default" : "outline"}
-                size="sm"
-                className="gap-2"
-                onClick={() => handleModeChange("upload")}
+                variant="outline"
+                className="flex-1 h-10 flex items-center justify-center gap-2"
+                onClick={() => fileInputRef.current?.click()}
               >
-                <Upload className="w-4 h-4" />
-                Upload
+                <Upload className="w-5 h-5" />
+                <span>Upload File</span>
               </Button>
               <Button
                 type="button"
-                variant={imageInputMode === "camera" ? "default" : "outline"}
-                size="sm"
-                className="gap-2"
-                onClick={() => handleModeChange("camera")}
+                variant="outline"
+                className="flex-1 h-10 flex items-center justify-center gap-2"
+                onClick={startCamera}
               >
-                <Camera className="w-4 h-4" />
-                Camera
+                <Camera className="w-5 h-5" />
+                <span>Camera</span>
               </Button>
             </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+          </div>
 
-            {imageInputMode === "upload" && (
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
+          {/* Camera view (when active) */}
+          {cameraStream && (
+            <div className="space-y-2">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full max-h-48 rounded-lg border bg-black object-contain"
               />
-            )}
-
-            {imageInputMode === "camera" && (
-              <div className="space-y-2">
-                {!cameraStream ? (
-                  <Button onClick={startCamera} variant="secondary" size="sm">
-                    Start Camera
-                  </Button>
-                ) : (
-                  <div className="space-y-2">
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      playsInline
-                      muted
-                      className="w-full max-h-48 rounded-md border bg-black object-contain"
-                    />
-                    <div className="flex gap-2">
-                      <Button onClick={handleCapture} size="sm">
-                        Capture
-                      </Button>
-                      <Button onClick={stopCamera} variant="outline" size="sm">
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                )}
-                {cameraError && (
-                  <p className="text-sm text-destructive">{cameraError}</p>
-                )}
+              <div className="flex gap-2">
+                <Button onClick={handleCapture} size="sm">
+                  Capture Photo
+                </Button>
+                <Button onClick={stopCamera} variant="outline" size="sm">
+                  Cancel
+                </Button>
               </div>
-            )}
+              {cameraError && (
+                <p className="text-sm text-destructive">{cameraError}</p>
+              )}
+            </div>
+          )}
 
-            {imagePreview && (
+          {/* Image preview */}
+          {imagePreview && !cameraStream && (
+            <div className="space-y-2">
               <img
                 src={imagePreview}
                 alt="Preview"
-                className="mt-2 max-h-32 rounded-md border object-contain"
+                className="w-full max-h-48 rounded-lg border object-contain"
               />
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Button
-              variant="secondary"
+              variant="default"
               onClick={handleExtract}
-              disabled={!imageFile || extracting}
+              disabled={extracting}
             >
               {extracting ? (
                 <>

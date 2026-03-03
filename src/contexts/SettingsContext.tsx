@@ -9,8 +9,10 @@ interface SettingsState {
   setStoreAddress: (address: string) => void;
   autoPrintReceipt: boolean;
   showLogoOnReceipt: boolean;
+  receiptLogoUrl: string | null;
   setAutoPrintReceipt: (value: boolean) => void;
   setShowLogoOnReceipt: (value: boolean) => void;
+  setReceiptLogoUrl: (value: string | null) => void;
   taxRatePercent: number;
   setTaxRatePercent: (value: number) => void;
   enableDiscounts: boolean;
@@ -30,6 +32,7 @@ interface StoredSettings {
   storeAddress: string;
   autoPrintReceipt: boolean;
   showLogoOnReceipt: boolean;
+  receiptLogoUrl: string | null;
   taxRatePercent: number;
   enableDiscounts: boolean;
   enableBarcodeScanning: boolean;
@@ -49,6 +52,7 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   const [storeAddress, setStoreAddressState] = useState("");
   const [autoPrintReceipt, setAutoPrintReceiptState] = useState(true);
   const [showLogoOnReceipt, setShowLogoOnReceiptState] = useState(true);
+  const [receiptLogoUrl, setReceiptLogoUrlState] = useState<string | null>(null);
   const [taxRatePercent, setTaxRatePercentState] = useState(12);
   const [enableDiscounts, setEnableDiscountsState] = useState(true);
   const [enableBarcodeScanning, setEnableBarcodeScanningState] = useState(false);
@@ -75,6 +79,9 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
           );
           setShowLogoOnReceiptState(
             typeof parsed.showLogoOnReceipt === "boolean" ? parsed.showLogoOnReceipt : true,
+          );
+          setReceiptLogoUrlState(
+            typeof parsed.receiptLogoUrl === "string" ? parsed.receiptLogoUrl : null,
           );
           setTaxRatePercentState(
             typeof parsed.taxRatePercent === "number" ? parsed.taxRatePercent : 12,
@@ -124,6 +131,7 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     storeAddress,
     autoPrintReceipt,
     showLogoOnReceipt,
+    receiptLogoUrl,
     taxRatePercent,
     enableDiscounts,
     enableBarcodeScanning,
@@ -160,6 +168,15 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   const setShowLogoOnReceipt = (value: boolean) => {
     setShowLogoOnReceiptState(value);
     persist({ showLogoOnReceipt: value });
+  };
+
+  const setReceiptLogoUrl = (value: string | null) => {
+    setReceiptLogoUrlState(value);
+    try {
+      persist({ receiptLogoUrl: value });
+    } catch {
+      // localStorage may fail if image is too large
+    }
   };
 
   const setEnableDiscounts = (value: boolean) => {
@@ -213,8 +230,10 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
         setStoreAddress,
         autoPrintReceipt,
         showLogoOnReceipt,
+        receiptLogoUrl,
         setAutoPrintReceipt,
         setShowLogoOnReceipt,
+        setReceiptLogoUrl,
         taxRatePercent,
         setTaxRatePercent,
         enableDiscounts,

@@ -10,7 +10,14 @@ export async function processImage(imageFile: File): Promise<string[]> {
       tessedit_pageseg_mode: "6", // PSM 6: Assume a single uniform block of text
     });
     const result = await worker.recognize(imageFile);
-    const lines = result.data.lines.map((line) => line.text.trim()).filter(Boolean);
+    const page = result?.data;
+    const linesArray = page?.lines;
+    const lines = Array.isArray(linesArray)
+      ? linesArray.map((line) => (line?.text ?? "").trim()).filter(Boolean)
+      : (page?.text ?? "")
+          .split(/\r?\n/)
+          .map((s) => s.trim())
+          .filter(Boolean);
     return lines;
   } finally {
     await worker.terminate();
