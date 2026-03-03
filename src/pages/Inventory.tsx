@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertTriangle, Trash2, Download, ChevronDown, Barcode, QrCode, FileSpreadsheet, FileText } from "lucide-react";
+import { Plus, Search, AlertTriangle, Trash2, Download, ChevronDown, Barcode, QrCode, FileSpreadsheet, FileText, Package } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { api } from "@/lib/api";
@@ -21,6 +21,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -35,6 +36,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { OCRScanDialog } from "@/components/inventory/OCRScanDialog";
+import { cn } from "@/lib/utils";
 
 const Inventory = () => {
   const { storeName, storeAddress } = useSettings();
@@ -64,6 +67,7 @@ const Inventory = () => {
   const [variantProduct, setVariantProduct] = useState<Product | null>(null);
   const [variantRows, setVariantRows] = useState<(Variant & { isNew?: boolean })[]>([]);
   const [variantSavingId, setVariantSavingId] = useState<string | null>(null);
+  const [restockDialogOpen, setRestockDialogOpen] = useState(false);
 
   const load = async () => {
     try {
@@ -103,12 +107,26 @@ const Inventory = () => {
     }
   }, [formBasePrice, formMarginPercentage]);
 
-  // Helper function to check if product is low in stock
+  // Low stock: stock > 0 AND stock <= threshold (excludes zero - zero gets "Restock" badge)
   const isLowStock = (product: Product): boolean => {
-    const totalStock = product.hasVariants
-      ? product.variants?.reduce((sum, v) => sum + v.stock, 0)
-      : product.stock;
-    return (totalStock || 0) <= product.lowStockThreshold;
+    if (product.hasVariants && product.variants) {
+      return product.variants.some(
+        (v) => v.stock > 0 && v.stock <= product.lowStockThreshold
+      );
+    }
+    const stock = product.stock || 0;
+    return stock > 0 && stock <= product.lowStockThreshold;
+  };
+
+  const hasZeroStock = (product: Product): boolean => {
+    if (product.hasVariants && product.variants) {
+      return product.variants.some((v) => v.stock === 0);
+    }
+    return (product.stock || 0) === 0;
+  };
+
+  const needsStockAttention = (product: Product): boolean => {
+    return isLowStock(product) || hasZeroStock(product);
   };
 
   const filtered = products.filter((p) => {
@@ -118,13 +136,13 @@ const Inventory = () => {
     
     // Apply stock filter
     if (stockFilter === "lowStock") {
-      return isLowStock(p);
+      return needsStockAttention(p);
     }
     return true; // "all" - show all products
   });
   
-  // Calculate low stock count (from all products, not filtered)
-  const lowStockCount = products.filter((product) => isLowStock(product)).length;
+  // Calculate low stock count (from all products, not filtered) - includes low and zero stock
+  const lowStockCount = products.filter((product) => needsStockAttention(product)).length;
   
   const isEditing = !!editingProduct;
 
@@ -244,6 +262,60 @@ const Inventory = () => {
       alert(e.message ?? "Failed to delete product");
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleImportItems = async (items: Array<{
+    name: string;
+    categoryId: string;
+    itemCode: string;
+    hasVariants: boolean;
+    basePrice?: number;
+    price?: number;
+    stock?: number;
+    lowStockThreshold?: number;
+    marginPercentage?: number;
+    status: "active";
+    unitOfMeasure?: string;
+  }>) => {
+    try {
+      setLoading(true);
+      for (const item of items) {
+        await api.createProduct(item);
+      }
+      await load();
+      alert(`Successfully imported ${items.length} items`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to import";
+      alert(`Failed to import items: ${msg}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRestockProduct = async (productId: string, quantity: number, variantId?: string) => {
+    try {
+      const product = products.find((p) => p.id === productId);
+      if (!product) return;
+
+      if (variantId && product.hasVariants && product.variants) {
+        const variant = product.variants.find((v) => v.id === variantId);
+        if (variant) {
+          await api.updateVariant(variantId, {
+            stock: (variant.stock || 0) + quantity,
+          });
+        }
+      } else {
+        const currentStock = product.stock || 0;
+        await api.updateProduct(productId, {
+          stock: currentStock + quantity,
+        });
+      }
+
+      await load();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to restock";
+      alert(`Failed to restock: ${msg}`);
     }
   };
 
@@ -399,8 +471,8 @@ const Inventory = () => {
   const handleExportLowStockList = async () => {
     const XLSX = await import("xlsx");
     
-    // Filter products that are low in stock
-    const lowStockProducts = products.filter((product) => isLowStock(product));
+    // Filter products that need stock attention (low or zero)
+    const lowStockProducts = products.filter((product) => needsStockAttention(product));
     
     if (lowStockProducts.length === 0) {
       alert("No low stock items found.");
@@ -984,7 +1056,110 @@ const Inventory = () => {
           <h1 className="text-3xl font-bold">Inventory Management</h1>
           <p className="text-muted-foreground">Manage your products and stock levels</p>
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
+        <div className="flex gap-2 w-full md:w-auto flex-wrap">
+          <OCRScanDialog categories={categories} onImport={handleImportItems} />
+          <Dialog open={restockDialogOpen} onOpenChange={setRestockDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2 flex-1 md:flex-none">
+                <Package className="w-4 h-4" />
+                Restock
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[90vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle>Restock Products</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 overflow-y-auto flex-1 pr-2">
+                <p className="text-sm text-muted-foreground">
+                  Select products to restock. Enter the quantity to add to current stock.
+                </p>
+                <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                  {products
+                    .filter((p) => p.status === "active")
+                    .flatMap((product) => {
+                      if (product.hasVariants && product.variants && product.variants.length > 0) {
+                        return product.variants.map((variant) => ({
+                          id: variant.id,
+                          productId: product.id,
+                          variantId: variant.id,
+                          name: `${product.name} (${variant.name})`,
+                          stock: variant.stock || 0,
+                          lowStockThreshold: product.lowStockThreshold,
+                          isVariant: true,
+                        }));
+                      }
+                      return [{
+                        id: product.id,
+                        productId: product.id,
+                        variantId: undefined as string | undefined,
+                        name: product.name,
+                        stock: product.stock || 0,
+                        lowStockThreshold: product.lowStockThreshold,
+                        isVariant: false,
+                      }];
+                    })
+                    .sort((a, b) => {
+                      const aLow = a.stock <= a.lowStockThreshold;
+                      const bLow = b.stock <= b.lowStockThreshold;
+                      if (aLow && !bLow) return -1;
+                      if (!aLow && bLow) return 1;
+                      return 0;
+                    })
+                    .map((item) => {
+                      const isLow = item.stock <= item.lowStockThreshold;
+                      return (
+                        <div key={item.id} className="flex items-center gap-4 p-3 border rounded-lg">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className={cn("font-medium", isLow && "text-destructive")}>{item.name}</p>
+                              {isLow && <AlertTriangle className="w-4 h-4 text-destructive" />}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              Current Stock: {item.stock}
+                            </p>
+                          </div>
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder="Qty to add"
+                            className="w-32"
+                            id={`restock-${item.id}`}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                const input = e.currentTarget;
+                                const qty = parseInt(input.value, 10) || 0;
+                                if (qty > 0) {
+                                  handleRestockProduct(item.productId, qty, item.variantId);
+                                  input.value = "";
+                                }
+                              }
+                            }}
+                          />
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              const input = document.getElementById(`restock-${item.id}`) as HTMLInputElement | null;
+                              const qty = parseInt(input?.value || "0", 10) || 0;
+                              if (qty > 0) {
+                                handleRestockProduct(item.productId, qty, item.variantId);
+                                if (input) input.value = "";
+                              }
+                            }}
+                          >
+                            Add
+                          </Button>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-4 border-t mt-4">
+                <Button variant="outline" onClick={() => setRestockDialogOpen(false)}>
+                  Close
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="flex-1 md:flex-none">
@@ -1250,7 +1425,10 @@ const Inventory = () => {
                     const totalStock = product.hasVariants
                       ? product.variants?.reduce((sum, v) => sum + v.stock, 0)
                       : product.stock;
-                    const isLowStock = (totalStock || 0) <= product.lowStockThreshold;
+                    const hasZeroStockVariant = product.hasVariants && product.variants
+                      ? product.variants.some((v) => v.stock === 0)
+                      : (product.stock || 0) === 0;
+                    const isProductLowStock = isLowStock(product);
 
                     return (
                       <TableRow key={product.id}>
@@ -1265,10 +1443,15 @@ const Inventory = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            {isLowStock && (
+                            {hasZeroStockVariant && (
                               <AlertTriangle className="w-4 h-4 text-destructive" />
                             )}
-                            <span className={isLowStock ? "text-destructive font-semibold" : ""}>
+                            {isProductLowStock && !hasZeroStockVariant && (
+                              <AlertTriangle className="w-4 h-4 text-destructive" />
+                            )}
+                            <span className={cn(
+                              (isProductLowStock || hasZeroStockVariant) && "text-destructive font-semibold"
+                            )}>
                               {totalStock}
                             </span>
                           </div>
@@ -1278,9 +1461,20 @@ const Inventory = () => {
                           {product.hasVariants && "+"}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={product.status === "active" ? "default" : "secondary"}>
-                            {product.status}
-                          </Badge>
+                          <div className="flex flex-row items-center gap-1">
+                            {hasZeroStockVariant ? (
+                              <Badge className="bg-gray-500 hover:bg-gray-600 text-white">Disabled</Badge>
+                            ) : (
+                              <Badge variant={product.status === "active" ? "default" : "secondary"}>
+                                {product.status}
+                              </Badge>
+                            )}
+                            {hasZeroStockVariant ? (
+                              <Badge variant="destructive">Restock</Badge>
+                            ) : isProductLowStock ? (
+                              <Badge variant="destructive">Low Stock</Badge>
+                            ) : null}
+                          </div>
                         </TableCell>
                         <TableCell className="text-right space-x-1">
                           <Button
@@ -1321,18 +1515,36 @@ const Inventory = () => {
                 const totalStock = product.hasVariants
                   ? product.variants?.reduce((sum, v) => sum + v.stock, 0)
                   : product.stock;
-                const isLowStock = (totalStock || 0) <= product.lowStockThreshold;
+                const hasZeroStockVariant = product.hasVariants && product.variants
+                  ? product.variants.some((v) => v.stock === 0)
+                  : (product.stock || 0) === 0;
+                const isProductLowStock = isLowStock(product);
+                const showRestock = totalStock === 0 || hasZeroStockVariant;
+                const showDisabled = totalStock === 0 || hasZeroStockVariant;
 
                 return (
                   <div key={product.id} className="bg-card rounded-lg border p-4 space-y-3 shadow-sm">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-semibold">{product.name}</h3>
+                        <h3 className={cn("font-semibold", (isProductLowStock || showRestock) && "text-destructive")}>
+                          {product.name}
+                        </h3>
                         <p className="text-sm text-muted-foreground">{category?.name}</p>
                       </div>
-                      <Badge variant={product.status === "active" ? "default" : "secondary"}>
-                        {product.status}
-                      </Badge>
+                      <div className="flex flex-row items-center gap-1">
+                        {showDisabled ? (
+                          <Badge className="bg-gray-500 hover:bg-gray-600 text-white">Disabled</Badge>
+                        ) : (
+                          <Badge variant={product.status === "active" ? "default" : "secondary"}>
+                            {product.status}
+                          </Badge>
+                        )}
+                        {showRestock ? (
+                          <Badge variant="destructive" className="h-5 text-[10px] px-1">Restock</Badge>
+                        ) : isProductLowStock ? (
+                          <Badge variant="destructive" className="h-5 text-[10px] px-1">Low Stock</Badge>
+                        ) : null}
+                      </div>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4 text-sm">
@@ -1346,8 +1558,15 @@ const Inventory = () => {
                       <div>
                         <p className="text-muted-foreground">Stock</p>
                         <div className="flex items-center gap-1">
-                          {isLowStock && <AlertTriangle className="w-3 h-3 text-destructive" />}
-                          <span className={isLowStock ? "text-destructive font-medium" : "font-medium"}>
+                          {totalStock === 0 ? (
+                            <Badge variant="destructive" className="h-5 text-[10px] px-1">Restock</Badge>
+                          ) : isProductLowStock ? (
+                            <Badge variant="destructive" className="h-5 text-[10px] px-1">Low Stock</Badge>
+                          ) : null}
+                          <span className={cn(
+                            (isProductLowStock || totalStock === 0) && "text-destructive font-medium",
+                            "font-medium"
+                          )}>
                             {totalStock}
                           </span>
                         </div>
