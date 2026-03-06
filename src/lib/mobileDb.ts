@@ -3,7 +3,8 @@ import { Capacitor } from "@capacitor/core";
 const DB_NAME = "quickpos";
 const DB_VERSION = 1;
 const DEFAULT_PASSWORD = "password123";
-const DEFAULT_PASSWORD_HASH = "$2b$10$VwNM8YMo1sKEtKKbZ2tgMOtLdbBL2hjD9VtH003WfLW7C2iU0NICq";
+// bcrypt hash for "password123" (verified with bcrypt.compare)
+const DEFAULT_PASSWORD_HASH = "$2b$10$5VN/mywPiku92kNyt4y23O9l400pcfNf5Clc.ntSv.0n89NQyaZQC";
 
 let db: any = null;
 

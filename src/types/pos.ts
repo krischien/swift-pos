@@ -1,10 +1,11 @@
-export type UserRole = "admin" | "cashier";
+export type UserRole = "admin" | "cashier" | "owner" | "super_admin";
 
 export interface User {
   id: string;
   name: string;
   email: string;
   role: UserRole;
+  storeIds?: string[];
 }
 
 export interface Category {

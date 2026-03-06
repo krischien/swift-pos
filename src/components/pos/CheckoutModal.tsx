@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,15 +8,23 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DollarSign, Receipt } from "lucide-react";
+import { DollarSign, Receipt, Smartphone } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
+
+export type PaymentMethod = "cash" | "gcash";
+
+export interface CheckoutResult {
+  amountReceived: number;
+  paymentMethod: PaymentMethod;
+  gcashTransactionId?: string;
+}
 
 interface CheckoutModalProps {
   open: boolean;
   onClose: () => void;
   total: number;
   ticketNumber?: string;
-  onComplete: (amountReceived: number) => void;
+  onComplete: (result: CheckoutResult) => void;
 }
 
 export const CheckoutModal = ({
@@ -26,16 +34,53 @@ export const CheckoutModal = ({
   ticketNumber,
   onComplete,
 }: CheckoutModalProps) => {
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [amountReceived, setAmountReceived] = useState<string>("");
+  const [gcashTransactionId, setGcashTransactionId] = useState<string>("");
   const change = parseFloat(amountReceived || "0") - total;
 
-  const handleComplete = () => {
-    if (change >= 0) {
-      onComplete(parseFloat(amountReceived));
+  useEffect(() => {
+    if (open) {
+      setPaymentMethod("cash");
       setAmountReceived("");
-      onClose();
+      setGcashTransactionId("");
     }
+  }, [open]);
+
+  useEffect(() => {
+    if (paymentMethod === "gcash") {
+      setAmountReceived(total.toFixed(2));
+    }
+  }, [paymentMethod, total]);
+
+  const handleComplete = () => {
+    const amt = parseFloat(amountReceived || "0");
+    if (paymentMethod === "gcash" && !gcashTransactionId.trim()) {
+      return;
+    }
+    if (paymentMethod === "cash" && change < 0) {
+      return;
+    }
+    if (paymentMethod === "gcash" && amt < total) {
+      return;
+    }
+    const result: CheckoutResult = {
+      amountReceived: amt,
+      paymentMethod,
+      gcashTransactionId: paymentMethod === "gcash" ? gcashTransactionId.trim() : undefined,
+    };
+    onComplete(result);
+    setAmountReceived("");
+    setGcashTransactionId("");
+    onClose();
   };
+
+  const canComplete =
+    paymentMethod === "cash"
+      ? change >= 0 && !!amountReceived
+      : paymentMethod === "gcash"
+      ? parseFloat(amountReceived || "0") >= total && !!gcashTransactionId.trim()
+      : false;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -59,6 +104,47 @@ export const CheckoutModal = ({
           </div>
 
           <div className="space-y-2">
+            <Label>Payment Method</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={paymentMethod === "cash" ? "default" : "outline"}
+                onClick={() => setPaymentMethod("cash")}
+                className="h-12"
+              >
+                <DollarSign className="w-4 h-4 mr-2" />
+                Cash
+              </Button>
+              <Button
+                type="button"
+                variant={paymentMethod === "gcash" ? "default" : "outline"}
+                onClick={() => setPaymentMethod("gcash")}
+                className="h-12"
+              >
+                <Smartphone className="w-4 h-4 mr-2" />
+                GCash
+              </Button>
+            </div>
+          </div>
+
+          {paymentMethod === "gcash" && (
+            <div className="space-y-2">
+              <Label htmlFor="gcash-txn">GCash Transaction ID</Label>
+              <Input
+                id="gcash-txn"
+                type="text"
+                placeholder="Enter transaction ID"
+                value={gcashTransactionId}
+                onChange={(e) => setGcashTransactionId(e.target.value)}
+                className="h-12"
+              />
+              <p className="text-xs text-muted-foreground">
+                Required for GCash payments. Find it in the GCash app or SMS confirmation.
+              </p>
+            </div>
+          )}
+
+          <div className="space-y-2">
             <Label htmlFor="amount">Amount Received</Label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -70,7 +156,8 @@ export const CheckoutModal = ({
                 value={amountReceived}
                 onChange={(e) => setAmountReceived(e.target.value)}
                 className="pl-10 h-12 text-lg"
-                autoFocus
+                autoFocus={paymentMethod === "cash"}
+                readOnly={paymentMethod === "gcash"}
               />
             </div>
           </div>
@@ -78,39 +165,41 @@ export const CheckoutModal = ({
           {amountReceived && (
             <div className="bg-success/10 rounded-lg p-4 text-center border border-success/20">
               <p className="text-sm text-muted-foreground mb-1">Change</p>
-              <p className={`text-2xl font-bold ${change >= 0 ? 'text-success' : 'text-destructive'}`}>
+              <p className={`text-2xl font-bold ${change >= 0 ? "text-success" : "text-destructive"}`}>
                 {formatCurrency(Math.abs(change))}
               </p>
-              {change < 0 && (
+              {change < 0 && paymentMethod === "cash" && (
                 <p className="text-xs text-destructive mt-1">Insufficient amount</p>
               )}
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-2">
-            {[5, 10, 20, 50, 100].map((amount) => (
+          {paymentMethod === "cash" && (
+            <div className="grid grid-cols-3 gap-2">
+              {[5, 10, 20, 50, 100].map((amount) => (
+                <Button
+                  key={amount}
+                  variant="outline"
+                  onClick={() => setAmountReceived(amount.toString())}
+                  className="h-12"
+                >
+                  {formatCurrency(amount)}
+                </Button>
+              ))}
               <Button
-                key={amount}
                 variant="outline"
-                onClick={() => setAmountReceived(amount.toString())}
+                onClick={() => setAmountReceived(total.toString())}
                 className="h-12"
               >
-                {formatCurrency(amount)}
+                Exact
               </Button>
-            ))}
-            <Button
-              variant="outline"
-              onClick={() => setAmountReceived(total.toString())}
-              className="h-12"
-            >
-              Exact
-            </Button>
-          </div>
+            </div>
+          )}
         </div>
 
         <Button
           className="w-full h-12 text-base font-bold"
-          disabled={change < 0 || !amountReceived}
+          disabled={!canComplete}
           onClick={handleComplete}
         >
           Complete Sale

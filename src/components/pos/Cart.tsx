@@ -15,6 +15,7 @@ interface CartProps {
   discountPercent?: number;
   onDiscountChange?: (percent: number) => void;
   taxRatePercent?: number;
+  enableTax?: boolean;
   enablePerKiloPurchase?: boolean;
 }
 
@@ -27,13 +28,14 @@ export const Cart = ({
   discountPercent = 0,
   onDiscountChange,
   taxRatePercent = 12,
+  enableTax = true,
   enablePerKiloPurchase = false,
 }: CartProps) => {
   const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
   const effectiveDiscount = discountsEnabled ? discountPercent : 0;
   const discountAmount = subtotal * (effectiveDiscount / 100);
   const netSubtotal = Math.max(0, subtotal - discountAmount);
-  const taxRate = taxRatePercent / 100;
+  const taxRate = enableTax ? taxRatePercent / 100 : 0;
   const tax = netSubtotal * taxRate;
   const total = netSubtotal + tax;
 
@@ -168,10 +170,12 @@ export const Cart = ({
               </span>
             </div>
           )}
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Tax ({taxRatePercent}%)</span>
-            <span className="font-semibold">{formatCurrency(tax)}</span>
-          </div>
+          {enableTax && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Tax ({taxRatePercent}%)</span>
+              <span className="font-semibold">{formatCurrency(tax)}</span>
+            </div>
+          )}
           <Separator />
           <div className="flex justify-between text-lg">
             <span className="font-bold">Total</span>

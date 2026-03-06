@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/table";
 import { FolderPlus, Search, Trash2, Edit } from "lucide-react";
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { useDataLayer } from "@/contexts/DataLayerContext";
+import { useStore } from "@/contexts/StoreContext";
 import { Category } from "@/types/pos";
 import {
   Dialog,
@@ -32,6 +33,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const Categories = () => {
+  const dataService = useDataLayer();
+  const { activeStoreId } = useStore();
   const [search, setSearch] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
@@ -48,7 +51,7 @@ const Categories = () => {
     try {
       setLoading(true);
       setError(null);
-      const categoriesList = await api.getCategories();
+      const categoriesList = await dataService.getCategories();
       setCategories(categoriesList as Category[]);
     } catch (e: any) {
       setError(e.message ?? "Failed to load categories");
@@ -64,7 +67,7 @@ const Categories = () => {
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [activeStoreId]);
 
   const filtered = categories.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()),
@@ -96,13 +99,13 @@ const Categories = () => {
       setFormError(null);
 
       if (isEditing) {
-        await api.updateCategory(editingCategory.id, { name: formName.trim() });
+        await dataService.updateCategory(editingCategory.id, { name: formName.trim() });
         toast({
           title: "Category updated",
           description: `${formName} has been updated successfully.`,
         });
       } else {
-        await api.createCategory({ name: formName.trim() });
+        await dataService.createCategory({ name: formName.trim() });
         toast({
           title: "Category created",
           description: `${formName} has been created successfully.`,
@@ -127,7 +130,7 @@ const Categories = () => {
     if (!deletingCategory) return;
 
     try {
-      await api.deleteCategory(deletingCategory.id);
+        await dataService.deleteCategory(deletingCategory.id);
       toast({
         title: "Category deleted",
         description: `${deletingCategory.name} has been deleted.`,

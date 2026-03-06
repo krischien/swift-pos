@@ -10,10 +10,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Trash2, Edit, UserPlus, Eye, EyeOff } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Search, Trash2, Edit, UserPlus, Eye, EyeOff } from "lucide-react";
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { useDataLayer } from "@/contexts/DataLayerContext";
 import { User } from "@/types/pos";
+import { isSaaS } from "@/config/appMode";
+import { getOrgStores } from "@/lib/saasOrgStoresApi";
 import {
   Dialog,
   DialogContent,
@@ -40,6 +43,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const Users = () => {
+  const dataService = useDataLayer();
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -49,7 +53,9 @@ const Users = () => {
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formPassword, setFormPassword] = useState("");
-  const [formRole, setFormRole] = useState<"admin" | "cashier">("cashier");
+  const [formRole, setFormRole] = useState<"owner" | "cashier">("cashier");
+  const [formStoreIds, setFormStoreIds] = useState<string[]>([]);
+  const [stores, setStores] = useState<{ id: string; name: string }[]>([]);
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -60,7 +66,7 @@ const Users = () => {
     try {
       setLoading(true);
       setError(null);
-      const usersList = await api.getUsers();
+      const usersList = await dataService.getUsers();
       setUsers(usersList as User[]);
     } catch (e: any) {
       setError(e.message ?? "Failed to load users");
@@ -78,6 +84,12 @@ const Users = () => {
     void load();
   }, []);
 
+  useEffect(() => {
+    if (isSaaS()) {
+      void getOrgStores().then(setStores).catch(() => setStores([]));
+    }
+  }, []);
+
   const filtered = users.filter(
     (u) =>
       u.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -91,6 +103,7 @@ const Users = () => {
     setFormEmail("");
     setFormPassword("");
     setFormRole("cashier");
+    setFormStoreIds([]);
     setShowPassword(false);
     setFormError(null);
     setFormOpen(true);
@@ -101,7 +114,9 @@ const Users = () => {
     setFormName(user.name);
     setFormEmail(user.email);
     setFormPassword(""); // Don't prefill password
-    setFormRole(user.role);
+    // Owners can only assign owner or cashier; default to cashier when editing admin
+    setFormRole(user.role === "owner" || user.role === "cashier" ? user.role : "cashier");
+    setFormStoreIds(user.storeIds ?? []);
     setShowPassword(false);
     setFormError(null);
     setFormOpen(true);
@@ -136,18 +151,25 @@ const Users = () => {
         if (formPassword.trim()) {
           updateData.password = formPassword;
         }
-        await api.updateUser(editingUser.id, updateData);
+        if (isSaaS() && stores.length > 0) {
+          updateData.storeIds = formStoreIds;
+        }
+        await dataService.updateUser(editingUser.id, updateData);
         toast({
           title: "User updated",
           description: `${formName} has been updated successfully.`,
         });
       } else {
-        await api.createUser({
+        const createPayload: any = {
           name: formName.trim(),
           email: formEmail.trim(),
           password: formPassword,
           role: formRole,
-        });
+        };
+        if (isSaaS() && stores.length > 0) {
+          createPayload.storeIds = formStoreIds;
+        }
+        await dataService.createUser(createPayload);
         toast({
           title: "User created",
           description: `${formName} has been created successfully.`,
@@ -172,7 +194,7 @@ const Users = () => {
     if (!deletingUser) return;
 
     try {
-      await api.deleteUser(deletingUser.id);
+      await dataService.deleteUser(deletingUser.id);
       toast({
         title: "User deleted",
         description: `${deletingUser.name} has been deleted.`,
@@ -233,6 +255,7 @@ const Users = () => {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
+                  {isSaaS() && stores.length > 0 && <TableHead>Stores</TableHead>}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -242,10 +265,19 @@ const Users = () => {
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      <Badge variant={user.role === "admin" ? "default" : "secondary"}>
+                      <Badge variant={user.role === "owner" ? "default" : "secondary"}>
                         {user.role}
                       </Badge>
                     </TableCell>
+                    {isSaaS() && stores.length > 0 && (
+                      <TableCell className="text-muted-foreground text-sm">
+                        {!user.storeIds?.length
+                          ? "All stores"
+                          : user.storeIds
+                              .map((sid) => stores.find((s) => s.id === sid)?.name ?? sid)
+                              .join(", ")}
+                      </TableCell>
+                    )}
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button
@@ -279,11 +311,19 @@ const Users = () => {
                     <h3 className="font-semibold">{user.name}</h3>
                     <p className="text-sm text-muted-foreground mt-1">{user.email}</p>
                   </div>
-                  <Badge variant={user.role === "admin" ? "default" : "secondary"}>
+                  <Badge variant={user.role === "owner" ? "default" : "secondary"}>
                     {user.role}
                   </Badge>
                 </div>
-
+                {isSaaS() && stores.length > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    {!user.storeIds?.length
+                      ? "All stores"
+                      : user.storeIds
+                          .map((sid) => stores.find((s) => s.id === sid)?.name ?? sid)
+                          .join(", ")}
+                  </p>
+                )}
                 <div className="flex items-center justify-end gap-2 pt-2 border-t">
                   <Button
                     variant="outline"
@@ -375,16 +415,46 @@ const Users = () => {
 
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
-              <Select value={formRole} onValueChange={(v) => setFormRole(v as "admin" | "cashier")}>
+              <Select value={formRole} onValueChange={(v) => setFormRole(v as "owner" | "cashier")}>
                 <SelectTrigger id="role">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="cashier">Cashier</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="owner">Owner</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {isSaaS() && stores.length > 0 && (
+              <div className="space-y-2">
+                <Label>Stores</Label>
+                <p className="text-xs text-muted-foreground">
+                  Select stores this user can access. Leave all unchecked to grant access to all stores.
+                </p>
+                <div className="space-y-2 pt-2 max-h-40 overflow-y-auto border rounded-md p-3">
+                  {stores.map((s) => (
+                    <div key={s.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`store-${s.id}`}
+                        checked={formStoreIds.includes(s.id)}
+                        onCheckedChange={(checked) => {
+                          setFormStoreIds((prev) =>
+                            checked ? [...prev, s.id] : prev.filter((id) => id !== s.id)
+                          );
+                        }}
+                      />
+                      <label
+                        htmlFor={`store-${s.id}`}
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        {s.name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-end gap-2 pt-4">
               <Button variant="outline" onClick={() => setFormOpen(false)}>

@@ -54,6 +54,18 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 210 20% 20%;
     --sidebar-border: 210 20% 88%;
     --sidebar-ring: 186 85% 45%;
+
+    /* Chart colors - distinct palette for reports */
+    --chart-1: 186 85% 45%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 262 83% 58%;
+    --chart-4: 25 95% 53%;
+    --chart-5: 199 89% 48%;
+    --chart-6: 330 81% 60%;
+    --chart-7: 47 96% 53%;
+    --chart-8: 173 80% 40%;
+    --chart-9: 0 72% 51%;
+    --chart-10: 280 67% 58%;
   }
 
   .dark {
@@ -101,6 +113,18 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 210 10% 90%;
     --sidebar-border: 210 20% 18%;
     --sidebar-ring: 186 85% 50%;
+
+    /* Chart colors - distinct palette for reports (dark mode) */
+    --chart-1: 186 85% 55%;
+    --chart-2: 142 76% 46%;
+    --chart-3: 262 83% 68%;
+    --chart-4: 25 95% 63%;
+    --chart-5: 199 89% 58%;
+    --chart-6: 330 81% 70%;
+    --chart-7: 47 96% 63%;
+    --chart-8: 173 80% 50%;
+    --chart-9: 0 72% 61%;
+    --chart-10: 280 67% 68%;
   }
 }
 
@@ -111,5 +135,16 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Print styles - hide sidebar/nav when printing reports */
+@media print {
+  aside,
+  [class*="lg:hidden"] {
+    display: none !important;
+  }
+  main {
+    margin-top: 0 !important;
   }
 }

@@ -13,6 +13,8 @@ import { Plus, Search, AlertTriangle, Trash2, Download, ChevronDown, Barcode, Qr
 import { useEffect, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { api } from "@/lib/api";
+import { useDataLayer } from "@/contexts/DataLayerContext";
+import { useStore } from "@/contexts/StoreContext";
 import { Category, Product, Variant } from "@/types/pos";
 import { formatCurrency } from "@/lib/currency";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -40,6 +42,8 @@ import { OCRScanDialog } from "@/components/inventory/OCRScanDialog";
 import { cn } from "@/lib/utils";
 
 const Inventory = () => {
+  const dataService = useDataLayer();
+  const { activeStoreId } = useStore();
   const { storeName, storeAddress } = useSettings();
   const [search, setSearch] = useState("");
   const [stockFilter, setStockFilter] = useState<"all" | "lowStock">("all");
@@ -74,8 +78,8 @@ const Inventory = () => {
       setLoading(true);
       setError(null);
       const [cats, prods] = await Promise.all([
-        api.getCategories(),
-        api.getProducts(),
+        dataService.getCategories(),
+        dataService.getProducts(),
       ]);
       setCategories(cats as Category[]);
       setProducts(prods as Product[]);
@@ -88,7 +92,7 @@ const Inventory = () => {
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [activeStoreId]);
 
   // Auto-calculate selling price from base price and margin percentage
   useEffect(() => {
@@ -214,9 +218,9 @@ const Inventory = () => {
       };
 
       if (isEditing && editingProduct) {
-        await api.updateProduct(editingProduct.id, basePayload);
+        await dataService.updateProduct(editingProduct.id, basePayload);
       } else {
-        await api.createProduct({
+        await dataService.createProduct({
           ...basePayload,
           hasVariants: false,
           status: "active",
@@ -253,7 +257,7 @@ const Inventory = () => {
 
     try {
       setDeletingId(product.id);
-      await api.deleteProduct(product.id);
+      await dataService.deleteProduct(product.id);
       // Optimistically update table so the row disappears immediately
       setProducts((prev) => prev.filter((p) => p.id !== product.id));
       // Optionally re-load from server in background to stay in sync
@@ -281,7 +285,7 @@ const Inventory = () => {
     try {
       setLoading(true);
       for (const item of items) {
-        await api.createProduct(item);
+        await dataService.createProduct(item);
       }
       await load();
       alert(`Successfully imported ${items.length} items`);
@@ -301,13 +305,13 @@ const Inventory = () => {
       if (variantId && product.hasVariants && product.variants) {
         const variant = product.variants.find((v) => v.id === variantId);
         if (variant) {
-          await api.updateVariant(variantId, {
+          await dataService.updateVariant(variantId, {
             stock: (variant.stock || 0) + quantity,
           });
         }
       } else {
         const currentStock = product.stock || 0;
-        await api.updateProduct(productId, {
+        await dataService.updateProduct(productId, {
           stock: currentStock + quantity,
         });
       }
@@ -323,7 +327,7 @@ const Inventory = () => {
     setVariantProduct(product);
     setVariantDialogOpen(true);
     try {
-      const variants = (await api.getVariants(product.id)) as Variant[];
+      const variants = (await dataService.getVariants(product.id)) as Variant[];
       setVariantRows(variants);
     } catch (_e) {
       // Fallback to existing variants on product if API fails
@@ -359,7 +363,7 @@ const Inventory = () => {
     try {
       setVariantSavingId(row.id);
       if (row.isNew) {
-        const created = (await api.createVariant(variantProduct.id, {
+        const created = (await dataService.createVariant(variantProduct.id, {
           name: row.name,
           price: row.price,
           stock: row.stock,
@@ -368,7 +372,7 @@ const Inventory = () => {
           rows.map((r) => (r.id === row.id ? { ...created } : r)),
         );
       } else {
-        const updated = (await api.updateVariant(row.id, {
+        const updated = (await dataService.updateVariant(row.id, {
           name: row.name,
           price: row.price,
           stock: row.stock,
@@ -398,7 +402,7 @@ const Inventory = () => {
 
     try {
       setVariantSavingId(row.id);
-      await api.deleteVariant(row.id);
+      await dataService.deleteVariant(row.id);
       setVariantRows((rows) => rows.filter((r) => r.id !== row.id));
       void load();
     } catch (e: any) {
@@ -862,7 +866,7 @@ const Inventory = () => {
 
     // Client-side XLSX fallback (mobile or when server unavailable)
     try {
-      const productsData = await api.getProducts();
+      const productsData = await dataService.getProducts();
       const productsArr = productsData as Product[];
 
       if (productsArr.length === 0) {

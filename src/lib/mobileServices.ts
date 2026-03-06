@@ -14,11 +14,12 @@ export const mobileServices = {
       console.log("Attempting login for:", payload.email);
       const db = await getDatabase();
       console.log("Database connection obtained");
-      
+
+      const normalizedEmail = String(payload.email || "").trim().toLowerCase();
       // Try to query for user
       let result: any;
       try {
-        result = await dbQuery(db, "SELECT * FROM User WHERE email = ?", [payload.email]);
+        result = await dbQuery(db, "SELECT * FROM User WHERE LOWER(email) = ?", [normalizedEmail]);
         console.log("Query result:", result);
       } catch (queryError) {
         console.error("Query error:", queryError);

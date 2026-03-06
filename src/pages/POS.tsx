@@ -11,7 +11,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Search, Calendar, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { api } from "@/lib/api";
+import { useDataLayer } from "@/contexts/DataLayerContext";
+import { useStore } from "@/contexts/StoreContext";
 import { useEffect } from "react";
 import { useSettings } from "@/contexts/SettingsContext";
 import { Capacitor } from "@capacitor/core";
@@ -19,6 +20,7 @@ import { printerService } from "@/lib/printer";
 import { formatCurrency } from "@/lib/currency";
 
 const POS = () => {
+  const dataService = useDataLayer();
   const { user } = useAuth();
   const {
     storeName,
@@ -27,6 +29,7 @@ const POS = () => {
     showLogoOnReceipt,
     receiptLogoUrl,
     enableDiscounts,
+    enableTax,
     taxRatePercent,
     selectedPrinter,
     enablePerKiloPurchase,
@@ -46,14 +49,16 @@ const POS = () => {
   const [error, setError] = useState<string | null>(null);
   const [discountPercent, setDiscountPercent] = useState(0);
 
+  const { activeStoreId } = useStore();
   useEffect(() => {
+    setCart([]); // Clear cart when switching stores
     const load = async () => {
       try {
         setLoading(true);
         setError(null);
         const [cats, prods] = await Promise.all([
-          api.getCategories(),
-          api.getProducts(),
+          dataService.getCategories(),
+          dataService.getProducts(),
         ]);
         setCategories(cats as Category[]);
         setProducts(prods as Product[]);
@@ -64,7 +69,7 @@ const POS = () => {
       }
     };
     load();
-  }, []);
+  }, [activeStoreId]);
 
   const filteredProducts = products.filter((product) => {
     const matchesCategory = !selectedCategory || product.categoryId === selectedCategory;
@@ -318,6 +323,8 @@ const POS = () => {
           ${headerAddress ? `<div>${headerAddress}</div>` : ""}
           <div>Ticket: <strong>${sale?.ticketNumber ?? ticketNumber ?? ""}</strong></div>
           <div>Cashier: ${sale?.cashierName ?? user?.name ?? ""}</div>
+          <div>Payment: ${(sale?.paymentMethod ?? "cash").toString().toUpperCase()}</div>
+          ${String(sale?.paymentMethod ?? "cash").toLowerCase() === "gcash" ? `<div>GCash Txn ID: ${sale?.gcashTransactionId ?? "—"}</div>` : ""}
         </div>
         <table>
           <thead>
@@ -429,10 +436,11 @@ const POS = () => {
     }
   };
 
-  const handleCompleteCheckout = async (amountReceived: number) => {
+  const handleCompleteCheckout = async (result: { amountReceived: number; paymentMethod: string; gcashTransactionId?: string }) => {
+    const { amountReceived, paymentMethod, gcashTransactionId } = result;
     const cartSnapshot = cart.map((item) => ({ ...item }));
     const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
-    const taxRate = (typeof taxRatePercent === "number" ? taxRatePercent : 12) / 100;
+    const taxRate = enableTax ? (typeof taxRatePercent === "number" ? taxRatePercent : 12) / 100 : 0;
     const effectiveDiscount = enableDiscounts ? discountPercent : 0;
     const discountAmount = subtotal * (effectiveDiscount / 100);
     const netSubtotal = Math.max(0, subtotal - discountAmount);
@@ -445,16 +453,20 @@ const POS = () => {
         throw new Error("No logged-in user");
       }
 
-      const sale = await api.createSale({
-        cartItems: cart,
-        cashierId: user.id,
-        cashierName: user.name,
-        paymentMethod: "cash",
-        amountReceived,
-        taxRate,
-        discountPercent: effectiveDiscount,
-        ticketNumber: ticketNumber ?? undefined,
-      });
+      const sale = await dataService.createSale(
+        {
+          cartItems: cart,
+          cashierId: user.id,
+          cashierName: user.name,
+          paymentMethod: paymentMethod === "gcash" ? "gcash" : "cash",
+          amountReceived,
+          taxRate,
+          discountPercent: effectiveDiscount,
+          ticketNumber: ticketNumber ?? undefined,
+          gcashTransactionId: paymentMethod === "gcash" ? gcashTransactionId || undefined : undefined,
+        },
+        activeStoreId !== "default" ? activeStoreId : undefined,
+      );
 
       toast({
         title: "Sale completed",
@@ -578,6 +590,7 @@ const POS = () => {
             discountPercent={discountPercent}
             onDiscountChange={setDiscountPercent}
             taxRatePercent={taxRatePercent}
+            enableTax={enableTax}
             enablePerKiloPurchase={enablePerKiloPurchase}
           />
         </div>
@@ -608,6 +621,7 @@ const POS = () => {
             discountPercent={discountPercent}
             onDiscountChange={setDiscountPercent}
             taxRatePercent={taxRatePercent}
+            enableTax={enableTax}
             enablePerKiloPurchase={enablePerKiloPurchase}
           />
         </SheetContent>
@@ -630,10 +644,10 @@ const POS = () => {
         total={
           (() => {
             const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
-            const taxRate = (typeof taxRatePercent === "number" ? taxRatePercent : 12) / 100;
             const effectiveDiscount = enableDiscounts ? discountPercent : 0;
             const discountAmount = subtotal * (effectiveDiscount / 100);
             const netSubtotal = Math.max(0, subtotal - discountAmount);
+            const taxRate = enableTax ? (typeof taxRatePercent === "number" ? taxRatePercent : 12) / 100 : 0;
             return netSubtotal * (1 + taxRate);
           })()
         }

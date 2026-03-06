@@ -68,7 +68,8 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ message: "Email and password are required" });
     }
 
-    let user = await prisma.user.findUnique({ where: { email } });
+    const normalizedEmail = String(email).trim().toLowerCase();
+    let user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });

@@ -11,7 +11,7 @@ model User {
   id       String   @id @default(cuid())
   name     String
   email    String   @unique
-  password String   @default("$2b$10$VwNM8YMo1sKEtKKbZ2tgMOtLdbBL2hjD9VtH003WfLW7C2iU0NICq")
+  password String   @default("$2b$10$5VN/mywPiku92kNyt4y23O9l400pcfNf5Clc.ntSv.0n89NQyaZQC")
   role     String   // "admin" | "cashier"
 
   sales    Sale[]

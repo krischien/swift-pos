@@ -1,11 +1,13 @@
+import bcrypt from "bcryptjs";
 import { prisma } from "./db";
 import { mockCategories, mockProducts, mockUser } from "../src/lib/mockData";
 
 const DEFAULT_PASSWORD = "password123";
-const DEFAULT_PASSWORD_HASH = "$2b$10$VwNM8YMo1sKEtKKbZ2tgMOtLdbBL2hjD9VtH003WfLW7C2iU0NICq";
 
 async function main() {
   console.log("Seeding database with mock data...");
+
+  const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
 
   // Clear existing data in order of relations
   await prisma.saleItem.deleteMany();
@@ -21,7 +23,7 @@ async function main() {
       id: mockUser.id,
       name: mockUser.name,
       email: mockUser.email,
-      password: DEFAULT_PASSWORD_HASH,
+      password: passwordHash,
       role: "admin",
     },
   });
@@ -31,7 +33,7 @@ async function main() {
     data: {
       name: "Cashier User",
       email: "cashier@example.com",
-      password: DEFAULT_PASSWORD_HASH,
+      password: passwordHash,
       role: "cashier",
     },
   });

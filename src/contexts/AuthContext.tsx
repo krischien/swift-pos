@@ -1,21 +1,40 @@
 import React, { createContext, useContext, useState } from "react";
 import { User } from "@/types/pos";
 import { api } from "@/lib/api";
+import { isSaaS } from "@/config/appMode";
+import {
+  saasLogin,
+  setSaasToken,
+  clearSaasToken,
+} from "@/lib/saasAuth";
+
+export interface LoginResult {
+  user: User;
+  stores?: Array<{ id: string; name: string }>;
+  organization?: { id: string; name: string; plan: string; trialEndsAt?: string | null } | null;
+}
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<User>;
+  organization: { id: string; name: string; plan: string; trialEndsAt?: string | null } | null;
+  login: (email: string, password: string) => Promise<LoginResult>;
   logout: () => void;
+  setUserFromAuth: (user: User) => void;
   isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const USER_STORAGE_KEY = "quickpos:user";
+const ORG_STORAGE_KEY = "quickpos:organization";
 
 const getStoredUser = (): User | null => {
   if (typeof window === "undefined") {
     return null;
+  }
+  if (isSaaS()) {
+    const token = window.localStorage.getItem("saas_token");
+    if (!token) return null;
   }
   const raw = window.localStorage.getItem(USER_STORAGE_KEY);
   if (!raw) {
@@ -31,9 +50,7 @@ const getStoredUser = (): User | null => {
 };
 
 const persistUser = (value: User | null) => {
-  if (typeof window === "undefined") {
-    return;
-  }
+  if (typeof window === "undefined") return;
   if (value) {
     window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(value));
   } else {
@@ -41,30 +58,87 @@ const persistUser = (value: User | null) => {
   }
 };
 
+const getStoredOrganization = (): AuthContextType["organization"] => {
+  if (typeof window === "undefined") return null;
+  const raw = window.localStorage.getItem(ORG_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as AuthContextType["organization"];
+  } catch {
+    window.localStorage.removeItem(ORG_STORAGE_KEY);
+    return null;
+  }
+};
+
+const persistOrganization = (value: AuthContextType["organization"]) => {
+  if (typeof window === "undefined") return;
+  if (value) {
+    window.localStorage.setItem(ORG_STORAGE_KEY, JSON.stringify(value));
+  } else {
+    window.localStorage.removeItem(ORG_STORAGE_KEY);
+  }
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(() => getStoredUser());
+  const [organization, setOrganization] = useState<AuthContextType["organization"]>(
+    () => getStoredOrganization()
+  );
 
-  const login = async (email: string, password: string) => {
-    const loggedInUser = await api.login({
-      email,
-      password,
-    });
-    persistUser(loggedInUser as User);
-    setUser(loggedInUser as User);
-    return loggedInUser as User;
+  const login = async (email: string, password: string): Promise<LoginResult> => {
+    if (isSaaS()) {
+      const res = await saasLogin(email, password);
+      setSaasToken(res.token);
+      const u: User = {
+        id: res.user.id,
+        name: res.user.name,
+        email: res.user.email,
+        role: res.user.role as "admin" | "cashier",
+      };
+      persistUser(u);
+      setUser(u);
+      const org = res.organization
+        ? {
+            id: res.organization.id,
+            name: res.organization.name,
+            plan: res.organization.plan,
+            trialEndsAt: res.organization.trialEndsAt,
+          }
+        : null;
+      persistOrganization(org);
+      setOrganization(org);
+      return { user: u, stores: res.stores, organization: org };
+    }
+    const loggedInUser = await api.login({ email, password });
+    const u = loggedInUser as User;
+    persistUser(u);
+    setUser(u);
+    return { user: u };
   };
 
   const logout = () => {
+    if (isSaaS()) {
+      clearSaasToken();
+    }
     setUser(null);
+    setOrganization(null);
     persistUser(null);
+    persistOrganization(null);
+  };
+
+  const setUserFromAuth = (u: User) => {
+    persistUser(u);
+    setUser(u);
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        organization,
         login,
         logout,
+        setUserFromAuth,
         isAuthenticated: !!user,
       }}
     >

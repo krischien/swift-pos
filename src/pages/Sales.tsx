@@ -13,10 +13,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Receipt, TrendingUp, Calendar, Download, DollarSign, Printer } from "lucide-react";
+import { Receipt, TrendingUp, Calendar, Download, DollarSign, Printer, Ban } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { useEffect, useMemo, useState } from "react";
-import { api } from "@/lib/api";
+import { useDataLayer } from "@/contexts/DataLayerContext";
+import { useStore } from "@/contexts/StoreContext";
 import { formatCurrency } from "@/lib/currency";
 import {
   Dialog,
@@ -24,6 +25,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,6 +68,8 @@ const PesoIcon = ({ className }: { className?: string }) => (
 );
 
 const Sales = () => {
+  const dataService = useDataLayer();
+  const { activeStoreId } = useStore();
   const [sales, setSales] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -69,6 +81,9 @@ const Sales = () => {
   const [toDate, setToDate] = useState<string>("");
   const [activeRangeLabel, setActiveRangeLabel] = useState<string>("All time");
   const [exporting, setExporting] = useState(false);
+  const [voiding, setVoiding] = useState(false);
+  const [voidConfirmOpen, setVoidConfirmOpen] = useState(false);
+  const [saleToVoid, setSaleToVoid] = useState<any | null>(null);
 
   type ExportRange = "today" | "weekly" | "monthly" | "quarterly" | "annual";
   type QuickRange = "all" | "today" | "week" | "month" | "year" | "custom";
@@ -79,8 +94,8 @@ const Sales = () => {
       setLoading(true);
       setError(null);
       const [salesData, productsData] = await Promise.all([
-        api.getSales({ from, to }),
-        api.getProducts(), // This should return all products on server, but may filter on mobile
+        dataService.getSales({ from, to }),
+        dataService.getProducts(),
       ]);
       const salesArray = salesData as any[];
       const productsArray = productsData as any[];
@@ -96,7 +111,7 @@ const Sales = () => {
 
   useEffect(() => {
     void loadSales();
-  }, []);
+  }, [activeStoreId]);
 
   const getRangeForExport = (range: ExportRange) => {
     const now = new Date();
@@ -199,8 +214,8 @@ const Sales = () => {
       const { fromISO, toISO, label } = getRangeForExport(range);
 
       const [salesData, productsData] = await Promise.all([
-        api.getSales({ from: fromISO, to: toISO }),
-        api.getProducts(),
+        dataService.getSales({ from: fromISO, to: toISO }),
+        dataService.getProducts(),
       ]);
 
       const salesArr = salesData as any[];
@@ -528,6 +543,33 @@ const Sales = () => {
   const openSaleDetails = (sale: any) => {
     setDetailsSale(sale);
     setDetailsOpen(true);
+  };
+
+  const confirmVoid = (sale: any) => {
+    setSaleToVoid(sale);
+    setVoidConfirmOpen(true);
+  };
+
+  const handleVoid = async () => {
+    if (!saleToVoid || !dataService.voidSale) return;
+    try {
+      setVoiding(true);
+      await dataService.voidSale(saleToVoid.id, (saleToVoid as { storeId?: string }).storeId);
+      setVoidConfirmOpen(false);
+      setSaleToVoid(null);
+      if (detailsSale?.id === saleToVoid.id) {
+        setDetailsOpen(false);
+        setDetailsSale(null);
+      }
+      const { from, to } = getQuickRangeBounds(quickRange);
+      const fromStr = quickRange === "custom" && fromDate ? new Date(fromDate).toISOString() : from?.toISOString();
+      const toStr = quickRange === "custom" && toDate ? new Date(toDate).toISOString() : to?.toISOString();
+      void loadSales(fromStr, toStr);
+    } catch (e: any) {
+      setError(e.message ?? "Failed to void transaction");
+    } finally {
+      setVoiding(false);
+    }
   };
 
   const handlePrint = () => {
@@ -1013,9 +1055,21 @@ const Sales = () => {
                         {formatCurrency(sale.total)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => openSaleDetails(sale)}>
-                          View Details
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => openSaleDetails(sale)}>
+                            View Details
+                          </Button>
+                          {dataService.voidSale && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => confirmVoid(sale)}
+                            >
+                              Void
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -1053,15 +1107,25 @@ const Sales = () => {
                     </div>
                   </div>
 
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full"
+                      className="flex-1"
                       onClick={() => openSaleDetails(sale)}
                     >
                       View Details
                     </Button>
+                    {dataService.voidSale && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-destructive border-destructive hover:bg-destructive/10"
+                        onClick={() => confirmVoid(sale)}
+                      >
+                        Void
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1108,6 +1172,12 @@ const Sales = () => {
                   <p className="text-muted-foreground text-xs">Payment</p>
                   <p className="font-semibold capitalize">{detailsSale.paymentMethod}</p>
                 </div>
+                {(detailsSale.paymentMethod ?? "").toLowerCase() === "gcash" && detailsSale.gcashTransactionId && (
+                  <div>
+                    <p className="text-muted-foreground text-xs">GCash Transaction ID</p>
+                    <p className="font-semibold font-mono text-sm">{detailsSale.gcashTransactionId}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-muted-foreground text-xs">Total</p>
                   <p className="font-semibold">{formatCurrency(detailsSale.total)}</p>
@@ -1139,13 +1209,54 @@ const Sales = () => {
                         </TableCell>
                       </TableRow>
                     ))}
-                  </TableBody>
+                    </TableBody>
                 </Table>
               </div>
+              {dataService.voidSale && (
+                <div className="flex justify-end pt-4">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      setDetailsOpen(false);
+                      confirmVoid(detailsSale);
+                    }}
+                  >
+                    <Ban className="w-4 h-4 mr-2" />
+                    Void Transaction
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={voidConfirmOpen} onOpenChange={setVoidConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Void transaction?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will cancel the transaction and restore inventory. This action cannot be undone.
+              {saleToVoid && (
+                <span className="block mt-2 font-medium">
+                  Transaction #{String(saleToVoid.id).slice(-6).padStart(6, "0")} - {formatCurrency(saleToVoid.total)}
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={voiding}>Cancel</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              onClick={() => void handleVoid()}
+              disabled={voiding}
+            >
+              {voiding ? "Voiding..." : "Void"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

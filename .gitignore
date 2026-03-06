@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.local
 
 # Editor directories and files
 .vscode/*
@@ -26,3 +28,6 @@ dist-ssr
 # Database backups
 backups/
 *.db.backup
+
+# SaaS dev SQLite
+prisma-saas/saas-dev.db

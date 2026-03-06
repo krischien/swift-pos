@@ -1,7 +1,9 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStore } from "@/contexts/StoreContext";
 import { Button } from "@/components/ui/button";
 import { NavLink } from "@/components/NavLink";
+import { StoreSwitcher } from "@/components/layout/StoreSwitcher";
 import {
   ShoppingCart,
   Package,
@@ -12,14 +14,22 @@ import {
   Users,
   FolderTree,
   QrCode,
+  Shield,
+  FileBarChart,
+  Store,
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { isSaaS } from "@/config/appMode";
+import NotificationBanner from "@/components/NotificationBanner";
+import TrialBanner from "@/components/TrialBanner";
 
 const AppLayout = () => {
   const { user, logout } = useAuth();
+  const { stores, activeStoreId } = useStore();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const activeStore = stores.find((s) => s.id === activeStoreId) || stores[0];
 
   const handleLogout = () => {
     logout();
@@ -27,13 +37,18 @@ const AppLayout = () => {
   };
 
   const navItems = [
-    { to: "/pos", icon: ShoppingCart, label: "POS", roles: ["admin", "cashier"] },
-    { to: "/sticker-generator", icon: QrCode, label: "Sticker Generator", roles: ["admin", "cashier"] },
-    { to: "/inventory", icon: Package, label: "Inventory", roles: ["admin"] },
-    { to: "/sales", icon: TrendingUp, label: "Sales", roles: ["admin"] },
-    { to: "/categories", icon: FolderTree, label: "Categories", roles: ["admin"] },
-    { to: "/users", icon: Users, label: "Users", roles: ["admin"] },
-    { to: "/settings", icon: Settings, label: "Settings", roles: ["admin"] },
+    ...(user?.role === "super_admin"
+      ? [{ to: "/admin", icon: Shield, label: "Super Admin", roles: ["super_admin"] }]
+      : []),
+    { to: "/pos", icon: ShoppingCart, label: "POS", roles: ["admin", "cashier", "owner"] },
+    { to: "/sticker-generator", icon: QrCode, label: "Sticker Generator", roles: ["owner"] },
+    { to: "/inventory", icon: Package, label: "Inventory", roles: ["owner"] },
+    { to: "/sales", icon: TrendingUp, label: "Sales", roles: ["owner"] },
+    { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["owner", "admin", "super_admin"] },
+    { to: "/categories", icon: FolderTree, label: "Categories", roles: ["owner"] },
+    { to: "/stores", icon: Store, label: "Stores", roles: ["owner"] },
+    { to: "/users", icon: Users, label: "Users", roles: ["owner"] },
+    { to: "/settings", icon: Settings, label: "Settings", roles: ["owner", "super_admin"] },
   ];
 
   const filteredNavItems = navItems.filter((item) =>
@@ -64,18 +79,23 @@ const AppLayout = () => {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 bg-sidebar border-r flex-col">
+      {/* Desktop/Tablet Sidebar - hidden on mobile, use Sheet instead */}
+      <aside className="hidden lg:flex w-64 bg-sidebar border-r flex-col shrink-0">
         <div className="p-4 border-b">
           <div className="flex items-center">
-            {/* <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center"> */}
-              <img src="/favico.png" alt="QuickScale" className="w-14 h-14" />
-            {/* </div> */}
-            <div>
+            <img src="/favico.png" alt="QuickScale" className="w-14 h-14" />
+            <div className="min-w-0 flex-1">
               <h1 className="font-bold text-lg">QuickScale</h1>
-              <p className="text-xs text-muted-foreground">{user?.role}</p>
+              <p className="text-xs text-muted-foreground truncate" title={activeStore?.name}>
+                {isSaaS() && activeStore ? activeStore.name : user?.role}
+              </p>
             </div>
           </div>
+          {isSaaS() && stores.length > 1 && (
+            <div className="mt-3">
+              <StoreSwitcher />
+            </div>
+          )}
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
@@ -98,8 +118,8 @@ const AppLayout = () => {
         </div>
       </aside>
 
-      {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-card border-b z-50 flex items-center px-4">
+      {/* Mobile/Tablet Header - hamburger menu for sidebar */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-card border-b z-50 flex items-center px-4">
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon">
@@ -112,11 +132,18 @@ const AppLayout = () => {
                 <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
                   <img src="/favico.png" alt="QuickScale" className="w-6 h-6" />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <h1 className="font-bold text-lg">QuickScale</h1>
-                  <p className="text-xs text-muted-foreground">{user?.role}</p>
+                  <p className="text-xs text-muted-foreground truncate" title={activeStore?.name}>
+                    {isSaaS() && activeStore ? activeStore.name : user?.role}
+                  </p>
                 </div>
               </div>
+              {isSaaS() && stores.length > 1 && (
+                <div className="mt-3">
+                  <StoreSwitcher />
+                </div>
+              )}
             </div>
 
             <nav className="flex-1 p-4 space-y-1">
@@ -140,17 +167,27 @@ const AppLayout = () => {
           </SheetContent>
         </Sheet>
 
-        <div className="flex-1 flex justify-center">
-          <div className="flex items-center gap-2">
-            <img src="/favico.png" alt="QuickScale" className="w-5 h-5" />
-            <span className="font-bold">QuickScale</span>
-          </div>
+        <div className="flex-1 flex items-center justify-center gap-2 min-w-0">
+          <img src="/favico.png" alt="QuickScale" className="w-5 h-5 shrink-0" />
+          <span className="font-bold truncate">QuickScale</span>
+          {isSaaS() && activeStore && (
+            <>
+              <span className="text-muted-foreground hidden sm:inline">·</span>
+              <span className="text-sm text-muted-foreground truncate max-w-[120px] sm:max-w-[180px]">
+                {activeStore.name}
+              </span>
+            </>
+          )}
         </div>
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto md:mt-0 mt-16">
-        <Outlet />
+      <main className="flex-1 overflow-auto lg:mt-0 mt-16 flex flex-col">
+        <TrialBanner />
+        <NotificationBanner />
+        <div className="flex-1 min-h-0">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

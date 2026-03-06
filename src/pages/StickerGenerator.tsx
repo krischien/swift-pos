@@ -11,7 +11,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Product } from "@/types/pos";
-import { api } from "@/lib/api";
+import { useDataLayer } from "@/contexts/DataLayerContext";
+import { useStore } from "@/contexts/StoreContext";
 import { formatCurrency } from "@/lib/currency";
 import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -20,6 +21,8 @@ import QRCode from "qrcode";
 import { Printer } from "lucide-react";
 
 const StickerGenerator = () => {
+  const dataService = useDataLayer();
+  const { activeStoreId } = useStore();
   const { toast } = useToast();
   const { stickerCodeType } = useSettings();
   const [products, setProducts] = useState<Product[]>([]);
@@ -40,7 +43,7 @@ const StickerGenerator = () => {
 
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [activeStoreId]);
 
   useEffect(() => {
     if (selectedProductId) {
@@ -62,7 +65,7 @@ const StickerGenerator = () => {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const prods = await api.getProducts();
+      const prods = await dataService.getProducts();
       setProducts(prods as Product[]);
     } catch (error: any) {
       toast({
