@@ -1,4 +1,4 @@
-import { Category, Product, User } from "@/types/pos";
+import { Category, Product, User } from "../types/pos";
 
 export const mockUser: User = {
   id: "1",
