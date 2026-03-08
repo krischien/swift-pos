@@ -3,6 +3,6 @@
   "outputDirectory": "dist",
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api" },
-    { "source": "/:path((?!.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|eot|ttf|otf|map)$).*)", "destination": "/index.html" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
