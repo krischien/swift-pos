@@ -1,4 +1,4 @@
-import { PrismaClient } from "../../prisma-saas/generated/saas-client";
+import { PrismaClient } from "../../prisma-saas/generated/saas-client/index.js";
 
 const globalForPrisma = globalThis as unknown as {
   saasPrisma?: PrismaClient;
