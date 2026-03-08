@@ -1,5 +1,10 @@
+import { createRequire } from "module";
+
 /**
  * Vercel serverless function - handles all /api/* routes.
- * Exports the Express SaaS app for serverless execution.
+ * Use createRequire so module resolution works reliably in Vercel runtime.
  */
-export { default } from "../server/saas/index.js";
+const require = createRequire(import.meta.url);
+const app = require("../server/saas/index.js").default;
+
+export default app;
