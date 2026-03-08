@@ -15,7 +15,11 @@ export interface JwtPayload {
   storeIds?: string[];
 }
 
-export type AuthRequest = Request & { auth?: JwtPayload };
+export interface AuthRequest extends Request {
+  auth?: JwtPayload;
+  params: Record<string, string>;
+  body: unknown;
+}
 
 export function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
