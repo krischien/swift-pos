@@ -2,14 +2,14 @@
   "buildCommand": "npm run vercel:build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/server/saas/index.ts" },
+    { "source": "/api/:path*", "destination": "/api" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "functions": {
-    "server/saas/index.ts": {
+    "api/index.ts": {
       "maxDuration": 30,
       "memory": 1024,
-      "includeFiles": "{prisma-saas/generated/**,src/**}"
+      "includeFiles": "{server/**,prisma-saas/generated/**}"
     }
   }
 }
