@@ -1,10 +1,7 @@
-import { createRequire } from "module";
-
 /**
  * Vercel serverless function - handles all /api/* routes.
- * Use createRequire so module resolution works reliably in Vercel runtime.
+ * Static TS import helps Vercel trace and bundle dependencies correctly.
  */
-const require = createRequire(import.meta.url);
-const app = require("../server/saas/index.js").default;
+import app from "../server/saas/index.ts";
 
 export default app;
