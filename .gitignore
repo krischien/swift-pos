@@ -13,6 +13,7 @@ dist-ssr
 *.local
 .env
 .env.local
+.env.saas-production
 
 # Editor directories and files
 .vscode/*
@@ -31,3 +32,8 @@ backups/
 
 # SaaS dev SQLite
 prisma-saas/saas-dev.db
+
+# Android signing (never commit)
+android/keystore.properties
+android/*.keystore
+android/*.jks

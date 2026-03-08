@@ -1,73 +1,139 @@
-# Welcome to your Lovable project
+# QuickScale POS
 
-## Project info   
+A point-of-sale system with multi-store support, inventory management, and reporting. Built for retail, cafes, and small businesses—with offline-first solo mode and cloud-based SaaS mode.
 
-**URL**: https://lovable.dev/projects/47cd3828-b124-4ae2-9a13-604301b27fe9
+## Overview
 
-## How can I edit this code?
+QuickScale POS runs in two modes:
 
-There are several ways of editing your application.
+- **Solo** — Single store, offline-first. Uses a local SQLite database and Express server. Ideal for standalone terminals or mobile devices.
+- **SaaS** — Multi-store, cloud-based. Organizations can have multiple stores, users, and roles. Uses JWT auth and supports SQLite (dev) or PostgreSQL (prod).
 
-**Use Lovable**
+### Features
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/47cd3828-b124-4ae2-9a13-604301b27fe9) and start prompting.
+| Feature | Description |
+|--------|-------------|
+| **POS** | Point-of-sale with cart, checkout, payment methods (cash, GCash), discounts, and receipt printing |
+| **Inventory** | Products, categories, variants, stock levels, low-stock alerts, unit of measure, OCR barcode scanning |
+| **Sales** | Transaction history, void sales, date filters |
+| **Reports** | Revenue, net profit, void count, payment method breakdown, charts (bar, line, pie), date range presets |
+| **Sticker Generator** | Barcode/QR labels for products (SKU, weight, price) |
+| **Categories** | Product categorization per store |
+| **Stores** | Multi-store management (SaaS) |
+| **Users** | Role-based access: `super_admin`, `owner`, `admin`, `cashier` |
+| **Settings** | Store info, receipt logo, currency, BIR compliance fields |
+| **BIR Reports** | BIR Annex A inventory list export (PDF, XLSX) |
 
-Changes made via Lovable will be committed automatically to this repo.
+### Roles
 
-**Use your preferred IDE**
+- **super_admin** — Platform admin; manages organizations, sees Super Admin dashboard
+- **owner** — Full access to POS, inventory, sales, reports, categories, stores, users, settings
+- **admin** — POS, reports
+- **cashier** — POS only
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Tech Stack
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- **Frontend:** Vite, React, TypeScript, shadcn-ui, Tailwind CSS, React Query, Recharts
+- **Backend:** Express, Prisma (SQLite / PostgreSQL)
+- **Mobile:** Capacitor (Android), Bluetooth receipt printing
+- **Other:** JWT auth, bcrypt, ExcelJS, Puppeteer (BIR PDF), Tesseract (OCR)
 
-Follow these steps:
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+ & npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+
+### Setup
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Clone the repository
 git clone <YOUR_GIT_URL>
+cd swift_pos
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Install dependencies
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Copy .env.example to .env and configure
+cp .env.example .env
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+# Run database migrations (SaaS mode)
+npm run prisma:migrate:saas
+
+# Seed demo data (optional) — Cafe + Pet Store with 10 days of sales
+npm run saas:seed-demo
 ```
 
-**Edit a file directly in GitHub**
+### Demo Credentials (after seeding)
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+| Role | Email | Password |
+|------|-------|----------|
+| Owner | owner@demo.com | password123 |
+| Admin (Cafe) | maria@demo.com | password123 |
+| Cashier (Pet Store) | juan@demo.com | password123 |
 
-**Use GitHub Codespaces**
+### Development
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```sh
+# Start SaaS API + web dev server
+npm run start:saas
 
-## What technologies are used for this project?
+# Or run separately:
+# Terminal 1: npm run dev:saas   (API on port 4001)
+# Terminal 2: npm run dev        (Vite on port 8080)
+```
 
-This project is built with:
+### Build
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```sh
+# SaaS mode
+npm run build:saas
 
-## How can I deploy this project?
+# Solo mode
+npm run build:solo
+```
 
-Simply open [Lovable](https://lovable.dev/projects/47cd3828-b124-4ae2-9a13-604301b27fe9) and click on Share -> Publish.
+### Mobile (Android)
 
-## Can I connect a custom domain to my Lovable project?
+```sh
+npm run build:mobile:saas
+npm run cap:open
+```
 
-Yes, you can!
+Set `VITE_SAAS_API_URL` to your machine's IP when building for a physical device.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Android production (SaaS + PostgreSQL)
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+To build the Android app so it uses your production server and PostgreSQL:
+
+1. **Copy the production env template:**
+   ```sh
+   cp .env.saas-production.example .env.saas-production
+   ```
+
+2. **Edit `.env.saas-production`** and set `VITE_SAAS_API_URL` to your production API URL (e.g. `https://api.yourdomain.com`).
+
+3. **Build the Android app:**
+   ```sh
+   npm run build:mobile:saas:prod
+   ```
+
+4. **Open Android Studio** and run on a device or emulator:
+   ```sh
+   npm run cap:open
+   ```
+
+5. **Server CORS:** Ensure your SaaS server's `SAAS_CORS_ORIGINS` includes `capacitor://localhost` so the Android app can reach the API.
+
+For full deployment steps (signing, Play Store upload), see [DEPLOY_ANDROID.md](DEPLOY_ANDROID.md).
+
+## Environment
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_APP_MODE` | `solo` or `saas` |
+| `VITE_SAAS_API_URL` | SaaS API base URL (e.g. `http://localhost:4001`) |
+| `SAAS_DATABASE_URL` | SQLite (`file:./prisma-saas/saas-dev.db`) or PostgreSQL |
+| `JWT_SECRET` | Secret for JWT signing (required in production) |
+| `SUPER_ADMIN_EMAILS` | Comma-separated emails with super_admin access |
+| `SAAS_CORS_ORIGINS` | Allowed CORS origins (production) |
