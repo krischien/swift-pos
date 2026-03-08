@@ -21,9 +21,29 @@ import { runBootstrapSeed } from "./services/bootstrapSeedService.js";
 
 const app = express();
 const port = process.env.SAAS_PORT || 4001;
+const isVercel = !!process.env.VERCEL;
 
-app.use(cors());
+// CORS: allow SAAS_CORS_ORIGINS in prod, else all (dev + Android Capacitor)
+const corsOrigins = process.env.SAAS_CORS_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean);
+app.use(
+  cors({
+    origin: corsOrigins.length > 0 ? corsOrigins : true,
+    credentials: true,
+  })
+);
 app.use(express.json());
+
+// Bootstrap seed on first request (for Vercel serverless - no traditional startup)
+let bootPromise: Promise<void> | null = null;
+app.use(async (_req, _res, next) => {
+  if (!bootPromise) bootPromise = runBootstrapSeed().then(() => {});
+  try {
+    await bootPromise;
+  } catch (e) {
+    console.error("[Bootstrap]", e);
+  }
+  next();
+});
 
 app.use((req, _res, next) => {
   console.log(`[SAAS ${new Date().toISOString()}] ${req.method} ${req.path}`);
@@ -937,4 +957,10 @@ async function start() {
     if (net) console.log(`  For mobile: use http://${net.address}:${port}`);
   });
 }
-start();
+
+// Vercel: export app for serverless. Local: run start().
+if (!process.env.VERCEL) {
+  start();
+}
+
+export default app;

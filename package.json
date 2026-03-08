@@ -30,7 +30,8 @@
     "cap:sync": "npm run build && npx cap sync android",
     "cap:sync:solo": "npm run build:solo && npx cap sync android",
     "cap:sync:saas": "npm run build:saas && npx cap sync android",
-    "cap:open": "npx cap open android"
+    "cap:open": "npx cap open android",
+    "vercel:build": "npm run build:saas && prisma generate --schema=prisma-saas/schema.pg.prisma && prisma db push --schema=prisma-saas/schema.pg.prisma"
   },
   "dependencies": {
     "@capacitor-community/sqlite": "^7.0.2",
