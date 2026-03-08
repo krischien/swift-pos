@@ -33,6 +33,11 @@ app.use(
 );
 app.use(express.json());
 
+// Health check FIRST - no DB, no bootstrap. Lets us verify the function runs before any DB work.
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "ok", mode: "saas" });
+});
+
 // Bootstrap seed on first request (for Vercel serverless - no traditional startup)
 let bootPromise: Promise<void> | null = null;
 app.use(async (_req, _res, next) => {
@@ -48,10 +53,6 @@ app.use(async (_req, _res, next) => {
 app.use((req, _res, next) => {
   console.log(`[SAAS ${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
-});
-
-app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", mode: "saas" });
 });
 
 // Reset demo user passwords (dev only - fixes "invalid credentials" when DB has stale hashes)
@@ -944,6 +945,12 @@ app.use("/api/admin", adminRoutes);
 app.use(ownerRouter);
 
 app.use(protectedRouter);
+
+// Catch unhandled errors - prevents FUNCTION_INVOCATION_FAILED from uncaught exceptions
+app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("[SAAS Unhandled Error]", err);
+  res.status(500).json({ message: "Internal server error" });
+});
 
 async function start() {
   try {
