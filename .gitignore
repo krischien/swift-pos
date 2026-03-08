@@ -37,3 +37,5 @@ prisma-saas/saas-dev.db
 android/keystore.properties
 android/*.keystore
 android/*.jks
+# Prisma generated client
+prisma-saas/generated/
