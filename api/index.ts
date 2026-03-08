@@ -1,7 +1,7 @@
 /**
  * Vercel serverless function - handles all /api/* routes.
- * Static TS import helps Vercel trace and bundle dependencies correctly.
+ * Imports bundled app (built by build:api) so server code is included in deployment.
  */
-import app from "../server/saas/index.js";
+import app from "./saas-app.js";
 
 export default app;

@@ -34,7 +34,8 @@
     "cap:sync:solo": "npm run build:solo && npx cap sync android",
     "cap:sync:saas": "npm run build:saas && npx cap sync android",
     "cap:open": "npx cap open android",
-    "vercel:build": "npm run build:saas && prisma generate --schema=prisma-saas/schema.pg.prisma && prisma db push --schema=prisma-saas/schema.pg.prisma"
+    "vercel:build": "npm run build:saas && prisma generate --schema=prisma-saas/schema.pg.prisma && prisma db push --schema=prisma-saas/schema.pg.prisma && npm run build:api",
+    "build:api": "npx esbuild server/saas/index.ts --bundle --platform=node --format=esm --outfile=api/saas-app.js --packages=external"
   },
   "dependencies": {
     "@capacitor-community/sqlite": "^7.0.2",
