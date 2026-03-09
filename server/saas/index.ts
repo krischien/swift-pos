@@ -22,7 +22,16 @@ import { runBootstrapSeed } from "./services/bootstrapSeedService.js";
 const app = express();
 const port = process.env.SAAS_PORT || 4001;
 
-app.use(cors());
+// CORS: SAAS_CORS_ORIGINS=* allows all (for local dev debug). Else use listed origins.
+const corsOriginsRaw = process.env.SAAS_CORS_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean) ?? [];
+const allowAllCors = corsOriginsRaw.includes("*");
+const corsOrigins = allowAllCors ? [] : corsOriginsRaw;
+app.use(
+  cors({
+    origin: allowAllCors || corsOrigins.length === 0 ? true : corsOrigins,
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 app.use((req, _res, next) => {

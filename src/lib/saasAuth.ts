@@ -21,16 +21,24 @@ export interface SaasSignupPayload {
 
 export async function saasLogin(email: string, password: string): Promise<SaasLoginResponse> {
   const base = getSaasApiBase();
-  const url = base ? `${base.replace(/\/$/, "")}/api/auth/login` : "/api/auth/login";
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
+  const url = base ? `${base.trim().replace(/\/$/, "")}/api/auth/login` : "/api/auth/login";
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Network error";
+    throw new Error(
+      `Cannot reach API at ${url}. ${msg}. Check server is running and CORS allows capacitor://localhost.`
+    );
+  }
   const text = await res.text();
   if (text.trimStart().toLowerCase().startsWith("<!")) {
     throw new Error(
-      "Received HTML instead of JSON. The API URL may be wrong. On mobile, set VITE_SAAS_API_URL when building (e.g. http://YOUR_IP:4001 for local dev)."
+      `Received HTML instead of JSON from ${url}. API URL may be wrong. On mobile, set VITE_SAAS_API_URL when building.`
     );
   }
   if (!res.ok) {
@@ -49,16 +57,20 @@ export async function saasLogin(email: string, password: string): Promise<SaasLo
 export async function saasSignup(payload: SaasSignupPayload): Promise<SaasLoginResponse> {
   const base = getSaasApiBase();
   const url = base ? `${base.replace(/\/$/, "")}/api/auth/signup` : "/api/auth/signup";
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Network error";
+    throw new Error(`Cannot reach API at ${url}. ${msg}`);
+  }
   const text = await res.text();
   if (text.trimStart().toLowerCase().startsWith("<!")) {
-    throw new Error(
-      "Received HTML instead of JSON. The API URL may be wrong. On mobile, set VITE_SAAS_API_URL when building (e.g. http://YOUR_IP:4001 for local dev)."
-    );
+    throw new Error(`Received HTML instead of JSON from ${url}. API URL may be wrong.`);
   }
   if (!res.ok) throw new Error(text || "Signup failed");
   return JSON.parse(text) as SaasLoginResponse;

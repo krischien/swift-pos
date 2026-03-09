@@ -15,7 +15,7 @@ function getBaseFromEnv(): string {
   if (import.meta.env.DEV && import.meta.env.VITE_APP_MODE === "saas") {
     return ""; // Web dev: use same origin, Vite proxy forwards to SaaS server
   }
-  return import.meta.env.VITE_SAAS_API_URL || "";
+  return (import.meta.env.VITE_SAAS_API_URL || "").trim();
 }
 
 export function getSaasApiBase(): string {
@@ -30,5 +30,5 @@ export function getSaasApiBase(): string {
         ? `http://10.0.2.2:${DEFAULT_SAAS_PORT}`
         : `http://localhost:${DEFAULT_SAAS_PORT}`;
   }
-  return base;
+  return base.trim();
 }
