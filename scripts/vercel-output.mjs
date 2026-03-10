@@ -17,7 +17,7 @@ async function run() {
   console.log("[vercel-output] Building...");
   execSync("npm run build:saas", { cwd: root, stdio: "inherit" });
   execSync("npx prisma generate --schema=prisma-saas/schema.pg.prisma", { cwd: root, stdio: "inherit" });
-  execSync("npx prisma db push --schema=prisma-saas/schema.pg.prisma", { cwd: root, stdio: "inherit" });
+  // DB schema: run separately before deploy: npx prisma db push --schema=prisma-saas/schema.pg.prisma
 
   await mkdir(funcDir, { recursive: true });
   await mkdir(join(out, "static"), { recursive: true });
