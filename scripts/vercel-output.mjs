@@ -51,6 +51,7 @@ async function run() {
       version: 3,
       routes: [
         { handle: "filesystem" },
+        { src: "/api/(.*)", dest: "/api" },
         { src: "/(.*)", dest: "/index.html" },
       ],
     })
