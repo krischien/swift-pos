@@ -77,7 +77,23 @@ const POS = () => {
     return matchesCategory && matchesSearch && product.status === "active";
   });
 
+  const isProductOutOfStock = (product: Product): boolean => {
+    if (product.hasVariants && product.variants?.length) {
+      const totalStock = product.variants.reduce((sum, v) => sum + (v.stock ?? 0), 0);
+      return totalStock <= 0;
+    }
+    return (product.stock ?? 0) <= 0;
+  };
+
   const handleProductSelect = (product: Product) => {
+    if (isProductOutOfStock(product)) {
+      toast({
+        variant: "destructive",
+        title: "Out of stock",
+        description: `${product.name} is currently out of stock.`,
+      });
+      return;
+    }
     if (product.hasVariants) {
       setSelectedProduct(product);
       setShowVariantModal(true);
@@ -87,7 +103,7 @@ const POS = () => {
   };
 
   const handleVariantSelect = (variant: Variant) => {
-    if (selectedProduct) {
+    if (selectedProduct && (variant.stock ?? 0) > 0) {
       addToCart(selectedProduct, variant);
     }
   };
@@ -572,6 +588,7 @@ const POS = () => {
                     key={product.id}
                     product={product}
                     onSelect={handleProductSelect}
+                    isOutOfStock={isProductOutOfStock(product)}
                   />
                 ))}
               </div>

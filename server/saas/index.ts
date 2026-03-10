@@ -24,7 +24,7 @@ const port = process.env.SAAS_PORT || 4001;
 const isVercel = !!process.env.VERCEL;
 
 // CORS: allow SAAS_CORS_ORIGINS in prod, else all (dev + Android Capacitor)
-const corsOrigins = process.env.SAAS_CORS_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean);
+const corsOrigins = process.env.SAAS_CORS_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean) ?? [];
 app.use(
   cors({
     origin: corsOrigins.length > 0 ? corsOrigins : true,
@@ -32,6 +32,18 @@ app.use(
   })
 );
 app.use(express.json());
+
+// Restore API path when Vercel rewrite maps /api/(.*) to /api?__path=$1
+app.use((req, _res, next) => {
+  const pathParam = req.query?.__path;
+  if (typeof pathParam === "string" && pathParam) {
+    const qs = { ...(req.query || {}) } as Record<string, string>;
+    delete qs.__path;
+    const search = new URLSearchParams(qs).toString();
+    req.url = `/api/${pathParam}${search ? `?${search}` : ""}`;
+  }
+  next();
+});
 
 // Health check FIRST - no DB, no bootstrap. Lets us verify the function runs before any DB work.
 app.get("/api/health", (_req, res) => {
@@ -971,3 +983,4 @@ if (!process.env.VERCEL) {
 }
 
 export default app;
+

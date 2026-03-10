@@ -1,14 +1,17 @@
 import { Product } from "@/types/pos";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Package } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
+import { cn } from "@/lib/utils";
 
 interface ProductCardProps {
   product: Product;
   onSelect: (product: Product) => void;
+  isOutOfStock?: boolean;
 }
 
-export const ProductCard = ({ product, onSelect }: ProductCardProps) => {
+export const ProductCard = ({ product, onSelect, isOutOfStock }: ProductCardProps) => {
   let displayPrice: number | undefined;
   
   if (product.hasVariants) {
@@ -27,7 +30,11 @@ export const ProductCard = ({ product, onSelect }: ProductCardProps) => {
   return (
     <Button
       variant="outline"
-      className="h-auto flex-col p-4 bg-pos-product hover:bg-accent hover:border-primary transition-all"
+      disabled={isOutOfStock}
+      className={cn(
+        "h-auto flex-col p-4 bg-pos-product hover:bg-accent hover:border-primary transition-all relative",
+        isOutOfStock && "opacity-70 cursor-not-allowed"
+      )}
       onClick={() => onSelect(product)}
     >
       <div className="w-full aspect-square bg-muted rounded-lg mb-3 flex items-center justify-center overflow-hidden">
@@ -51,6 +58,11 @@ export const ProductCard = ({ product, onSelect }: ProductCardProps) => {
       <p className="text-xs text-muted-foreground mt-1 h-4">
         {product.hasVariants ? `${product.variants?.length} variants` : "\u00a0"}
       </p>
+      {isOutOfStock && (
+        <Badge className="absolute inset-0 m-auto w-fit h-fit bg-slate-500 text-white border-slate-500 pointer-events-none">
+          Out of Stock
+        </Badge>
+      )}
     </Button>
   );
 };
