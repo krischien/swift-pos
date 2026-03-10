@@ -8,6 +8,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useStore } from "@/contexts/StoreContext";
 import { useToast } from "@/hooks/use-toast";
 import { isSaaS } from "@/config/appMode";
+import { Capacitor } from "@capacitor/core";
+import { getSaasApiBase } from "@/lib/saasApiConfig";
 
 // SaaS demo credentials (used when isSaaS())
 const DEMO_CREDENTIALS = {
@@ -95,6 +97,11 @@ const Login = () => {
           </div>
           <CardTitle className="text-3xl font-bold">QuickScale</CardTitle>
           <CardDescription>Sign in to your account</CardDescription>
+          {isSaaS() && Capacitor.isNativePlatform() && (
+            <p className="text-xs text-muted-foreground mt-1 font-mono break-all">
+              API: {getSaasApiBase() || "(not set)"}
+            </p>
+          )}
           {suspendedReason && isSaaS() && (
             <p className="text-sm text-amber-600 dark:text-amber-500 mt-2">
               Your account was suspended or your trial has expired. Please contact support to restore access.

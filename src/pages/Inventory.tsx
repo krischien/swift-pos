@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertTriangle, Trash2, Download, ChevronDown, Barcode, QrCode, FileSpreadsheet, FileText, Package } from "lucide-react";
+import { Plus, Search, AlertTriangle, Trash2, Download, ChevronDown, ChevronLeft, ChevronRight, Barcode, QrCode, FileSpreadsheet, FileText, Package } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { api } from "@/lib/api";
@@ -46,7 +46,9 @@ const Inventory = () => {
   const { activeStoreId } = useStore();
   const { storeName, storeAddress } = useSettings();
   const [search, setSearch] = useState("");
-  const [stockFilter, setStockFilter] = useState<"all" | "lowStock">("all");
+  const [stockFilter, setStockFilter] = useState<"all" | "lowStock" | "outOfStock">("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
@@ -111,7 +113,7 @@ const Inventory = () => {
     }
   }, [formBasePrice, formMarginPercentage]);
 
-  // Low stock: stock > 0 AND stock <= threshold (excludes zero - zero gets "Restock" badge)
+  // Low stock: stock > 0 AND stock <= threshold (excludes zero - zero gets "Out of Stock" badge)
   const isLowStock = (product: Product): boolean => {
     if (product.hasVariants && product.variants) {
       return product.variants.some(
@@ -124,9 +126,9 @@ const Inventory = () => {
 
   const hasZeroStock = (product: Product): boolean => {
     if (product.hasVariants && product.variants) {
-      return product.variants.some((v) => v.stock === 0);
+      return product.variants.some((v) => (v.stock ?? 0) <= 0);
     }
-    return (product.stock || 0) === 0;
+    return (product.stock ?? 0) <= 0;
   };
 
   const needsStockAttention = (product: Product): boolean => {
@@ -142,11 +144,25 @@ const Inventory = () => {
     if (stockFilter === "lowStock") {
       return needsStockAttention(p);
     }
+    if (stockFilter === "outOfStock") {
+      return hasZeroStock(p);
+    }
     return true; // "all" - show all products
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedItems = filtered.slice(startIndex, startIndex + itemsPerPage);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
   
-  // Calculate low stock count (from all products, not filtered) - includes low and zero stock
-  const lowStockCount = products.filter((product) => needsStockAttention(product)).length;
+  // Calculate counts (from all products) - low stock excludes out of stock
+  const outOfStockCount = products.filter((product) => hasZeroStock(product)).length;
+  const lowStockCount = products.filter((product) => isLowStock(product)).length;
   
   const isEditing = !!editingProduct;
 
@@ -1384,7 +1400,7 @@ const Inventory = () => {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm">
-              View: {stockFilter === "all" ? "All" : "Low Stock"}
+              View: {stockFilter === "all" ? "All" : stockFilter === "outOfStock" ? "Out of Stock" : "Low Stock"}
               <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -1392,13 +1408,30 @@ const Inventory = () => {
             <DropdownMenuItem onClick={() => setStockFilter("all")}>
               All
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setStockFilter("outOfStock")}>
+              Out of Stock
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setStockFilter("lowStock")}>
               Low Stock
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <div className="text-sm font-medium text-red-600">
-          Items Low in Stock: {lowStockCount}
+        <div className="flex gap-4 text-sm font-medium">
+          <span className="text-slate-600">Out of Stock: {outOfStockCount}</span>
+          <span className="text-amber-600">Low Stock: {lowStockCount - outOfStockCount}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Per page:</span>
+          <Select value={String(itemsPerPage)} onValueChange={(v) => { setItemsPerPage(Number(v)); setCurrentPage(1); }}>
+            <SelectTrigger className="w-20 h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[5, 10, 25, 50, 100].map((n) => (
+                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -1424,14 +1457,14 @@ const Inventory = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((product) => {
+                  {paginatedItems.map((product) => {
                     const category = categories.find((c) => c.id === product.categoryId);
                     const totalStock = product.hasVariants
-                      ? product.variants?.reduce((sum, v) => sum + v.stock, 0)
+                      ? product.variants?.reduce((sum, v) => sum + (v.stock ?? 0), 0)
                       : product.stock;
                     const hasZeroStockVariant = product.hasVariants && product.variants
-                      ? product.variants.some((v) => v.stock === 0)
-                      : (product.stock || 0) === 0;
+                      ? product.variants.some((v) => (v.stock ?? 0) <= 0)
+                      : (product.stock ?? 0) <= 0;
                     const isProductLowStock = isLowStock(product);
 
                     return (
@@ -1467,16 +1500,16 @@ const Inventory = () => {
                         <TableCell>
                           <div className="flex flex-row items-center gap-1">
                             {hasZeroStockVariant ? (
-                              <Badge className="bg-gray-500 hover:bg-gray-600 text-white">Disabled</Badge>
+                              <Badge className="bg-slate-600 hover:bg-slate-600 text-white border-slate-600">Disabled</Badge>
                             ) : (
-                              <Badge variant={product.status === "active" ? "default" : "secondary"}>
+                              <Badge className={product.status === "active" ? "bg-emerald-600 hover:bg-emerald-600 text-white border-emerald-600" : "bg-secondary text-secondary-foreground"}>
                                 {product.status}
                               </Badge>
                             )}
                             {hasZeroStockVariant ? (
-                              <Badge variant="destructive">Restock</Badge>
+                              <Badge className="bg-slate-500 hover:bg-slate-500 text-white border-slate-500">Out of Stock</Badge>
                             ) : isProductLowStock ? (
-                              <Badge variant="destructive">Low Stock</Badge>
+                              <Badge className="bg-amber-500 hover:bg-amber-500 text-white border-amber-500">Low Stock</Badge>
                             ) : null}
                           </div>
                         </TableCell>
@@ -1512,19 +1545,57 @@ const Inventory = () => {
               </Table>
             </div>
 
+            {filtered.length > 0 && (
+              <div className="flex items-center justify-center gap-2 py-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((p) => p === 1 || p === totalPages || (p >= currentPage - 2 && p <= currentPage + 2))
+                    .map((p, idx, arr) => (
+                      <span key={p} className="flex items-center gap-1">
+                        {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1">…</span>}
+                        <Button
+                          variant={currentPage === p ? "default" : "outline"}
+                          size="sm"
+                          className="min-w-8 h-8 p-0"
+                          onClick={() => setCurrentPage(p)}
+                        >
+                          {p}
+                        </Button>
+                      </span>
+                    ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
             {/* Mobile View */}
             <div className="grid grid-cols-1 gap-4 md:hidden">
-              {filtered.map((product) => {
+              {paginatedItems.map((product) => {
                 const category = categories.find((c) => c.id === product.categoryId);
                 const totalStock = product.hasVariants
-                  ? product.variants?.reduce((sum, v) => sum + v.stock, 0)
+                  ? product.variants?.reduce((sum, v) => sum + (v.stock ?? 0), 0)
                   : product.stock;
                 const hasZeroStockVariant = product.hasVariants && product.variants
-                  ? product.variants.some((v) => v.stock === 0)
-                  : (product.stock || 0) === 0;
+                  ? product.variants.some((v) => (v.stock ?? 0) <= 0)
+                  : (product.stock ?? 0) <= 0;
                 const isProductLowStock = isLowStock(product);
-                const showRestock = totalStock === 0 || hasZeroStockVariant;
-                const showDisabled = totalStock === 0 || hasZeroStockVariant;
+                const showRestock = totalStock <= 0 || hasZeroStockVariant;
+                const showDisabled = totalStock <= 0 || hasZeroStockVariant;
 
                 return (
                   <div key={product.id} className="bg-card rounded-lg border p-4 space-y-3 shadow-sm">
@@ -1537,16 +1608,16 @@ const Inventory = () => {
                       </div>
                       <div className="flex flex-row items-center gap-1">
                         {showDisabled ? (
-                          <Badge className="bg-gray-500 hover:bg-gray-600 text-white">Disabled</Badge>
+                          <Badge className="bg-slate-600 hover:bg-slate-600 text-white h-5 text-[10px] px-1">Disabled</Badge>
                         ) : (
-                          <Badge variant={product.status === "active" ? "default" : "secondary"}>
+                          <Badge className={product.status === "active" ? "bg-emerald-600 hover:bg-emerald-600 text-white border-emerald-600 h-5 text-[10px] px-1" : "bg-secondary text-secondary-foreground h-5 text-[10px] px-1"}>
                             {product.status}
                           </Badge>
                         )}
                         {showRestock ? (
-                          <Badge variant="destructive" className="h-5 text-[10px] px-1">Restock</Badge>
+                          <Badge className="bg-slate-500 hover:bg-slate-500 text-white border-slate-500 h-5 text-[10px] px-1">Out of Stock</Badge>
                         ) : isProductLowStock ? (
-                          <Badge variant="destructive" className="h-5 text-[10px] px-1">Low Stock</Badge>
+                          <Badge className="bg-amber-500 hover:bg-amber-500 text-white border-amber-500 h-5 text-[10px] px-1">Low Stock</Badge>
                         ) : null}
                       </div>
                     </div>
@@ -1562,13 +1633,13 @@ const Inventory = () => {
                       <div>
                         <p className="text-muted-foreground">Stock</p>
                         <div className="flex items-center gap-1">
-                          {totalStock === 0 ? (
-                            <Badge variant="destructive" className="h-5 text-[10px] px-1">Restock</Badge>
+                          {totalStock <= 0 ? (
+                            <Badge className="bg-slate-500 hover:bg-slate-500 text-white border-slate-500 h-5 text-[10px] px-1">Out of Stock</Badge>
                           ) : isProductLowStock ? (
-                            <Badge variant="destructive" className="h-5 text-[10px] px-1">Low Stock</Badge>
+                            <Badge className="bg-amber-500 hover:bg-amber-500 text-white border-amber-500 h-5 text-[10px] px-1">Low Stock</Badge>
                           ) : null}
                           <span className={cn(
-                            (isProductLowStock || totalStock === 0) && "text-destructive font-medium",
+                            (isProductLowStock || totalStock <= 0) && "text-destructive font-medium",
                             "font-medium"
                           )}>
                             {totalStock}

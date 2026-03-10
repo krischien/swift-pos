@@ -1,5 +1,21 @@
 # Mobile App - Remote Server Connection
 
+## DevOps: GitHub is the default remote
+
+**Default remote:** `origin` → https://github.com/krischien/swift-pos.git
+
+**Deploy from:** `demo` or `kristian/quick-scale` — both have SaaS API, mobile builds, Vercel config.
+
+**Avoid:** `main` — it's an older version without SaaS (no `dev:saas`, no `build:mobile:saas`).
+
+| Branch | Has SaaS | Has mobile builds | Has vercel:build |
+|--------|----------|-------------------|------------------|
+| main | ❌ | ❌ | ❌ |
+| demo | ✅ | ✅ | ✅ |
+| kristian/quick-scale | ✅ | ✅ | ❌ |
+
+---
+
 ## Emulator → localhost (adb reverse) — reusable pattern
 
 **Problem:** Android emulator can't reach your PC's localhost API (Postman works, emulator gets "Failed to fetch").
