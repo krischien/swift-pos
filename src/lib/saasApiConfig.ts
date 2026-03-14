@@ -12,10 +12,16 @@ import { Capacitor } from "@capacitor/core";
 const DEFAULT_SAAS_PORT = 4001;
 
 function getBaseFromEnv(): string {
+  const envUrl = (import.meta.env.VITE_SAAS_API_URL || "").trim();
   if (import.meta.env.DEV && import.meta.env.VITE_APP_MODE === "saas") {
-    return ""; // Web dev: use same origin, Vite proxy forwards to SaaS server
+    // Web dev: use explicit local API URL so requests hit the SaaS server directly.
+    // Avoids proxy confusion when VITE_SAAS_API_URL points to production.
+    if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
+      return `http://localhost:${DEFAULT_SAAS_PORT}`;
+    }
+    return envUrl || `http://localhost:${DEFAULT_SAAS_PORT}`;
   }
-  return (import.meta.env.VITE_SAAS_API_URL || "").trim();
+  return envUrl;
 }
 
 export function getSaasApiBase(): string {

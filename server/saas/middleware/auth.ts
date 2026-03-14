@@ -38,7 +38,8 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
 export function isSuperAdmin(email: string): boolean {
   const e = email.toLowerCase();
   if (SUPER_ADMIN_EMAILS.includes(e)) return true;
-  if (SUPER_ADMIN_EMAILS.length === 0 && e === "admin@demo.com") return true;
+  // Always allow demo admin for local/dev testing (works regardless of SUPER_ADMIN_EMAILS)
+  if (e === "admin@demo.com") return true;
   return false;
 }
 

@@ -39,6 +39,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { OCRScanDialog } from "@/components/inventory/OCRScanDialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 const Inventory = () => {
@@ -1436,7 +1437,68 @@ const Inventory = () => {
       </div>
 
       <div className="space-y-4">
-        {loading && <p className="text-sm text-muted-foreground">Loading inventory...</p>}
+        {loading && (
+          <>
+            {/* Desktop skeleton */}
+            <div className="hidden md:block rounded-lg border bg-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product Name</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Variants</TableHead>
+                    <TableHead>Stock</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-14" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            {/* Mobile skeleton */}
+            <div className="grid grid-cols-1 gap-4 md:hidden">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-card rounded-lg border p-4 space-y-3 shadow-sm">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </div>
+                    <Skeleton className="h-5 w-14" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Skeleton className="h-3 w-12" />
+                      <Skeleton className="h-4 w-16" />
+                    </div>
+                    <div className="space-y-1">
+                      <Skeleton className="h-3 w-12" />
+                      <Skeleton className="h-4 w-12" />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2 border-t">
+                    <Skeleton className="h-8 w-12" />
+                    <Skeleton className="h-8 w-16" />
+                    <Skeleton className="h-8 w-8" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
         {error && !loading && (
           <p className="text-sm text-destructive">Failed to load: {error}</p>
         )}

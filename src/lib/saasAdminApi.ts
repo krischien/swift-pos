@@ -215,4 +215,47 @@ export const adminApi = {
       logins: Array<{ email: string; role: string }>;
       password: string;
     }>("/api/demo/seed", { method: "POST" }),
+
+  getStores: () =>
+    adminRequest<Array<{ id: string; name: string; organizationId: string }>>("/api/admin/stores"),
+
+  getProductRanking: (storeId: string, from: string, to: string) => {
+    const params = new URLSearchParams();
+    params.set("storeId", storeId);
+    params.set("from", from);
+    params.set("to", to);
+    return adminRequest<
+      Array<{
+        rank: number;
+        productId: string;
+        variantId: string | null;
+        productName: string;
+        variantName: string | null;
+        quantity: number;
+        revenue: number;
+      }>
+    >(`/api/admin/reports/product-ranking?${params.toString()}`);
+  },
+
+  getProductRankingDrilldown: (
+    productId: string,
+    variantId: string | null,
+    from: string,
+    to: string
+  ) => {
+    const params = new URLSearchParams();
+    params.set("productId", productId);
+    if (variantId) params.set("variantId", variantId);
+    params.set("from", from);
+    params.set("to", to);
+    return adminRequest<
+      Array<{
+        rank: number;
+        storeId: string;
+        storeName: string;
+        quantity: number;
+        revenue: number;
+      }>
+    >(`/api/admin/reports/product-ranking/drilldown?${params.toString()}`);
+  },
 };

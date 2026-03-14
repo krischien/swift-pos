@@ -23,6 +23,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { isSaaS } from "@/config/appMode";
 import NotificationBanner from "@/components/NotificationBanner";
 import TrialBanner from "@/components/TrialBanner";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 
 const AppLayout = () => {
   const { user, logout } = useAuth();
@@ -82,12 +83,13 @@ const AppLayout = () => {
       {/* Desktop/Tablet Sidebar - hidden on mobile, use Sheet instead */}
       <aside className="hidden lg:flex w-64 bg-sidebar border-r flex-col shrink-0">
         <div className="p-4 border-b">
-          <div className="flex items-center">
+          <div className="flex items-center gap-3">
             <img src="/favico.png" alt="QuickScale" className="w-14 h-14" />
             <div className="min-w-0 flex-1">
               <h1 className="font-bold text-lg">QuickScale</h1>
-              <p className="text-xs text-muted-foreground truncate" title={activeStore?.name}>
-                {isSaaS() && activeStore ? activeStore.name : user?.role}
+              <p className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap" title={activeStore?.name}>
+                <span className="truncate">{isSaaS() && activeStore ? activeStore.name : user?.role}</span>
+                <OfflineIndicator />
               </p>
             </div>
           </div>
@@ -178,6 +180,7 @@ const AppLayout = () => {
               </span>
             </>
           )}
+          <OfflineIndicator />
         </div>
       </div>
 

@@ -40,6 +40,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   eachDayOfInterval,
   eachHourOfInterval,
@@ -765,26 +766,57 @@ const Sales = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={stat.title}>
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {stat.title}
-                </CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-4" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-xs text-success mt-1">{stat.trend} from yesterday</p>
+                <Skeleton className="h-8 w-20 mb-2" />
+                <Skeleton className="h-3 w-28" />
               </CardContent>
             </Card>
-          );
-        })}
+          ))
+        ) : (
+          stats.map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <Card key={stat.title}>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    {stat.title}
+                  </CardTitle>
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stat.value}</div>
+                  <p className="text-xs text-success mt-1">{stat.trend} from yesterday</p>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {loading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-4 w-4" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-24 mb-2" />
+                <Skeleton className="h-3 w-28 mb-1" />
+                <Skeleton className="h-3 w-20" />
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+        <>
         {(() => {
           const comparison = formatComparison(
             comparativeSales.today,
@@ -866,6 +898,8 @@ const Sales = () => {
             </Card>
           );
         })()}
+        </>
+        )}
       </div>
 
       <Card>
@@ -1019,7 +1053,68 @@ const Sales = () => {
       </Card>
 
       <div className="space-y-4">
-        {loading && <p className="text-sm text-muted-foreground">Loading sales...</p>}
+        {loading && (
+          <>
+            <div className="hidden md:block rounded-lg border bg-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Transaction ID</TableHead>
+                    <TableHead>Cashier</TableHead>
+                    <TableHead>Items</TableHead>
+                    <TableHead>Payment</TableHead>
+                    <TableHead>Date & Time</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-14" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-36" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:hidden">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-card rounded-lg border p-4 space-y-3 shadow-sm">
+                  <div className="flex justify-between items-center">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-3 w-32" />
+                    </div>
+                    <div className="space-y-1 text-right">
+                      <Skeleton className="h-5 w-16 ml-auto" />
+                      <Skeleton className="h-3 w-12 ml-auto" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 pt-3 border-t">
+                    <div className="space-y-1">
+                      <Skeleton className="h-3 w-12" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                    <div className="space-y-1 text-right">
+                      <Skeleton className="h-3 w-12 ml-auto" />
+                      <Skeleton className="h-4 w-8 ml-auto" />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2 border-t">
+                    <Skeleton className="h-8 flex-1" />
+                    <Skeleton className="h-8 flex-1" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
         {error && !loading && (
           <p className="text-sm text-destructive">Failed to load: {error}</p>
         )}

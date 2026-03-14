@@ -1,6 +1,6 @@
-// SaaS schema - SQLite (for dev/testing when PostgreSQL is not set up)
-// Run: npx prisma generate --schema=prisma-saas/schema.dev.prisma
-// Migrate: npx prisma migrate dev --schema=prisma-saas/schema.dev.prisma
+// SaaS schema - SQLite (for dev when PostgreSQL is not set up)
+// First time: npm run prisma:generate:saas:dev && npm run prisma:push:saas:dev
+// Then run API: npm run dev:saas:sqlite (or npm run dev:saas after generate once)
 
 generator client {
   provider = "prisma-client-js"

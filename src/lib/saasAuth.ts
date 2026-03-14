@@ -109,5 +109,8 @@ export function clearSaasToken(): void {
     window.localStorage.removeItem("saas_token");
     window.localStorage.removeItem("saas_active_store_id");
     window.localStorage.removeItem("saas_stores");
+    import("@/lib/saasOffline").then(({ clearOfflineData }) =>
+      clearOfflineData().catch(() => {})
+    );
   }
 }

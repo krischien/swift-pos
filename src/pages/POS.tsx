@@ -18,6 +18,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { Capacitor } from "@capacitor/core";
 import { printerService } from "@/lib/printer";
 import { formatCurrency } from "@/lib/currency";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const POS = () => {
   const dataService = useDataLayer();
@@ -49,16 +50,31 @@ const POS = () => {
   const [error, setError] = useState<string | null>(null);
   const [discountPercent, setDiscountPercent] = useState(0);
 
-  const { activeStoreId } = useStore();
+  const { activeStoreId, stores, storesLoading } = useStore();
   useEffect(() => {
     setCart([]); // Clear cart when switching stores
+    // Wait for a valid store - cashiers need explicit storeId to load correct products
+    const isValidStore =
+      activeStoreId &&
+      activeStoreId !== "default" &&
+      stores.some((s) => s.id === activeStoreId);
+    if (!isValidStore) {
+      setCategories([]);
+      setProducts([]);
+      setError(
+        storesLoading || stores.length === 0
+          ? null
+          : "Select a store to load products"
+      );
+      return;
+    }
     const load = async () => {
       try {
         setLoading(true);
         setError(null);
         const [cats, prods] = await Promise.all([
-          dataService.getCategories(),
-          dataService.getProducts(),
+          dataService.getCategories(activeStoreId),
+          dataService.getProducts(undefined, activeStoreId),
         ]);
         setCategories(cats as Category[]);
         setProducts(prods as Product[]);
@@ -69,7 +85,7 @@ const POS = () => {
       }
     };
     load();
-  }, [activeStoreId]);
+  }, [activeStoreId, stores, dataService]);
 
   const filteredProducts = products.filter((product) => {
     const matchesCategory = !selectedCategory || product.categoryId === selectedCategory;
@@ -577,7 +593,20 @@ const POS = () => {
           </div>
 
           <div className="flex-1 overflow-auto p-4">
-            {loading && <p className="text-sm text-muted-foreground">Loading products...</p>}
+            {loading && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-auto flex flex-col p-4 bg-pos-product rounded-lg border"
+                  >
+                    <Skeleton className="w-full aspect-square mb-3 rounded-lg" />
+                    <Skeleton className="h-4 w-3/4 mb-2" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
+                ))}
+              </div>
+            )}
             {error && !loading && (
               <p className="text-sm text-destructive">Failed to load: {error}</p>
             )}

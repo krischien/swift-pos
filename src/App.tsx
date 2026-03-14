@@ -8,9 +8,9 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { DataLayerProvider } from "@/contexts/DataLayerContext";
 import { StoreProvider } from "@/contexts/StoreContext";
+import { NetworkProvider } from "@/contexts/NetworkContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
-import { OfflineIndicator } from "@/components/OfflineIndicator";
 import AppLayout from "@/components/layout/AppLayout";
 import SplashScreen from "@/components/SplashScreen";
 import Login from "./pages/Login";
@@ -29,6 +29,7 @@ import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminOrganizations from "./pages/admin/Organizations";
 import AdminOrgDetail from "./pages/admin/OrgDetail";
+import ProductRanking from "./pages/admin/ProductRanking";
 
 const queryClient = new QueryClient();
 
@@ -49,8 +50,9 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <DataLayerProvider>
+      <NetworkProvider>
+        <AuthProvider>
+          <DataLayerProvider>
           <StoreProvider>
             <SettingsProvider>
               <TooltipProvider>
@@ -72,6 +74,7 @@ const App = () => {
                   <Route index element={<AdminDashboard />} />
                   <Route path="organizations" element={<AdminOrganizations />} />
                   <Route path="organizations/:id" element={<AdminOrgDetail />} />
+                  <Route path="product-ranking" element={<ProductRanking />} />
                 </Route>
                 <Route path="/" element={<NavigateToDefault />} />
                 <Route
@@ -151,12 +154,12 @@ const App = () => {
               </Routes>
             </BrowserRouter>
             {showSplash && <SplashScreen />}
-            <OfflineIndicator />
               </TooltipProvider>
             </SettingsProvider>
           </StoreProvider>
         </DataLayerProvider>
       </AuthProvider>
+    </NetworkProvider>
     </QueryClientProvider>
   );
 };

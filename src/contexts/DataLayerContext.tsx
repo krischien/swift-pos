@@ -2,7 +2,7 @@ import React, { createContext, useContext } from "react";
 import { isSaaS } from "@/config/appMode";
 import type { DataService } from "@/lib/dataLayer/types";
 import { soloDataService } from "@/lib/dataLayer/soloDataService";
-import { createSaasDataService } from "@/lib/dataLayer/saasDataService";
+import { createOfflineSaasDataService } from "@/lib/dataLayer/offlineSaasDataService";
 
 interface DataLayerContextType {
   dataService: DataService;
@@ -11,7 +11,7 @@ interface DataLayerContextType {
 const DataLayerContext = createContext<DataLayerContextType | undefined>(undefined);
 
 export const DataLayerProvider = ({ children }: { children: React.ReactNode }) => {
-  const dataService = isSaaS() ? createSaasDataService() : soloDataService;
+  const dataService = isSaaS() ? createOfflineSaasDataService() : soloDataService;
 
   return (
     <DataLayerContext.Provider value={{ dataService }}>

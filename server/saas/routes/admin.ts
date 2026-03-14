@@ -92,6 +92,135 @@ router.post("/organizations", async (req: AuthRequest, res) => {
   }
 });
 
+router.get("/stores", async (_req: AuthRequest, res) => {
+  try {
+    const stores = await saasPrisma.store.findMany({
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, organizationId: true },
+    });
+    res.json(stores);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch stores" });
+  }
+});
+
+router.get("/reports/product-ranking", async (req: AuthRequest, res) => {
+  try {
+    const { storeId, from, to } = req.query as { storeId?: string; from?: string; to?: string };
+    const fromDate = from ? new Date(from) : new Date(0);
+    const toDate = to ? new Date(to) : new Date();
+
+    const items = await saasPrisma.saleItem.findMany({
+      where: {
+        sale: {
+          status: { not: "void" },
+          createdAt: { gte: fromDate, lte: toDate },
+          ...(storeId && storeId !== "all" ? { storeId } : {}),
+        },
+      },
+      select: { productId: true, productName: true, variantId: true, variantName: true, quantity: true, subtotal: true },
+    });
+
+    const map = new Map<
+      string,
+      { productName: string; variantId: string | null; variantName: string | null; quantity: number; revenue: number }
+    >();
+    for (const item of items) {
+      const key = item.variantId ? `${item.productId}:${item.variantId}` : item.productId;
+      const existing = map.get(key);
+      const qty = item.quantity ?? 0;
+      const rev = item.subtotal ?? 0;
+      if (existing) {
+        existing.quantity += qty;
+        existing.revenue += rev;
+      } else {
+        map.set(key, {
+          productName: item.productName,
+          variantId: item.variantId ?? null,
+          variantName: item.variantName ?? null,
+          quantity: qty,
+          revenue: rev,
+        });
+      }
+    }
+
+    const ranked = Array.from(map.entries())
+      .map(([key, data]) => {
+        const parts = key.split(":");
+        return { productId: parts[0], variantId: data.variantId, ...data };
+      })
+      .sort((a, b) => b.quantity - a.quantity)
+      .map((r, i) => ({ rank: i + 1, ...r }));
+
+    res.json(ranked);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch product ranking" });
+  }
+});
+
+router.get("/reports/product-ranking/drilldown", async (req: AuthRequest, res) => {
+  try {
+    const { productId, variantId, from, to } = req.query as {
+      productId?: string;
+      variantId?: string;
+      from?: string;
+      to?: string;
+    };
+    if (!productId) {
+      return res.status(400).json({ message: "productId is required" });
+    }
+    const fromDate = from ? new Date(from) : new Date(0);
+    const toDate = to ? new Date(to) : new Date();
+
+    // Filter by variantId only when explicitly provided (for variant-specific rows)
+    const variantFilter =
+      variantId && variantId !== "null" && variantId !== "undefined" ? { variantId } : {};
+
+    const items = await saasPrisma.saleItem.findMany({
+      where: {
+        productId,
+        ...variantFilter,
+        sale: {
+          status: { not: "void" },
+          createdAt: { gte: fromDate, lte: toDate },
+        },
+      },
+      select: {
+        quantity: true,
+        subtotal: true,
+        sale: { select: { storeId: true, store: { select: { name: true } } } },
+      },
+    });
+
+    const storeMap = new Map<string, { storeName: string; quantity: number; revenue: number }>();
+    for (const item of items) {
+      const sid = item.sale.storeId;
+      const name = item.sale.store.name;
+      const existing = storeMap.get(sid);
+      const qty = item.quantity ?? 0;
+      const rev = item.subtotal ?? 0;
+      if (existing) {
+        existing.quantity += qty;
+        existing.revenue += rev;
+      } else {
+        storeMap.set(sid, { storeName: name, quantity: qty, revenue: rev });
+      }
+    }
+
+    const ranked = Array.from(storeMap.entries())
+      .map(([storeId, data]) => ({ storeId, ...data }))
+      .sort((a, b) => b.quantity - a.quantity)
+      .map((r, i) => ({ rank: i + 1, ...r }));
+
+    res.json(ranked);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch store drilldown" });
+  }
+});
+
 router.get("/overview", async (_req: AuthRequest, res) => {
   try {
     const [orgCount, userCount, storeCount, recentOrgs] = await Promise.all([

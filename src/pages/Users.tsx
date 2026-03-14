@@ -41,6 +41,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Users = () => {
   const dataService = useDataLayer();
@@ -240,7 +241,49 @@ const Users = () => {
       )}
 
       {loading ? (
-        <div className="text-center py-8 text-muted-foreground">Loading users...</div>
+        <>
+          <div className="hidden md:block border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  {isSaaS() && <TableHead>Stores</TableHead>}
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-14" /></TableCell>
+                    {isSaaS() && <TableCell><Skeleton className="h-4 w-24" /></TableCell>}
+                    <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:hidden">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-card rounded-lg border p-4 space-y-3 shadow-sm">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                  <Skeleton className="h-5 w-14" />
+                </div>
+                <div className="flex justify-end gap-2 pt-2 border-t">
+                  <Skeleton className="h-8 w-12" />
+                  <Skeleton className="h-8 w-16" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       ) : filtered.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground border rounded-lg">
           {search ? "No users found matching your search" : "No users found"}

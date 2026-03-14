@@ -133,22 +133,43 @@ async function main() {
       role: "cashier",
     },
   });
+  // Generic cashier for quick login (matches Login page demo credentials)
+  const cashierDemo = await saasPrisma.user.create({
+    data: {
+      organizationId: org.id,
+      name: "Demo Cashier",
+      email: "cashier@demo.com",
+      password: hashedPassword,
+      role: "cashier",
+    },
+  });
+  // Super admin for quick login (matches Login page demo credentials)
+  const admin = await saasPrisma.user.create({
+    data: {
+      organizationId: null,
+      name: "Demo Admin",
+      email: "admin@demo.com",
+      password: hashedPassword,
+      role: "super_admin",
+    },
+  });
 
-  // Owner: all stores. Cashier1: Main Store only. Cashier2: Second Store only.
+  // Owner: all stores. Cashier1: Main Store only. Cashier2: Second Store only. cashier@demo.com: Main Store.
   await saasPrisma.userStore.createMany({
     data: [
       { userId: owner.id, storeId: store1.id },
       { userId: owner.id, storeId: store2.id },
       { userId: cashier1.id, storeId: store1.id },
       { userId: cashier2.id, storeId: store2.id },
+      { userId: cashierDemo.id, storeId: store1.id },
     ],
   });
 
   const stores = [store1, store2];
   const cashiers = [cashier1, cashier2];
 
-  console.log("Created: 2 stores (Main Store, Second Store), 1 owner, 2 cashiers (1 per store)");
-  console.log("  owner@demo.com (owner - all stores), maria@demo.com (Main Store), juan@demo.com (Second Store)");
+  console.log("Created: 2 stores (Main Store, Second Store), 1 owner, 3 cashiers + super admin");
+  console.log("  admin@demo.com (super_admin), owner@demo.com (owner), cashier@demo.com, maria@demo.com, juan@demo.com (password: " + DEFAULT_PASSWORD + ")");
 
   const storeProducts = new Map<string, { productId: string; variantId?: string; productName: string; variantName?: string; price: number }[]>();
 
@@ -351,7 +372,7 @@ async function main() {
   console.log(`  Org: ${org.name} (${org.id})`);
   console.log(`  Stores: ${stores.map((s) => s.name).join(", ")}`);
   console.log(`  Sales created: ${totalSales} (over 10 days)`);
-  console.log(`\n  Demo org login: owner@demo.com, maria@demo.com, juan@demo.com (password: ${DEFAULT_PASSWORD})`);
+  console.log(`\n  Demo login: admin@demo.com, owner@demo.com, cashier@demo.com (password: ${DEFAULT_PASSWORD})`);
   if (superAdminEmails.length > 0) {
     console.log(`  Super admin login: ${superAdminEmails.join(", ")} (password: ${adminPassword})`);
   }

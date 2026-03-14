@@ -29,8 +29,7 @@ export async function runBootstrapSeed(): Promise<boolean> {
     },
   });
 
-  const trialEndsAt = new Date();
-  trialEndsAt.setDate(trialEndsAt.getDate() + 30);
+  const trialEndsAt = new Date("2026-06-01");
   const org = await saasPrisma.organization.create({
     data: {
       name: "Demo Organization",

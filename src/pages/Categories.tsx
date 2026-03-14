@@ -31,6 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Categories = () => {
   const dataService = useDataLayer();
@@ -176,7 +177,24 @@ const Categories = () => {
       )}
 
       {loading ? (
-        <div className="text-center py-8 text-muted-foreground">Loading categories...</div>
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                  <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       ) : (
         <div className="border rounded-lg">
           <Table>
