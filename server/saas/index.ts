@@ -294,18 +294,6 @@ ownerRouter.use(suspendedCheckMiddleware);
 ownerRouter.use(tenantMiddleware);
 ownerRouter.use(ownerMiddleware);
 
-ownerRouter.get("/api/categories", async (req: AuthRequest, res) => {
-  try {
-    const storeId = (req as any).storeId;
-    if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    const categories = await categoryService.listCategories(storeId);
-    res.json(categories);
-  } catch (error: unknown) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to fetch categories" });
-  }
-});
-
 ownerRouter.post("/api/categories", async (req: AuthRequest, res) => {
   try {
     const storeId = (req as any).storeId;
@@ -343,22 +331,6 @@ ownerRouter.delete("/api/categories/:id", async (req: AuthRequest, res) => {
   } catch (error: unknown) {
     console.error(error);
     res.status(400).json({ message: (error as Error).message ?? "Failed to delete category" });
-  }
-});
-
-ownerRouter.get("/api/store", async (req: AuthRequest, res) => {
-  try {
-    const storeId = (req as any).storeId;
-    if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    const store = await saasPrisma.store.findFirst({
-      where: { id: storeId },
-      select: { id: true, name: true, address: true, receiptLogoUrl: true },
-    });
-    if (!store) return res.status(404).json({ message: "Store not found" });
-    res.json(store);
-  } catch (error: unknown) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to fetch store" });
   }
 });
 
@@ -478,11 +450,39 @@ ownerRouter.delete("/api/users/:id", async (req: AuthRequest, res) => {
   }
 });
 
-// Protected routes (auth + tenant) - POS, products, sales, etc.
+// Protected routes (auth + tenant) - POS, products, sales, etc. Cashiers can read categories/store.
 const protectedRouter = express.Router();
 protectedRouter.use(authMiddleware);
 protectedRouter.use(suspendedCheckMiddleware);
 protectedRouter.use(tenantMiddleware);
+
+protectedRouter.get("/api/categories", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    const categories = await categoryService.listCategories(storeId);
+    res.json(categories);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch categories" });
+  }
+});
+
+protectedRouter.get("/api/store", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    const store = await saasPrisma.store.findFirst({
+      where: { id: storeId },
+      select: { id: true, name: true, address: true, receiptLogoUrl: true },
+    });
+    if (!store) return res.status(404).json({ message: "Store not found" });
+    res.json(store);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch store" });
+  }
+});
 
 protectedRouter.get("/api/products", async (req: AuthRequest, res) => {
   try {
@@ -953,10 +953,11 @@ adminRoutes.use(superAdminMiddleware);
 adminRoutes.use(adminRouter);
 app.use("/api/admin", adminRoutes);
 
-// Owner routes (categories, users, store) - requires owner role
-app.use(ownerRouter);
-
+// Protected routes first (owner + cashier) - categories/store read, products, sales
 app.use(protectedRouter);
+
+// Owner-only routes (categories/users/store write) - requires owner role
+app.use(ownerRouter);
 
 // Catch unhandled errors - prevents FUNCTION_INVOCATION_FAILED from uncaught exceptions
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
