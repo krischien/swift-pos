@@ -53,12 +53,16 @@ const POS = () => {
   useEffect(() => {
     setCart([]); // Clear cart when switching stores
     const load = async () => {
+      if (!activeStoreId || activeStoreId === "default") {
+        setError("Select a store to continue");
+        return;
+      }
       try {
         setLoading(true);
         setError(null);
         const [cats, prods] = await Promise.all([
-          dataService.getCategories(),
-          dataService.getProducts(),
+          dataService.getCategories(activeStoreId),
+          dataService.getProducts(undefined, activeStoreId),
         ]);
         setCategories(cats as Category[]);
         setProducts(prods as Product[]);
