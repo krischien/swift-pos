@@ -40,6 +40,9 @@ import {
   ArrowUpRight,
   DollarSign,
   Ban,
+  Search,
+  Banknote,
+  Smartphone,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useDataLayer } from "@/contexts/DataLayerContext";
@@ -47,7 +50,9 @@ import { useStore } from "@/contexts/StoreContext";
 import { isSaaS } from "@/config/appMode";
 import { getOrgStores } from "@/lib/saasOrgStoresApi";
 import { formatCurrency } from "@/lib/currency";
+import { PHP_DENOMINATIONS } from "@/lib/cashDenominations";
 import { Product } from "@/types/pos";
+import { Input } from "@/components/ui/input";
 import {
   Bar,
   BarChart,
@@ -125,6 +130,8 @@ const Reports = () => {
     thisYear: 0,
     lastYear: 0,
   });
+  const [denominationCounts, setDenominationCounts] = useState<Record<string, number>>({});
+  const [gcashTransactionSearch, setGcashTransactionSearch] = useState("");
 
   const showStoreFilter = isSaaS();
   const storesToUse = reportStores.length > 0 ? reportStores : stores;
@@ -412,6 +419,59 @@ const Reports = () => {
     const total = arr.reduce((s, x) => s + x.value, 0);
     return arr.map((x) => ({ ...x, percent: total > 0 ? Math.round((x.value / total) * 100) : 0 }));
   }, [sales]);
+
+  const expectedCash = useMemo(() => {
+    return sales
+      .filter((s) => (s.paymentMethod || "cash").toString().toLowerCase() === "cash")
+      .reduce((sum, s) => sum + (s.total ?? 0), 0);
+  }, [sales]);
+
+  const expectedCashByStore = useMemo(() => {
+    if (!isMultiStoreView) return [];
+    const map = new Map<string, number>();
+    for (const s of storesToUse) map.set(s.id, 0);
+    for (const sale of sales) {
+      if ((sale.paymentMethod || "cash").toString().toLowerCase() !== "cash") continue;
+      const sid = (sale as { storeId?: string }).storeId;
+      if (sid) map.set(sid, (map.get(sid) ?? 0) + (sale.total ?? 0));
+    }
+    return storesToUse.map((s) => ({ name: s.name, value: map.get(s.id) ?? 0 }));
+  }, [sales, isMultiStoreView, storesToUse]);
+
+  const gcashTotal = useMemo(() => {
+    return sales
+      .filter((s) => (s.paymentMethod || "").toString().toLowerCase() === "gcash")
+      .reduce((sum, s) => sum + (s.total ?? 0), 0);
+  }, [sales]);
+
+  const gcashTransactions = useMemo(() => {
+    return sales
+      .filter((s) => (s.paymentMethod || "").toString().toLowerCase() === "gcash")
+      .map((s) => ({
+        id: s.id,
+        amount: s.total ?? 0,
+        transactionId: (s as { gcashTransactionId?: string }).gcashTransactionId ?? "—",
+        createdAt: s.createdAt,
+        storeId: (s as { storeId?: string }).storeId,
+      }))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [sales]);
+
+  const filteredGcashTransactions = useMemo(() => {
+    if (!gcashTransactionSearch.trim()) return gcashTransactions;
+    const q = gcashTransactionSearch.trim().toLowerCase();
+    return gcashTransactions.filter((t) => t.transactionId.toLowerCase().includes(q));
+  }, [gcashTransactions, gcashTransactionSearch]);
+
+  const totalActualCash = useMemo(() => {
+    return PHP_DENOMINATIONS.reduce((sum, d) => {
+      const count = denominationCounts[String(d.value)] ?? 0;
+      return sum + count * d.value;
+    }, 0);
+  }, [denominationCounts]);
+
+  const cashCountVariance = expectedCash - totalActualCash;
+  const isCashCountBalanced = Math.abs(cashCountVariance) < 0.01;
 
   const salesByStoreData = useMemo(() => {
     if (!isMultiStoreView) return [];
@@ -731,6 +791,36 @@ const Reports = () => {
           wb,
           XLSX.utils.json_to_sheet(salesOverviewData.map((x) => ({ Date: x.label, Sales: x.total }))),
           "Sales Overview"
+        );
+      }
+
+      const cashCountRows = PHP_DENOMINATIONS.map((d) => {
+        const count = denominationCounts[String(d.value)] ?? 0;
+        return { Denomination: d.label, Count: count, Amount: count * d.value };
+      });
+      const cashCountSummary = [
+        { Metric: "Expected Cash (from sales)", Value: expectedCash },
+        { Metric: "GCash Total", Value: gcashTotal },
+        { Metric: "Total Actual Cash", Value: totalActualCash },
+        { Metric: "Variance", Value: isCashCountBalanced ? 0 : cashCountVariance },
+      ];
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.json_to_sheet([...cashCountSummary, {}, ...cashCountRows]),
+        "Cash Count"
+      );
+      if (gcashTransactions.length) {
+        XLSX.utils.book_append_sheet(
+          wb,
+          XLSX.utils.json_to_sheet(
+            gcashTransactions.map((t) => ({
+              Amount: t.amount,
+              "Transaction ID": t.transactionId,
+              ...(isMultiStoreView && { Store: storesToUse.find((s) => s.id === t.storeId)?.name ?? "—" }),
+              Time: format(new Date(t.createdAt), "yyyy-MM-dd HH:mm:ss"),
+            }))
+          ),
+          "GCash Transactions"
         );
       }
 
@@ -1422,6 +1512,156 @@ const Reports = () => {
               </CardContent>
             </Card>
           </div>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
+                <Banknote className="h-4 w-4" />
+                Cash Count
+              </CardTitle>
+              <CardDescription>
+                Reconcile physical cash count with expected cash from sales. Enter counts per denomination.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="text-sm text-muted-foreground">Expected Cash (from sales)</span>
+                  <span className="font-medium">{formatCurrency(expectedCash)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="text-sm text-muted-foreground">GCash Total</span>
+                  <span className="font-medium">{formatCurrency(gcashTotal)}</span>
+                </div>
+              </div>
+              {isMultiStoreView && expectedCashByStore.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Expected cash by store</p>
+                  <div className="space-y-1">
+                    {expectedCashByStore.map((s) => (
+                      <div key={s.name} className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">{s.name}</span>
+                        <span>{formatCurrency(s.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Bills/Cash Breakdown</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-48 overflow-y-auto">
+                  {PHP_DENOMINATIONS.map((d) => {
+                    const count = denominationCounts[String(d.value)] ?? 0;
+                    const amount = count * d.value;
+                    return (
+                      <div key={d.value} className="flex flex-col gap-1">
+                        <label className="text-xs text-muted-foreground">{d.label}</label>
+                        <div className="flex gap-2 items-center">
+                          <Input
+                            type="number"
+                            min={0}
+                            step={1}
+                            value={count || ""}
+                            onChange={(e) => {
+                              const v = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
+                              setDenominationCounts((prev) => ({
+                                ...prev,
+                                [String(d.value)]: isNaN(v) ? 0 : Math.max(0, v),
+                              }));
+                            }}
+                            placeholder="0"
+                            className="h-8 w-16"
+                          />
+                          <span className="text-xs font-medium min-w-[4rem]">{formatCurrency(amount)}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t">
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm font-medium">Total Actual Cash</span>
+                  <span className="font-medium">{formatCurrency(totalActualCash)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm font-medium">Variance</span>
+                  <span
+                    className={`font-medium ${
+                      isCashCountBalanced
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    {formatCurrency(isCashCountBalanced ? 0 : cashCountVariance)}
+                    {isCashCountBalanced ? " (match)" : ""}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
+                    <Smartphone className="h-4 w-4" />
+                    GCash Transactions (Audit)
+                  </CardTitle>
+                  <CardDescription>
+                    All GCash payments in the selected period for reconciliation
+                  </CardDescription>
+                </div>
+                {gcashTransactions.length > 0 && (
+                  <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Search by transaction ID..."
+                      value={gcashTransactionSearch}
+                      onChange={(e) => setGcashTransactionSearch(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {gcashTransactions.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">No GCash transactions in this period</p>
+              ) : filteredGcashTransactions.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">No transactions match your search</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Transaction ID</TableHead>
+                      {isMultiStoreView && <TableHead>Store</TableHead>}
+                      <TableHead className="text-right">Time</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredGcashTransactions.map((txn) => (
+                      <TableRow key={txn.id}>
+                        <TableCell className="font-medium">{formatCurrency(txn.amount)}</TableCell>
+                        <TableCell className="font-mono text-sm">{txn.transactionId}</TableCell>
+                        {isMultiStoreView && (
+                          <TableCell className="text-muted-foreground">
+                            {storesToUse.find((s) => s.id === txn.storeId)?.name ?? "—"}
+                          </TableCell>
+                        )}
+                        <TableCell className="text-right text-muted-foreground">
+                          {format(new Date(txn.createdAt), "MMM d, yyyy h:mm a")}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
         </>
       )}
     </div>

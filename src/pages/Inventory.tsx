@@ -132,6 +132,11 @@ const Inventory = () => {
     return (product.stock ?? 0) <= 0;
   };
 
+  const outOfStockVariantCount = (product: Product): number => {
+    if (!product.hasVariants || !product.variants) return 0;
+    return product.variants.filter((v) => (v.stock ?? 0) <= 0).length;
+  };
+
   const needsStockAttention = (product: Product): boolean => {
     return isLowStock(product) || hasZeroStock(product);
   };
@@ -1528,6 +1533,10 @@ const Inventory = () => {
                       ? product.variants.some((v) => (v.stock ?? 0) <= 0)
                       : (product.stock ?? 0) <= 0;
                     const isProductLowStock = isLowStock(product);
+                    const outCount = outOfStockVariantCount(product);
+                    const stockStatusText = hasZeroStockVariant && (totalStock ?? 0) > 0 && outCount > 0
+                      ? `${totalStock} in stock (${outCount} variant${outCount === 1 ? "" : "s"} out)`
+                      : null;
 
                     return (
                       <TableRow key={product.id}>
@@ -1569,7 +1578,9 @@ const Inventory = () => {
                               </Badge>
                             )}
                             {hasZeroStockVariant ? (
-                              <Badge className="bg-slate-500 hover:bg-slate-500 text-white border-slate-500">Out of Stock</Badge>
+                              <Badge className="bg-slate-500 hover:bg-slate-500 text-white border-slate-500">
+                                {stockStatusText ?? "Out of Stock"}
+                              </Badge>
                             ) : isProductLowStock ? (
                               <Badge className="bg-amber-500 hover:bg-amber-500 text-white border-amber-500">Low Stock</Badge>
                             ) : null}
@@ -1658,6 +1669,10 @@ const Inventory = () => {
                 const isProductLowStock = isLowStock(product);
                 const showRestock = totalStock <= 0 || hasZeroStockVariant;
                 const showDisabled = totalStock <= 0 || hasZeroStockVariant;
+                const outCount = outOfStockVariantCount(product);
+                const stockStatusText = hasZeroStockVariant && (totalStock ?? 0) > 0 && outCount > 0
+                  ? `${totalStock} in stock (${outCount} variant${outCount === 1 ? "" : "s"} out)`
+                  : null;
 
                 return (
                   <div key={product.id} className="bg-card rounded-lg border p-4 space-y-3 shadow-sm">
@@ -1677,7 +1692,9 @@ const Inventory = () => {
                           </Badge>
                         )}
                         {showRestock ? (
-                          <Badge className="bg-slate-500 hover:bg-slate-500 text-white border-slate-500 h-5 text-[10px] px-1">Out of Stock</Badge>
+                          <Badge className="bg-slate-500 hover:bg-slate-500 text-white border-slate-500 h-5 text-[10px] px-1">
+                            {stockStatusText ?? "Out of Stock"}
+                          </Badge>
                         ) : isProductLowStock ? (
                           <Badge className="bg-amber-500 hover:bg-amber-500 text-white border-amber-500 h-5 text-[10px] px-1">Low Stock</Badge>
                         ) : null}
@@ -1696,7 +1713,9 @@ const Inventory = () => {
                         <p className="text-muted-foreground">Stock</p>
                         <div className="flex items-center gap-1">
                           {totalStock <= 0 ? (
-                            <Badge className="bg-slate-500 hover:bg-slate-500 text-white border-slate-500 h-5 text-[10px] px-1">Out of Stock</Badge>
+                            <Badge className="bg-slate-500 hover:bg-slate-500 text-white border-slate-500 h-5 text-[10px] px-1">
+                              {stockStatusText ?? "Out of Stock"}
+                            </Badge>
                           ) : isProductLowStock ? (
                             <Badge className="bg-amber-500 hover:bg-amber-500 text-white border-amber-500 h-5 text-[10px] px-1">Low Stock</Badge>
                           ) : null}

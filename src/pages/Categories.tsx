@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { FolderPlus, Search, Trash2, Edit } from "lucide-react";
+import { FolderPlus, Search, Trash2, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDataLayer } from "@/contexts/DataLayerContext";
 import { useStore } from "@/contexts/StoreContext";
@@ -31,6 +31,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Categories = () => {
@@ -46,6 +53,8 @@ const Categories = () => {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
   const { toast } = useToast();
 
   const load = async () => {
@@ -73,7 +82,16 @@ const Categories = () => {
   const filtered = categories.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()),
   );
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedCategories = filtered.slice(startIndex, startIndex + itemsPerPage);
   const isEditing = !!editingCategory;
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const openAddDialog = () => {
     setEditingCategory(null);
@@ -160,14 +178,29 @@ const Categories = () => {
         </Button>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-        <Input
-          placeholder="Search categories..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
-        />
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Input
+            placeholder="Search categories..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+            className="pl-10"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Per page:</span>
+          <Select value={String(itemsPerPage)} onValueChange={(v) => { setItemsPerPage(Number(v)); setCurrentPage(1); }}>
+            <SelectTrigger className="w-20 h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[5, 10, 25, 50, 100].map((n) => (
+                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {error && (
@@ -212,7 +245,7 @@ const Categories = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((category) => (
+                paginatedCategories.map((category) => (
                   <TableRow key={category.id}>
                     <TableCell className="font-medium">{category.name}</TableCell>
                     <TableCell className="text-right">
@@ -238,6 +271,44 @@ const Categories = () => {
               )}
             </TableBody>
           </Table>
+        </div>
+      )}
+
+      {!loading && filtered.length > 0 && (
+        <div className="flex items-center justify-center gap-2 py-4">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage <= 1}
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((p) => p === 1 || p === totalPages || (p >= currentPage - 2 && p <= currentPage + 2))
+              .map((p, idx, arr) => (
+                <span key={p} className="flex items-center gap-1">
+                  {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1">…</span>}
+                  <Button
+                    variant={currentPage === p ? "default" : "outline"}
+                    size="sm"
+                    className="min-w-8 h-8 p-0"
+                    onClick={() => setCurrentPage(p)}
+                  >
+                    {p}
+                  </Button>
+                </span>
+              ))}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage >= totalPages}
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
       )}
 

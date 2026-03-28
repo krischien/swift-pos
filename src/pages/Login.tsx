@@ -144,15 +144,6 @@ const Login = () => {
                     variant="outline"
                     size="sm"
                     className="flex-1"
-                    onClick={() => handleQuickLogin("admin")}
-                  >
-                    Admin
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
                     onClick={() => handleQuickLogin("owner")}
                   >
                     Owner
@@ -169,15 +160,6 @@ const Login = () => {
                 </div>
               ) : (
                 <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleQuickLogin("admin")}
-                  >
-                    Admin
-                  </Button>
                   <Button
                     type="button"
                     variant="outline"

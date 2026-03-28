@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Receipt, TrendingUp, Calendar, Download, DollarSign, Printer, Ban } from "lucide-react";
+import { Receipt, TrendingUp, Calendar, Download, DollarSign, Printer, Ban, Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { useEffect, useMemo, useState } from "react";
 import { useDataLayer } from "@/contexts/DataLayerContext";
@@ -41,6 +41,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   eachDayOfInterval,
   eachHourOfInterval,
@@ -85,6 +93,10 @@ const Sales = () => {
   const [voiding, setVoiding] = useState(false);
   const [voidConfirmOpen, setVoidConfirmOpen] = useState(false);
   const [saleToVoid, setSaleToVoid] = useState<any | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [paymentFilter, setPaymentFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
 
   type ExportRange = "today" | "weekly" | "monthly" | "quarterly" | "annual";
   type QuickRange = "all" | "today" | "week" | "month" | "year" | "custom";
@@ -437,6 +449,48 @@ const Sales = () => {
     },
   } as const;
 
+  const paymentMethods = useMemo(() => {
+    const methods = new Set<string>(["cash", "gcash"]);
+    for (const sale of sales) {
+      const m = (sale.paymentMethod || "cash").toString().toLowerCase();
+      if (m) methods.add(m);
+    }
+    return Array.from(methods).sort((a, b) => (a === "cash" ? -1 : b === "cash" ? 1 : a.localeCompare(b)));
+  }, [sales]);
+
+  const filteredSales = useMemo(() => {
+    let result = sales;
+
+    if (paymentFilter && paymentFilter !== "all") {
+      result = result.filter((s) => (s.paymentMethod || "cash").toString().toLowerCase() === paymentFilter.toLowerCase());
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      const digitsOnly = q.replace(/\D/g, "");
+      result = result.filter((sale) => {
+        const txnId = String(sale.id).slice(-6).padStart(6, "0");
+        const fullId = String(sale.id).toLowerCase();
+        const amountStr = String(sale.total ?? 0);
+        const matchesTxn = fullId.includes(q) || txnId.includes(digitsOnly) || txnId.includes(q);
+        const matchesAmount = amountStr.includes(q) || amountStr.includes(digitsOnly);
+        return matchesTxn || matchesAmount;
+      });
+    }
+
+    return result;
+  }, [sales, searchQuery, paymentFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredSales.length / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedSales = filteredSales.slice(startIndex, startIndex + itemsPerPage);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   const salesOverTimeData = useMemo(() => {
     if (!sales.length) {
       return [];
@@ -580,7 +634,8 @@ const Sales = () => {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;");
-    const rows = sales
+    const toPrint = searchQuery || paymentFilter !== "all" ? filteredSales : sales;
+    const rows = toPrint
       .map(
         (sale) => `
       <tr>
@@ -593,7 +648,7 @@ const Sales = () => {
       </tr>`
       )
       .join("");
-    const totalAmount = sales.reduce((sum, s) => sum + (s.total ?? 0), 0);
+    const totalAmount = toPrint.reduce((sum, s) => sum + (s.total ?? 0), 0);
     const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -613,7 +668,7 @@ const Sales = () => {
 </head>
 <body>
   <h1>Sales History</h1>
-  <div class="meta">${activeRangeLabel ? `Period: ${activeRangeLabel}` : "All time"} | Generated: ${new Date().toLocaleString()} | ${sales.length} transaction(s)</div>
+  <div class="meta">${activeRangeLabel ? `Period: ${activeRangeLabel}` : "All time"} | Generated: ${new Date().toLocaleString()} | ${toPrint.length} transaction(s)</div>
   <table>
     <thead>
       <tr>
@@ -1053,6 +1108,49 @@ const Sales = () => {
       </Card>
 
       <div className="space-y-4">
+        {!loading && !error && (
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search by transaction ID or amount..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                className="pl-9"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
+              <Select value={paymentFilter} onValueChange={(v) => { setPaymentFilter(v); setCurrentPage(1); }}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Payment method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All payment methods</SelectItem>
+                  {paymentMethods.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {m === "gcash" ? "GCash" : m === "cash" ? "Cash" : m.charAt(0).toUpperCase() + m.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Per page:</span>
+              <Select value={String(itemsPerPage)} onValueChange={(v) => { setItemsPerPage(Number(v)); setCurrentPage(1); }}>
+                <SelectTrigger className="w-20 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[5, 10, 25, 50, 100].map((n) => (
+                    <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
         {loading && (
           <>
             <div className="hidden md:block rounded-lg border bg-card">
@@ -1135,7 +1233,14 @@ const Sales = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sales.map((sale) => (
+                  {filteredSales.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                        {sales.length === 0 ? "No transactions yet" : "No transactions match your search or filter"}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                  paginatedSales.map((sale) => (
                     <TableRow key={sale.id}>
                       <TableCell className="font-mono">
                         #{String(sale.id).slice(-6).padStart(6, "0")}
@@ -1167,14 +1272,58 @@ const Sales = () => {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ))
+                  )}
                 </TableBody>
               </Table>
             </div>
 
+            {filteredSales.length > 0 && (
+              <div className="flex items-center justify-center gap-2 py-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((p) => p === 1 || p === totalPages || (p >= currentPage - 2 && p <= currentPage + 2))
+                    .map((p, idx, arr) => (
+                      <span key={p} className="flex items-center gap-1">
+                        {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1">…</span>}
+                        <Button
+                          variant={currentPage === p ? "default" : "outline"}
+                          size="sm"
+                          className="min-w-8 h-8 p-0"
+                          onClick={() => setCurrentPage(p)}
+                        >
+                          {p}
+                        </Button>
+                      </span>
+                    ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
             {/* Mobile View */}
             <div className="grid grid-cols-1 gap-4 md:hidden">
-              {sales.map((sale) => (
+              {filteredSales.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8 rounded-lg border bg-card">
+                  {sales.length === 0 ? "No transactions yet" : "No transactions match your search or filter"}
+                </div>
+              ) : (
+              paginatedSales.map((sale) => (
                 <div key={sale.id} className="bg-card rounded-lg border p-4 space-y-3 shadow-sm">
                   <div className="flex justify-between items-center">
                     <div>
@@ -1223,7 +1372,8 @@ const Sales = () => {
                     )}
                   </div>
                 </div>
-              ))}
+              ))
+              )}
             </div>
           </>
         )}

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Trash2, Edit, UserPlus, Eye, EyeOff } from "lucide-react";
+import { Search, Trash2, Edit, UserPlus, Eye, EyeOff, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDataLayer } from "@/contexts/DataLayerContext";
 import { User } from "@/types/pos";
@@ -61,6 +61,8 @@ const Users = () => {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
   const { toast } = useToast();
 
   const load = async () => {
@@ -96,7 +98,16 @@ const Users = () => {
       u.name.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase()),
   );
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedUsers = filtered.slice(startIndex, startIndex + itemsPerPage);
   const isEditing = !!editingUser;
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const openAddDialog = () => {
     setEditingUser(null);
@@ -224,14 +235,29 @@ const Users = () => {
         </Button>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-        <Input
-          placeholder="Search users by name or email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
-        />
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Input
+            placeholder="Search users by name or email..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+            className="pl-10"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Per page:</span>
+          <Select value={String(itemsPerPage)} onValueChange={(v) => { setItemsPerPage(Number(v)); setCurrentPage(1); }}>
+            <SelectTrigger className="w-20 h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[5, 10, 25, 50, 100].map((n) => (
+                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {error && (
@@ -303,7 +329,7 @@ const Users = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((user) => (
+                {paginatedUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
@@ -347,7 +373,7 @@ const Users = () => {
 
           {/* Mobile View */}
           <div className="grid grid-cols-1 gap-4 md:hidden">
-            {filtered.map((user) => (
+            {paginatedUsers.map((user) => (
               <div key={user.id} className="bg-card rounded-lg border p-4 space-y-3 shadow-sm">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
@@ -390,6 +416,44 @@ const Users = () => {
               </div>
             ))}
           </div>
+
+          {filtered.length > 0 && (
+            <div className="flex items-center justify-center gap-2 py-4">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((p) => p === 1 || p === totalPages || (p >= currentPage - 2 && p <= currentPage + 2))
+                  .map((p, idx, arr) => (
+                    <span key={p} className="flex items-center gap-1">
+                      {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1">…</span>}
+                      <Button
+                        variant={currentPage === p ? "default" : "outline"}
+                        size="sm"
+                        className="min-w-8 h-8 p-0"
+                        onClick={() => setCurrentPage(p)}
+                      >
+                        {p}
+                      </Button>
+                    </span>
+                  ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </>
       )}
 
