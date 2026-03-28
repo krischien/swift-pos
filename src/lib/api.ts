@@ -229,7 +229,7 @@ export const api = {
   },
 
   // Sales
-  getSales: async (params?: { from?: string; to?: string }) => {
+  getSales: async (params?: { from?: string; to?: string; voidFilter?: "active" | "voided" | "all" }) => {
     await ensureDbInitialized();
     if (Capacitor.isNativePlatform()) {
       return mobileServices.getSales(params);
@@ -237,6 +237,7 @@ export const api = {
     const searchParams = new URLSearchParams();
     if (params?.from) searchParams.set("from", params.from);
     if (params?.to) searchParams.set("to", params.to);
+    if (params?.voidFilter) searchParams.set("voidFilter", params.voidFilter);
     const qs = searchParams.toString();
     return request(`/sales${qs ? `?${qs}` : ""}`);
   },

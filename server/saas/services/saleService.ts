@@ -1,4 +1,5 @@
 import { saasPrisma } from "../db.js";
+import { changeFromAmountAndTotal, isAmountInsufficient } from "../../utils/money.js";
 
 export interface CartItemInput {
   productId: string;
@@ -26,9 +27,9 @@ export interface CreateSaleInput {
 export async function createSale(input: CreateSaleInput) {
   const { storeId, cashierId, cashierName, amountReceived, items } = input;
   const total = input.total;
-  const change = input.change;
+  const change = changeFromAmountAndTotal(amountReceived, total);
 
-  if (change < 0) {
+  if (isAmountInsufficient(amountReceived, total)) {
     throw new Error("Amount received is less than total due");
   }
 
@@ -101,6 +102,8 @@ export async function createSale(input: CreateSaleInput) {
 export interface ListSalesOptions {
   from?: Date;
   to?: Date;
+  /** active = exclude void (default), voided = void only, all = both */
+  voidFilter?: "active" | "voided" | "all";
 }
 
 export async function countVoidedSales(storeId: string, options: ListSalesOptions = {}) {
@@ -122,12 +125,19 @@ export async function countVoidedSales(storeId: string, options: ListSalesOption
 }
 
 export async function listSales(storeId: string, options: ListSalesOptions = {}) {
-  const { from, to } = options;
+  const { from, to, voidFilter = "active" } = options;
+
+  const statusWhere =
+    voidFilter === "voided"
+      ? { status: "void" as const }
+      : voidFilter === "all"
+        ? {}
+        : { status: { not: "void" } };
 
   return saasPrisma.sale.findMany({
     where: {
       storeId,
-      status: { not: "void" },
+      ...statusWhere,
       ...(from || to
         ? {
             createdAt: {

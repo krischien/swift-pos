@@ -376,7 +376,7 @@ export const mobileServices = {
   },
 
   // Sales
-  async getSales(params?: { from?: string; to?: string }): Promise<any[]> {
+  async getSales(params?: { from?: string; to?: string; voidFilter?: string }): Promise<any[]> {
     const db = await getDatabase();
     let query = "SELECT * FROM Sale WHERE 1=1";
     const args: any[] = [];

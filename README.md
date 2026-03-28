@@ -93,6 +93,16 @@ npm run build:saas
 npm run build:solo
 ```
 
+### Vercel / production (SaaS + API bundle)
+
+```sh
+npm run vercel:build
+```
+
+Runs `build:saas`, Prisma Client for PostgreSQL (`prisma-saas/schema.pg.prisma`), and bundles the serverless API to `api/index.cjs`. See `.env.vercel.example` for required environment variables on Vercel.
+
+**Windows:** If `prisma generate` fails with `EPERM` / `rename` on `query_engine-windows.dll.node`, stop the SaaS dev server (`npm run dev:saas`) and any other Node process using that folder, then run `npm run vercel:build` again. Vercel’s Linux build environment does not hit this issue.
+
 ### Mobile (Android)
 
 ```sh

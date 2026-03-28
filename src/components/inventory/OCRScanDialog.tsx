@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Scan, Loader2, Upload, Camera } from "lucide-react";
+import { Scan, Loader2, Upload, Camera, Trash2 } from "lucide-react";
 import { processImage, parseMenuItems } from "@/lib/ocrService";
 import { Category } from "@/types/pos";
 
@@ -165,6 +165,10 @@ export function OCRScanDialog({ categories, onImport }: OCRScanDialogProps) {
       else next[index] = { ...next[index], price: typeof value === "number" ? value : parseFloat(String(value)) || 0 };
       return next;
     });
+  }, []);
+
+  const removeItem = useCallback((index: number) => {
+    setItems((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
   const handleImport = useCallback(async () => {
@@ -329,6 +333,7 @@ export function OCRScanDialog({ categories, onImport }: OCRScanDialogProps) {
                       <TableRow>
                         <TableHead>Name</TableHead>
                         <TableHead className="w-24">Price</TableHead>
+                        <TableHead className="w-12 text-right"> </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -350,6 +355,18 @@ export function OCRScanDialog({ categories, onImport }: OCRScanDialogProps) {
                               onChange={(e) => updateItem(i, "price", e.target.value)}
                               className="h-8"
                             />
+                          </TableCell>
+                          <TableCell className="text-right align-middle">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              aria-label={`Remove ${item.name || "row"}`}
+                              onClick={() => removeItem(i)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Trash2, Edit, Store as StoreIcon } from "lucide-react";
+import { Plus, Search, Trash2, Edit, Store as StoreIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +38,8 @@ import {
 } from "@/lib/saasOrgStoresApi";
 import { useStore } from "@/contexts/StoreContext";
 
+const ITEMS_PER_PAGE = 10;
+
 const Stores = () => {
   const { setStores, activeStoreId, setActiveStoreId } = useStore();
   const { toast } = useToast();
@@ -52,6 +54,7 @@ const Stores = () => {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [deletingStore, setDeletingStore] = useState<OrgStore | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const load = async () => {
     if (!isSaaS()) return;
@@ -77,11 +80,31 @@ const Stores = () => {
     void load();
   }, []);
 
-  const filtered = stores.filter(
-    (s) =>
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
-      (s.address ?? "").toLowerCase().includes(search.toLowerCase())
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const filtered = useMemo(
+    () =>
+      stores.filter(
+        (s) =>
+          s.name.toLowerCase().includes(search.toLowerCase()) ||
+          (s.address ?? "").toLowerCase().includes(search.toLowerCase()),
+      ),
+    [stores, search],
   );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1);
+
+  const paginatedStores = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(start, start + ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage((p) => Math.min(p, totalPages));
+  }, [totalPages]);
+
   const isEditing = !!editingStore;
 
   const openAddDialog = () => {
@@ -200,13 +223,9 @@ const Stores = () => {
 
       {loading ? (
         <div className="text-center py-8 text-muted-foreground">Loading stores...</div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground border rounded-lg">
-          {search ? "No stores found matching your search" : "No stores yet. Add your first store."}
-        </div>
       ) : (
         <>
-          <div className="hidden md:block border rounded-lg">
+          <div className="hidden md:block rounded-lg border bg-card">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -216,76 +235,137 @@ const Stores = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((store) => (
-                  <TableRow key={store.id}>
-                    <TableCell className="font-medium">{store.name}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {store.address || "—"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditDialog(store)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeletingStore(store)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
+                {filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                      {search
+                        ? "No stores found matching your search"
+                        : "No stores yet. Add your first store."}
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  paginatedStores.map((store) => (
+                    <TableRow key={store.id}>
+                      <TableCell className="font-medium">{store.name}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {store.address || "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(store)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeletingStore(store)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:hidden">
-            {filtered.map((store) => (
-              <div
-                key={store.id}
-                className="bg-card rounded-lg border p-4 space-y-3 shadow-sm"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-semibold flex items-center gap-2">
-                      <StoreIcon className="h-4 w-4 text-muted-foreground" />
-                      {store.name}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {store.address || "No address"}
-                    </p>
+            {filtered.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground border rounded-lg bg-card">
+                {search
+                  ? "No stores found matching your search"
+                  : "No stores yet. Add your first store."}
+              </div>
+            ) : (
+              paginatedStores.map((store) => (
+                <div
+                  key={store.id}
+                  className="bg-card rounded-lg border p-4 space-y-3 shadow-sm"
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="font-semibold flex items-center gap-2">
+                        <StoreIcon className="h-4 w-4 text-muted-foreground" />
+                        {store.name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {store.address || "No address"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => openEditDialog(store)}
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-destructive"
+                      onClick={() => setDeletingStore(store)}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center justify-end gap-2 pt-2 border-t">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8"
-                    onClick={() => openEditDialog(store)}
-                  >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 text-destructive"
-                    onClick={() => setDeletingStore(store)}
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
-                  </Button>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
+
+          {filtered.length > 0 && (
+            <div className="flex items-center justify-center gap-2 py-4">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(
+                    (p) =>
+                      p === 1 ||
+                      p === totalPages ||
+                      (p >= currentPage - 2 && p <= currentPage + 2),
+                  )
+                  .map((p, idx, arr) => (
+                    <span key={p} className="flex items-center gap-1">
+                      {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1">…</span>}
+                      <Button
+                        variant={currentPage === p ? "default" : "outline"}
+                        size="sm"
+                        className="min-w-8 h-8 p-0"
+                        onClick={() => setCurrentPage(p)}
+                      >
+                        {p}
+                      </Button>
+                    </span>
+                  ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </>
       )}
 

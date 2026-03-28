@@ -614,10 +614,19 @@ protectedRouter.get("/api/sales", async (req: AuthRequest, res) => {
   try {
     const storeId = (req as any).storeId;
     if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    const { from, to } = req.query as { from?: string; to?: string };
+    const { from, to, voidFilter } = req.query as {
+      from?: string;
+      to?: string;
+      voidFilter?: string;
+    };
+    const vf =
+      voidFilter === "all" || voidFilter === "voided" || voidFilter === "active"
+        ? voidFilter
+        : "active";
     const sales = await saleService.listSales(storeId, {
       from: from ? new Date(from) : undefined,
       to: to ? new Date(to) : undefined,
+      voidFilter: vf,
     });
     res.json(sales);
   } catch (error: unknown) {

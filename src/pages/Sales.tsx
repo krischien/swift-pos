@@ -1,4 +1,14 @@
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
@@ -13,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Receipt, TrendingUp, Calendar, Download, DollarSign, Printer, Ban } from "lucide-react";
+import { Receipt, TrendingUp, Calendar, Download, DollarSign, Printer, Ban, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { useEffect, useMemo, useState } from "react";
 import { useDataLayer } from "@/contexts/DataLayerContext";
@@ -60,6 +70,10 @@ import {
   subYears,
 } from "date-fns";
 
+const ITEMS_PER_PAGE = 10;
+
+const isVoidedSale = (s: { status?: string }) => (s?.status ?? "") === "void";
+
 // Custom Peso Icon Component
 const PesoIcon = ({ className }: { className?: string }) => (
   <span className={className} style={{ fontFamily: 'system-ui, sans-serif', fontWeight: 'bold' }}>
@@ -84,6 +98,10 @@ const Sales = () => {
   const [voiding, setVoiding] = useState(false);
   const [voidConfirmOpen, setVoidConfirmOpen] = useState(false);
   const [saleToVoid, setSaleToVoid] = useState<any | null>(null);
+  const [tableSearch, setTableSearch] = useState("");
+  const [paymentFilter, setPaymentFilter] = useState<"all" | "cash" | "gcash">("all");
+  const [voidStatusFilter, setVoidStatusFilter] = useState<"all" | "active" | "voided">("all");
+  const [currentPage, setCurrentPage] = useState(1);
 
   type ExportRange = "today" | "weekly" | "monthly" | "quarterly" | "annual";
   type QuickRange = "all" | "today" | "week" | "month" | "year" | "custom";
@@ -94,7 +112,7 @@ const Sales = () => {
       setLoading(true);
       setError(null);
       const [salesData, productsData] = await Promise.all([
-        dataService.getSales({ from, to }),
+        dataService.getSales({ from, to, voidFilter: "all" }),
         dataService.getProducts(),
       ]);
       const salesArray = salesData as any[];
@@ -112,6 +130,54 @@ const Sales = () => {
   useEffect(() => {
     void loadSales();
   }, [activeStoreId]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [tableSearch, paymentFilter, voidStatusFilter]);
+
+  const salesForMetrics = useMemo(
+    () => sales.filter((s) => !isVoidedSale(s)),
+    [sales],
+  );
+
+  const filteredSales = useMemo(() => {
+    const q = tableSearch.trim().toLowerCase();
+    return sales.filter((sale) => {
+      const idShort = String(sale.id).slice(-6).padStart(6, "0").toLowerCase();
+      const idFull = String(sale.id).toLowerCase();
+      const qNorm = q.replace(/^#/, "");
+      const matchesSearch =
+        !q ||
+        idShort.includes(qNorm) ||
+        idFull.includes(q) ||
+        (sale.cashierName ?? "").toLowerCase().includes(q);
+
+      const pm = String(sale.paymentMethod ?? "").toLowerCase();
+      const matchesPayment =
+        paymentFilter === "all" ||
+        (paymentFilter === "cash" && pm === "cash") ||
+        (paymentFilter === "gcash" && pm === "gcash");
+
+      const voided = isVoidedSale(sale);
+      const matchesVoid =
+        voidStatusFilter === "all" ||
+        (voidStatusFilter === "voided" && voided) ||
+        (voidStatusFilter === "active" && !voided);
+
+      return matchesSearch && matchesPayment && matchesVoid;
+    });
+  }, [sales, tableSearch, paymentFilter, voidStatusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredSales.length / ITEMS_PER_PAGE) || 1);
+
+  const paginatedSales = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredSales.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredSales, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage((p) => Math.min(p, totalPages));
+  }, [totalPages]);
 
   const getRangeForExport = (range: ExportRange) => {
     const now = new Date();
@@ -291,7 +357,7 @@ const Sales = () => {
   };
 
   const stats = useMemo(() => {
-    if (!sales.length) {
+    if (!salesForMetrics.length) {
       return [
         { title: "Today's Sales", value: formatCurrency(0), icon: PesoIcon, trend: "" },
         { title: "Transactions", value: "0", icon: Receipt, trend: "" },
@@ -300,20 +366,20 @@ const Sales = () => {
       ];
     }
 
-    const total = sales.reduce((sum, s) => sum + s.total, 0);
-    const count = sales.length;
+    const total = salesForMetrics.reduce((sum, s) => sum + s.total, 0);
+    const count = salesForMetrics.length;
     const avg = total / count;
 
     // Calculate total profit using actual selling prices from sale items
     let totalProfit = 0;
-    console.log(`[PROFIT] Starting calculation. Sales: ${sales.length}, Products: ${products.length}`);
+    console.log(`[PROFIT] Starting calculation. Sales: ${salesForMetrics.length}, Products: ${products.length}`);
     
     // Log first sale for debugging
-    if (sales.length > 0 && sales[0].items) {
-      console.log(`[PROFIT] Sample sale item:`, sales[0].items[0]);
+    if (salesForMetrics.length > 0 && salesForMetrics[0].items) {
+      console.log(`[PROFIT] Sample sale item:`, salesForMetrics[0].items[0]);
     }
     
-    for (const sale of sales) {
+    for (const sale of salesForMetrics) {
       if (!sale.items || sale.items.length === 0) {
         console.warn(`[PROFIT] Sale ${sale.id} has no items`);
         continue;
@@ -363,12 +429,12 @@ const Sales = () => {
       { title: "Average Sale", value: formatCurrency(avg), icon: TrendingUp, trend: "" },
       { title: "Total Profit", value: formatCurrency(totalProfit), icon: DollarSign, trend: "" },
     ];
-  }, [sales, products]);
+  }, [salesForMetrics, products]);
 
   const comparativeSales = useMemo(() => {
     const now = new Date();
     const sumRange = (from: Date, to: Date) =>
-      sales.reduce((sum, sale) => {
+      salesForMetrics.reduce((sum, sale) => {
         const createdAt = new Date(sale.createdAt);
         if (createdAt >= from && createdAt <= to) {
           return sum + sale.total;
@@ -402,7 +468,7 @@ const Sales = () => {
       thisYear: sumRange(thisYearStart, thisYearEnd),
       lastYear: sumRange(lastYearStart, lastYearEnd),
     };
-  }, [sales]);
+  }, [salesForMetrics]);
 
   const topSalesData = useMemo(() => {
     const rowsMap = new Map<
@@ -410,7 +476,7 @@ const Sales = () => {
       { name: string; salesAmount: number; quantitySold: number }
     >();
 
-    for (const sale of sales) {
+    for (const sale of salesForMetrics) {
       for (const item of sale.items ?? []) {
         const product = products.find((p) => p.id === item.productId);
         const baseName = item.productName || product?.name || "Unknown Item";
@@ -427,7 +493,7 @@ const Sales = () => {
     return Array.from(rowsMap.values())
       .sort((a, b) => b.salesAmount - a.salesAmount)
       .slice(0, 5);
-  }, [sales, products]);
+  }, [salesForMetrics, products]);
 
   const topSalesChartConfig = {
     salesAmount: {
@@ -437,7 +503,7 @@ const Sales = () => {
   } as const;
 
   const salesOverTimeData = useMemo(() => {
-    if (!sales.length) {
+    if (!salesForMetrics.length) {
       return [];
     }
 
@@ -454,7 +520,7 @@ const Sales = () => {
     }
 
     if (!from || !to) {
-      const timestamps = sales
+      const timestamps = salesForMetrics
         .map((sale) => new Date(sale.createdAt).getTime())
         .filter((value) => Number.isFinite(value));
       if (!timestamps.length) {
@@ -500,7 +566,7 @@ const Sales = () => {
       totals.set(getBucketKey(tick), 0);
     }
 
-    for (const sale of sales) {
+    for (const sale of salesForMetrics) {
       const createdAt = new Date(sale.createdAt);
       if (createdAt < from || createdAt > to) {
         continue;
@@ -513,7 +579,7 @@ const Sales = () => {
       label: getLabel(tick),
       total: totals.get(getBucketKey(tick)) ?? 0,
     }));
-  }, [sales, quickRange, fromDate, toDate]);
+  }, [salesForMetrics, quickRange, fromDate, toDate]);
 
   const salesOverTimeChartConfig = {
     total: {
@@ -579,7 +645,7 @@ const Sales = () => {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;");
-    const rows = sales
+    const rows = filteredSales
       .map(
         (sale) => `
       <tr>
@@ -592,7 +658,7 @@ const Sales = () => {
       </tr>`
       )
       .join("");
-    const totalAmount = sales.reduce((sum, s) => sum + (s.total ?? 0), 0);
+    const totalAmount = filteredSales.reduce((sum, s) => sum + (s.total ?? 0), 0);
     const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -612,7 +678,7 @@ const Sales = () => {
 </head>
 <body>
   <h1>Sales History</h1>
-  <div class="meta">${activeRangeLabel ? `Period: ${activeRangeLabel}` : "All time"} | Generated: ${new Date().toLocaleString()} | ${sales.length} transaction(s)</div>
+  <div class="meta">${activeRangeLabel ? `Period: ${activeRangeLabel}` : "All time"} | Generated: ${new Date().toLocaleString()} | ${filteredSales.length} transaction(s)</div>
   <table>
     <thead>
       <tr>
@@ -662,7 +728,7 @@ const Sales = () => {
           <Button
             variant="outline"
             className="gap-2 flex-1 md:flex-none"
-            disabled={sales.length === 0}
+            disabled={filteredSales.length === 0}
             onClick={handlePrint}
           >
             <Printer className="w-4 h-4" />
@@ -1025,6 +1091,59 @@ const Sales = () => {
         )}
         {!loading && !error && (
           <>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+              <div className="flex-1 min-w-[200px] space-y-1.5">
+                <Label htmlFor="sales-table-search" className="text-xs text-muted-foreground">
+                  Search
+                </Label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="sales-table-search"
+                    placeholder="Transaction ID or cashier"
+                    value={tableSearch}
+                    onChange={(e) => setTableSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+              <div className="w-full sm:w-[160px] space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Payment</Label>
+                <Select value={paymentFilter} onValueChange={(v) => setPaymentFilter(v as "all" | "cash" | "gcash")}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Payment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All methods</SelectItem>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="gcash">GCash</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-full sm:w-[180px] space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Status</Label>
+                <Select
+                  value={voidStatusFilter}
+                  onValueChange={(v) => setVoidStatusFilter(v as "all" | "active" | "voided")}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All transactions</SelectItem>
+                    <SelectItem value="active">Non-voided</SelectItem>
+                    <SelectItem value="voided">Voided</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {filteredSales.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–
+                {Math.min(currentPage * ITEMS_PER_PAGE, filteredSales.length)} of {filteredSales.length}
+              </p>
+            )}
+
             {/* Desktop View */}
             <div className="hidden md:block rounded-lg border bg-card">
               <Table>
@@ -1040,96 +1159,170 @@ const Sales = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sales.map((sale) => (
-                    <TableRow key={sale.id}>
-                      <TableCell className="font-mono">
-                        #{String(sale.id).slice(-6).padStart(6, "0")}
-                      </TableCell>
-                      <TableCell>{sale.cashierName}</TableCell>
-                      <TableCell>{sale.items?.length ?? 0} items</TableCell>
-                      <TableCell>{sale.paymentMethod}</TableCell>
-                      <TableCell>
-                        {new Date(sale.createdAt).toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right font-bold">
-                        {formatCurrency(sale.total)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => openSaleDetails(sale)}>
-                            View Details
-                          </Button>
-                          {dataService.voidSale && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => confirmVoid(sale)}
-                            >
-                              Void
-                            </Button>
-                          )}
-                        </div>
+                  {filteredSales.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        No transactions match your filters
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    paginatedSales.map((sale) => (
+                      <TableRow key={sale.id}>
+                        <TableCell className="font-mono">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            #{String(sale.id).slice(-6).padStart(6, "0")}
+                            {isVoidedSale(sale) && (
+                              <Badge variant="secondary" className="text-xs">
+                                Voided
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{sale.cashierName}</TableCell>
+                        <TableCell>{sale.items?.length ?? 0} items</TableCell>
+                        <TableCell className="capitalize">{sale.paymentMethod}</TableCell>
+                        <TableCell>
+                          {new Date(sale.createdAt).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right font-bold">
+                          {formatCurrency(sale.total)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1 flex-wrap">
+                            <Button variant="ghost" size="sm" onClick={() => openSaleDetails(sale)}>
+                              View Details
+                            </Button>
+                            {dataService.voidSale && !isVoidedSale(sale) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => confirmVoid(sale)}
+                              >
+                                Void
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
 
+            {filteredSales.length > 0 && (
+              <div className="hidden md:flex items-center justify-center gap-2 py-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm text-muted-foreground px-2">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
             {/* Mobile View */}
             <div className="grid grid-cols-1 gap-4 md:hidden">
-              {sales.map((sale) => (
-                <div key={sale.id} className="bg-card rounded-lg border p-4 space-y-3 shadow-sm">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-mono text-sm font-bold">
-                        #{String(sale.id).slice(-6).padStart(6, "0")}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(sale.createdAt).toLocaleString()}
-                      </p>
+              {filteredSales.length === 0 ? (
+                <p className="text-center py-8 text-muted-foreground rounded-lg border bg-card">
+                  No transactions match your filters
+                </p>
+              ) : (
+                paginatedSales.map((sale) => (
+                  <div key={sale.id} className="bg-card rounded-lg border p-4 space-y-3 shadow-sm">
+                    <div className="flex justify-between items-center gap-2">
+                      <div>
+                        <p className="font-mono text-sm font-bold flex items-center gap-2 flex-wrap">
+                          #{String(sale.id).slice(-6).padStart(6, "0")}
+                          {isVoidedSale(sale) && (
+                            <Badge variant="secondary" className="text-[10px]">
+                              Voided
+                            </Badge>
+                          )}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(sale.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-bold text-lg">{formatCurrency(sale.total)}</p>
+                        <p className="text-xs text-muted-foreground capitalize">{sale.paymentMethod}</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-lg">{formatCurrency(sale.total)}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{sale.paymentMethod}</p>
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-4 text-sm border-t pt-3 border-b pb-3">
-                    <div>
-                      <p className="text-muted-foreground text-xs">Cashier</p>
-                      <p className="font-medium">{sale.cashierName}</p>
+                    <div className="grid grid-cols-2 gap-4 text-sm border-t pt-3 border-b pb-3">
+                      <div>
+                        <p className="text-muted-foreground text-xs">Cashier</p>
+                        <p className="font-medium">{sale.cashierName}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-muted-foreground text-xs">Items</p>
+                        <p className="font-medium">{sale.items?.length ?? 0}</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-muted-foreground text-xs">Items</p>
-                      <p className="font-medium">{sale.items?.length ?? 0}</p>
-                    </div>
-                  </div>
 
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => openSaleDetails(sale)}
-                    >
-                      View Details
-                    </Button>
-                    {dataService.voidSale && (
+                    <div className="flex justify-end gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 text-destructive border-destructive hover:bg-destructive/10"
-                        onClick={() => confirmVoid(sale)}
+                        className="flex-1"
+                        onClick={() => openSaleDetails(sale)}
                       >
-                        Void
+                        View Details
                       </Button>
-                    )}
+                      {dataService.voidSale && !isVoidedSale(sale) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 text-destructive border-destructive hover:bg-destructive/10"
+                          onClick={() => confirmVoid(sale)}
+                        >
+                          Void
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
+
+            {filteredSales.length > 0 && (
+              <div className="flex md:hidden items-center justify-center gap-2 py-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm text-muted-foreground px-2">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -1182,6 +1375,12 @@ const Sales = () => {
                   <p className="text-muted-foreground text-xs">Total</p>
                   <p className="font-semibold">{formatCurrency(detailsSale.total)}</p>
                 </div>
+                {isVoidedSale(detailsSale) && (
+                  <div>
+                    <p className="text-muted-foreground text-xs">Status</p>
+                    <Badge variant="secondary">Voided</Badge>
+                  </div>
+                )}
               </div>
               <div className="rounded-lg border">
                 <Table>
@@ -1212,7 +1411,7 @@ const Sales = () => {
                     </TableBody>
                 </Table>
               </div>
-              {dataService.voidSale && (
+              {dataService.voidSale && !isVoidedSale(detailsSale) && (
                 <div className="flex justify-end pt-4">
                   <Button
                     variant="destructive"

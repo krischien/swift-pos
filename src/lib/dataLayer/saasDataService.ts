@@ -154,6 +154,7 @@ export const createSaasDataService = (): DataService => {
       const url = new URL("/api/sales", getSaasApiBase() || window.location.origin);
       if (params?.from) url.searchParams.set("from", params.from);
       if (params?.to) url.searchParams.set("to", params.to);
+      if (params?.voidFilter) url.searchParams.set("voidFilter", params.voidFilter);
       const effectiveStoreId = sid ?? storeId();
       if (effectiveStoreId) url.searchParams.set("storeId", effectiveStoreId);
       return saasRequest(url.toString(), effectiveStoreId ? { storeId: effectiveStoreId } : undefined) as Promise<any>;

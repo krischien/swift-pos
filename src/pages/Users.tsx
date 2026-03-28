@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Trash2, Edit, UserPlus, Eye, EyeOff } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Search, Trash2, Edit, UserPlus, Eye, EyeOff, ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useDataLayer } from "@/contexts/DataLayerContext";
 import { User } from "@/types/pos";
 import { isSaaS } from "@/config/appMode";
@@ -42,6 +42,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+const ITEMS_PER_PAGE = 10;
+
 const Users = () => {
   const dataService = useDataLayer();
   const [search, setSearch] = useState("");
@@ -60,6 +62,7 @@ const Users = () => {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
 
   const load = async () => {
@@ -90,12 +93,33 @@ const Users = () => {
     }
   }, []);
 
-  const filtered = users.filter(
-    (u) =>
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase()),
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const filtered = useMemo(
+    () =>
+      users.filter(
+        (u) =>
+          u.name.toLowerCase().includes(search.toLowerCase()) ||
+          u.email.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [users, search],
   );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1);
+
+  const paginatedUsers = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(start, start + ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage((p) => Math.min(p, totalPages));
+  }, [totalPages]);
+
   const isEditing = !!editingUser;
+  const tableColSpan = isSaaS() && stores.length > 0 ? 5 : 4;
 
   const openAddDialog = () => {
     setEditingUser(null);
@@ -241,14 +265,10 @@ const Users = () => {
 
       {loading ? (
         <div className="text-center py-8 text-muted-foreground">Loading users...</div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground border rounded-lg">
-          {search ? "No users found matching your search" : "No users found"}
-        </div>
       ) : (
         <>
           {/* Desktop View */}
-          <div className="hidden md:block border rounded-lg">
+          <div className="hidden md:block rounded-lg border bg-card">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -260,93 +280,150 @@ const Users = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Badge variant={user.role === "owner" ? "default" : "secondary"}>
-                        {user.role}
-                      </Badge>
-                    </TableCell>
-                    {isSaaS() && stores.length > 0 && (
-                      <TableCell className="text-muted-foreground text-sm">
-                        {!user.storeIds?.length
-                          ? "All stores"
-                          : user.storeIds
-                              .map((sid) => stores.find((s) => s.id === sid)?.name ?? sid)
-                              .join(", ")}
-                      </TableCell>
-                    )}
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditDialog(user)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeletingUser(user)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
+                {filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={tableColSpan} className="text-center py-8 text-muted-foreground">
+                      {search ? "No users found matching your search" : "No users found"}
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  paginatedUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant={user.role === "owner" ? "default" : "secondary"}>
+                          {user.role}
+                        </Badge>
+                      </TableCell>
+                      {isSaaS() && stores.length > 0 && (
+                        <TableCell className="text-muted-foreground text-sm">
+                          {!user.storeIds?.length
+                            ? "All stores"
+                            : user.storeIds
+                                .map((sid) => stores.find((s) => s.id === sid)?.name ?? sid)
+                                .join(", ")}
+                        </TableCell>
+                      )}
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(user)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeletingUser(user)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
 
           {/* Mobile View */}
           <div className="grid grid-cols-1 gap-4 md:hidden">
-            {filtered.map((user) => (
-              <div key={user.id} className="bg-card rounded-lg border p-4 space-y-3 shadow-sm">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{user.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{user.email}</p>
-                  </div>
-                  <Badge variant={user.role === "owner" ? "default" : "secondary"}>
-                    {user.role}
-                  </Badge>
-                </div>
-                {isSaaS() && stores.length > 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    {!user.storeIds?.length
-                      ? "All stores"
-                      : user.storeIds
-                          .map((sid) => stores.find((s) => s.id === sid)?.name ?? sid)
-                          .join(", ")}
-                  </p>
-                )}
-                <div className="flex items-center justify-end gap-2 pt-2 border-t">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8"
-                    onClick={() => openEditDialog(user)}
-                  >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 text-destructive"
-                    onClick={() => setDeletingUser(user)}
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
-                  </Button>
-                </div>
+            {filtered.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground border rounded-lg bg-card">
+                {search ? "No users found matching your search" : "No users found"}
               </div>
-            ))}
+            ) : (
+              paginatedUsers.map((user) => (
+                <div key={user.id} className="bg-card rounded-lg border p-4 space-y-3 shadow-sm">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="font-semibold">{user.name}</h3>
+                      <p className="text-sm text-muted-foreground mt-1">{user.email}</p>
+                    </div>
+                    <Badge variant={user.role === "owner" ? "default" : "secondary"}>
+                      {user.role}
+                    </Badge>
+                  </div>
+                  {isSaaS() && stores.length > 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      {!user.storeIds?.length
+                        ? "All stores"
+                        : user.storeIds
+                            .map((sid) => stores.find((s) => s.id === sid)?.name ?? sid)
+                            .join(", ")}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => openEditDialog(user)}
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-destructive"
+                      onClick={() => setDeletingUser(user)}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
+
+          {filtered.length > 0 && (
+            <div className="flex items-center justify-center gap-2 py-4">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(
+                    (p) =>
+                      p === 1 ||
+                      p === totalPages ||
+                      (p >= currentPage - 2 && p <= currentPage + 2),
+                  )
+                  .map((p, idx, arr) => (
+                    <span key={p} className="flex items-center gap-1">
+                      {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1">…</span>}
+                      <Button
+                        variant={currentPage === p ? "default" : "outline"}
+                        size="sm"
+                        className="min-w-8 h-8 p-0"
+                        onClick={() => setCurrentPage(p)}
+                      >
+                        {p}
+                      </Button>
+                    </span>
+                  ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </>
       )}
 

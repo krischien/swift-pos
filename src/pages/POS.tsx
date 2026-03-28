@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CategoryTabs } from "@/components/pos/CategoryTabs";
 import { ProductCard } from "@/components/pos/ProductCard";
 import { Cart } from "@/components/pos/Cart";
@@ -8,16 +9,16 @@ import { VariantModal } from "@/components/pos/VariantModal";
 import { CheckoutModal } from "@/components/pos/CheckoutModal";
 import { CartItem, Product, Variant, Category } from "@/types/pos";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search, Calendar, ShoppingCart } from "lucide-react";
+import { Search, Calendar, ShoppingCart, ScanLine, LayoutGrid } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useDataLayer } from "@/contexts/DataLayerContext";
 import { useStore } from "@/contexts/StoreContext";
-import { useEffect } from "react";
 import { useSettings } from "@/contexts/SettingsContext";
 import { Capacitor } from "@capacitor/core";
 import { printerService } from "@/lib/printer";
 import { formatCurrency } from "@/lib/currency";
+import { BarcodeCameraScanner } from "@/components/pos/BarcodeCameraScanner";
 
 const POS = () => {
   const dataService = useDataLayer();
@@ -33,6 +34,7 @@ const POS = () => {
     taxRatePercent,
     selectedPrinter,
     enablePerKiloPurchase,
+    enableBarcodeScanning,
   } = useSettings();
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -48,8 +50,20 @@ const POS = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [discountPercent, setDiscountPercent] = useState(0);
+  /** When barcode mode is on: default false = scan-first (grid hidden); true = show search + categories + grid. */
+  const [showProductBrowse, setShowProductBrowse] = useState(false);
+  /** Hidden focus target for USB keyboard-wedge scanners (receives keystrokes). */
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const wedgeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { activeStoreId } = useStore();
+
+  useEffect(() => {
+    return () => {
+      if (wedgeDebounceRef.current) clearTimeout(wedgeDebounceRef.current);
+    };
+  }, []);
   useEffect(() => {
     setCart([]); // Clear cart when switching stores
     const load = async () => {
@@ -74,6 +88,29 @@ const POS = () => {
     };
     load();
   }, [activeStoreId]);
+
+  // Scan-first: refocus USB wedge when on scan view; when browsing, optional focus search.
+  useEffect(() => {
+    if (!enableBarcodeScanning) return;
+    if (loading || showCheckoutModal || showVariantModal) return;
+    const id = window.requestAnimationFrame(() => {
+      if (showProductBrowse) {
+        searchInputRef.current?.focus();
+      } else {
+        barcodeInputRef.current?.focus();
+      }
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [
+    enableBarcodeScanning,
+    loading,
+    showCheckoutModal,
+    showVariantModal,
+    activeStoreId,
+    showProductBrowse,
+  ]);
+
+  const showBrowseUi = !enableBarcodeScanning || showProductBrowse;
 
   const filteredProducts = products.filter((product) => {
     const matchesCategory = !selectedCategory || product.categoryId === selectedCategory;
@@ -196,8 +233,8 @@ const POS = () => {
           subtotal: data.price,
         };
 
-        setCart([...cart, newItem]);
-        
+        setCart((prev) => [...prev, newItem]);
+
         toast({
           title: "Item added",
           description: `${product.name} (${data.weight} kg) added to cart`,
@@ -234,6 +271,44 @@ const POS = () => {
         });
       }
     }
+  };
+
+  /** Camera + USB wedge: add to cart immediately (no Enter required for wedge — debounced). */
+  const commitBarcode = (raw: string) => {
+    const val = raw.trim();
+    if (!val || showCheckoutModal || showVariantModal) return;
+    handleScannedWeightedItem(val);
+    window.requestAnimationFrame(() => {
+      if (barcodeInputRef.current) barcodeInputRef.current.value = "";
+      barcodeInputRef.current?.focus();
+    });
+  };
+
+  /** After USB scanner stops typing (~120ms), auto-commit if the code looks complete (min 3 chars). */
+  const scheduleWedgeAutoCommit = () => {
+    if (wedgeDebounceRef.current) clearTimeout(wedgeDebounceRef.current);
+    wedgeDebounceRef.current = setTimeout(() => {
+      wedgeDebounceRef.current = null;
+      const el = barcodeInputRef.current;
+      if (!el) return;
+      const val = el.value.trim();
+      if (val.length < 3) return;
+      el.value = "";
+      commitBarcode(val);
+    }, 120);
+  };
+
+  const onWedgeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    if (wedgeDebounceRef.current) {
+      clearTimeout(wedgeDebounceRef.current);
+      wedgeDebounceRef.current = null;
+    }
+    const el = e.currentTarget;
+    const val = el.value.trim();
+    el.value = "";
+    if (val) commitBarcode(val);
   };
 
   const handleUpdateQuantity = (itemId: string, quantity: number) => {
@@ -564,20 +639,99 @@ const POS = () => {
         {/* Products Section */}
         <div className="flex-1 flex flex-col md:overflow-hidden">
           <div className="p-4 space-y-4 border-b bg-background">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-12 text-base"
+            {showBrowseUi && (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  ref={searchInputRef}
+                  id="pos-product-search"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 h-12 text-base"
+                />
+              </div>
+            )}
+            {enableBarcodeScanning && (
+              <>
+                {/* USB wedge capture: visually hidden but focusable so scanners can type; auto-adds after a short pause or on Enter */}
+                <input
+                  ref={barcodeInputRef}
+                  type="text"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  tabIndex={-1}
+                  className="sr-only"
+                  aria-label="USB barcode scanner"
+                  onInput={scheduleWedgeAutoCommit}
+                  onKeyDown={onWedgeKeyDown}
+                />
+                <Card
+                  className="overflow-hidden border-primary/20 bg-gradient-to-br from-card via-card to-primary/[0.04] shadow-md ring-1 ring-primary/10"
+                  onClick={() => {
+                    if (showCheckoutModal || showVariantModal) return;
+                    barcodeInputRef.current?.focus();
+                  }}
+                >
+                  <CardHeader className="space-y-0 border-b border-border/60 bg-muted/30 px-4 py-3 sm:px-5">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary shadow-sm ring-1 ring-primary/15">
+                        <ScanLine className="h-5 w-5" strokeWidth={2.25} />
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-0.5 pt-0.5">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <CardTitle className="text-base font-semibold tracking-tight">Quick scan</CardTitle>
+                          {showBrowseUi && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 shrink-0 text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowProductBrowse(false);
+                              }}
+                            >
+                              Back to scan
+                            </Button>
+                          )}
+                        </div>
+                        <CardDescription className="text-xs leading-relaxed sm:text-sm">
+                          {showBrowseUi
+                            ? "Camera and USB still work here. Tap products below or collapse to focus on scanning only."
+                            : "Point the camera or use a USB scanner — items add to the cart automatically. Open browse to tap products or search by name."}
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-4 sm:p-5">
+                    <BarcodeCameraScanner
+                      paused={showCheckoutModal || showVariantModal}
+                      onScan={(text) => commitBarcode(text)}
+                    />
+                  </CardContent>
+                </Card>
+                {!showBrowseUi && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full gap-2 border-primary/25 bg-background/80 py-6 text-base"
+                    onClick={() => setShowProductBrowse(true)}
+                  >
+                    <LayoutGrid className="h-5 w-5 shrink-0" />
+                    Browse products
+                  </Button>
+                )}
+              </>
+            )}
+            {showBrowseUi && (
+              <CategoryTabs
+                categories={categories}
+                selectedCategory={selectedCategory}
+                onSelectCategory={setSelectedCategory}
               />
-            </div>
-            <CategoryTabs
-              categories={categories}
-              selectedCategory={selectedCategory}
-              onSelectCategory={setSelectedCategory}
-            />
+            )}
           </div>
 
           <div className="flex-1 overflow-auto p-4">
@@ -585,7 +739,7 @@ const POS = () => {
             {error && !loading && (
               <p className="text-sm text-destructive">Failed to load: {error}</p>
             )}
-            {!loading && !error && (
+            {!loading && !error && showBrowseUi && (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                 {filteredProducts.map((product) => (
                   <ProductCard
@@ -596,6 +750,11 @@ const POS = () => {
                   />
                 ))}
               </div>
+            )}
+            {!loading && !error && enableBarcodeScanning && !showBrowseUi && (
+              <p className="py-6 text-center text-xs text-muted-foreground">
+                Scan to add items. Tap Browse products above to search or pick from the grid.
+              </p>
             )}
           </div>
         </div>

@@ -14,7 +14,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "dev:server": "tsx server/index.ts",
-    "dev:saas": "tsx server/saas/index.ts",
+    "dev:saas": "npm run prisma:generate:saas:dev && tsx server/saas/index.ts",
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:saas": "prisma migrate dev --schema=prisma-saas/schema.prisma",
     "prisma:migrate:saas:dev": "prisma migrate dev --schema=prisma-saas/schema.dev.prisma",
@@ -35,6 +35,7 @@
     "cap:sync:saas": "npm run build:saas && npx cap sync android",
     "cap:open": "npx cap open android",
     "vercel:build": "npm run build:saas && npx prisma generate --schema=prisma-saas/schema.pg.prisma && npm run build:api",
+    "vercel:build:assets": "npm run build:saas && npm run build:api",
     "build:api": "npx esbuild server/saas/index.ts --bundle --platform=node --format=cjs --outfile=api/index.cjs --packages=external"
   },
   "dependencies": {
@@ -88,6 +89,7 @@
     "docx": "^9.5.1",
     "embla-carousel-react": "^8.6.0",
     "exceljs": "^4.4.0",
+    "html5-qrcode": "^2.3.8",
     "input-otp": "^1.4.2",
     "jsbarcode": "^3.12.1",
     "jsonwebtoken": "^9.0.3",
@@ -139,4 +141,3 @@
     "vite": "^5.4.19"
   }
 }
-

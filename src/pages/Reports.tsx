@@ -478,11 +478,17 @@ const Reports = () => {
     return products.flatMap((p) => {
       if (p.hasVariants && p.variants?.length) {
         return p.variants
-          .filter((v) => (v.stock ?? 0) === 0)
-          .map((v) => ({ id: `${p.id}-${v.id}`, name: `${p.name} - ${v.name}`, stock: 0, status: "Out of Stock" }));
+          .filter((v) => (v.stock ?? 0) <= 0)
+          .map((v) => ({
+            id: `${p.id}-${v.id}`,
+            name: `${p.name} - ${v.name}`,
+            stock: v.stock ?? 0,
+            status: "Out of Stock",
+          }));
       }
-      if ((p.stock ?? 0) === 0) {
-        return [{ id: `${p.id}-base`, name: p.name, stock: 0, status: "Out of Stock" }];
+      const stock = p.stock ?? 0;
+      if (stock <= 0) {
+        return [{ id: `${p.id}-base`, name: p.name, stock, status: "Out of Stock" }];
       }
       return [];
     });
@@ -721,7 +727,7 @@ const Reports = () => {
       if (outOfStockItems.length) {
         XLSX.utils.book_append_sheet(
           wb,
-          XLSX.utils.json_to_sheet(outOfStockItems.map((x) => ({ Product: x.name, Stock: 0, Status: x.status }))),
+          XLSX.utils.json_to_sheet(outOfStockItems.map((x) => ({ Product: x.name, Stock: x.stock, Status: x.status }))),
           "Out of Stock"
         );
       }
@@ -1313,7 +1319,7 @@ const Reports = () => {
                   <Package className="w-4 h-4 text-destructive" />
                   Out of Stock Items
                 </CardTitle>
-                <CardDescription>Items with zero stock</CardDescription>
+                <CardDescription>Items at or below zero stock (including oversold / negative)</CardDescription>
               </CardHeader>
               <CardContent>
                 {outOfStockItems.length ? (
@@ -1329,7 +1335,7 @@ const Reports = () => {
                       {outOfStockItems.map((item) => (
                         <TableRow key={item.id}>
                           <TableCell className="font-medium">{item.name}</TableCell>
-                          <TableCell className="text-center">0</TableCell>
+                          <TableCell className="text-center">{item.stock}</TableCell>
                           <TableCell className="text-center">
                             <span className="text-destructive">Out of Stock</span>
                           </TableCell>

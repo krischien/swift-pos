@@ -57,11 +57,13 @@ export interface Sale {
   cashierId: string;
   cashierName: string;
   total: number;
-  paymentMethod: "cash";
+  paymentMethod: string;
   amountReceived: number;
   change: number;
   createdAt: Date;
   items: SaleItem[];
+  /** SaaS: e.g. "completed" | "void" */
+  status?: string;
 }
 
 export interface SaleItem {

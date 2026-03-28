@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DollarSign, Receipt, Smartphone } from "lucide-react";
-import { formatCurrency } from "@/lib/currency";
+import { formatCurrency, isAmountEnoughForTotal, pesoCents } from "@/lib/currency";
 
 export type PaymentMethod = "cash" | "gcash";
 
@@ -37,7 +37,9 @@ export const CheckoutModal = ({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [amountReceived, setAmountReceived] = useState<string>("");
   const [gcashTransactionId, setGcashTransactionId] = useState<string>("");
-  const change = parseFloat(amountReceived || "0") - total;
+  const receivedNum = parseFloat(amountReceived || "0");
+  const safeReceived = Number.isFinite(receivedNum) ? receivedNum : 0;
+  const change = (pesoCents(safeReceived) - pesoCents(total)) / 100;
 
   useEffect(() => {
     if (open) {
@@ -55,17 +57,15 @@ export const CheckoutModal = ({
 
   const handleComplete = () => {
     const amt = parseFloat(amountReceived || "0");
+    const amtSafe = Number.isFinite(amt) ? amt : 0;
     if (paymentMethod === "gcash" && !gcashTransactionId.trim()) {
       return;
     }
-    if (paymentMethod === "cash" && change < 0) {
-      return;
-    }
-    if (paymentMethod === "gcash" && amt < total) {
+    if (!isAmountEnoughForTotal(amtSafe, total)) {
       return;
     }
     const result: CheckoutResult = {
-      amountReceived: amt,
+      amountReceived: amtSafe,
       paymentMethod,
       gcashTransactionId: paymentMethod === "gcash" ? gcashTransactionId.trim() : undefined,
     };
@@ -77,9 +77,9 @@ export const CheckoutModal = ({
 
   const canComplete =
     paymentMethod === "cash"
-      ? change >= 0 && !!amountReceived
+      ? isAmountEnoughForTotal(safeReceived, total) && !!amountReceived
       : paymentMethod === "gcash"
-      ? parseFloat(amountReceived || "0") >= total && !!gcashTransactionId.trim()
+      ? isAmountEnoughForTotal(safeReceived, total) && !!gcashTransactionId.trim()
       : false;
 
   return (
