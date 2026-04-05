@@ -5,6 +5,7 @@
 import bcrypt from "bcryptjs";
 import { saasPrisma } from "../db.js";
 import { mockCategories, mockProducts } from "../../../src/lib/mockData.js";
+import { DEMO_TRIAL_DAYS, addDays } from "../constants/demo.js";
 
 const DEFAULT_PASSWORD = "password123";
 
@@ -41,12 +42,6 @@ const productTemplates: ProductTemplate[] = mockProducts.map((p, idx) => {
   };
 });
 
-function addDays(date: Date, days: number): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
-}
-
 function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -82,7 +77,7 @@ export async function runSeedDemo(): Promise<SeedDemoResult> {
     await saasPrisma.organization.delete({ where: { id: existingDemo.id } });
   }
 
-  const trialEndsAt = addDays(new Date(), 7);
+  const trialEndsAt = addDays(new Date(), DEMO_TRIAL_DAYS);
   const org = await saasPrisma.organization.create({
     data: {
       name: "Demo Organization",

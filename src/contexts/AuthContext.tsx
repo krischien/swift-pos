@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState } from "react";
-import { User } from "@/types/pos";
+import React, { createContext, useContext, useState, useCallback } from "react";
+import { User, type UserRole } from "@/types/pos";
 import { api } from "@/lib/api";
 import { isSaaS } from "@/config/appMode";
 import {
@@ -17,6 +17,8 @@ export interface LoginResult {
 interface AuthContextType {
   user: User | null;
   organization: { id: string; name: string; plan: string; trialEndsAt?: string | null } | null;
+  /** Updates org from GET /api/org so trial banner matches the API (fixes stale localStorage after login). */
+  syncOrganization: (org: { id: string; name: string; plan: string; trialEndsAt?: string | null } | null) => void;
   login: (email: string, password: string) => Promise<LoginResult>;
   logout: () => void;
   setUserFromAuth: (user: User) => void;
@@ -93,7 +95,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         id: res.user.id,
         name: res.user.name,
         email: res.user.email,
-        role: res.user.role as "admin" | "cashier",
+        role: res.user.role as UserRole,
       };
       persistUser(u);
       setUser(u);
@@ -131,11 +133,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(u);
   };
 
+  const syncOrganization = useCallback((org: AuthContextType["organization"]) => {
+    persistOrganization(org);
+    setOrganization(org);
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
         user,
         organization,
+        syncOrganization,
         login,
         logout,
         setUserFromAuth,

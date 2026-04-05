@@ -51,5 +51,21 @@ export async function tenantMiddleware(req: AuthRequest, res: Response, next: Ne
     }
   }
 
+  // Cashiers (and any user with UserStore rows): trust live DB — JWT storeIds often go stale after reseed or store changes
+  if (auth.userId && storeId) {
+    try {
+      const access = await saasPrisma.userStore.findFirst({
+        where: { userId: auth.userId, storeId },
+      });
+      if (access) {
+        (req as any).storeId = storeId;
+        (req as any).organizationId = auth.organizationId;
+        return next();
+      }
+    } catch (err) {
+      console.error("[tenant] userStore check failed:", err);
+    }
+  }
+
   return res.status(403).json({ message: "Access denied to this store" });
 }

@@ -14,21 +14,54 @@ import adminRouter from "./routes/admin.js";
 import * as categoryService from "./services/categoryService.js";
 import * as productService from "./services/productService.js";
 import * as saleService from "./services/saleService.js";
+import { changePhpFromCents, paymentCoversTotal, phpToCents } from "../utils/money.js";
 import * as variantService from "./services/variantService.js";
 import * as userService from "./services/userService.js";
 import { runSeedDemo } from "./services/seedDemoService.js";
-import { runBootstrapSeed } from "./services/bootstrapSeedService.js";
+import { runBootstrapSeed, ensureDemoQuickLoginUsers } from "./services/bootstrapSeedService.js";
+import { DEMO_TRIAL_DAYS, addDays } from "./constants/demo.js";
 
 const app = express();
 const port = process.env.SAAS_PORT || 4001;
 
-// CORS: SAAS_CORS_ORIGINS=* allows all (for local dev debug). Else use listed origins.
+// CORS: SAAS_CORS_ORIGINS=* allows all. Otherwise listed origins — plus Capacitor / Ionic
+// WebView origins so mobile apps don't get "failed to fetch" when the VPS env omits them.
 const corsOriginsRaw = process.env.SAAS_CORS_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean) ?? [];
 const allowAllCors = corsOriginsRaw.includes("*");
-const corsOrigins = allowAllCors ? [] : corsOriginsRaw;
+const corsOriginsExplicit = corsOriginsRaw.filter((o) => o !== "*");
+const mobileWebViewOrigins = [
+  "capacitor://localhost",
+  "ionic://localhost",
+  "http://localhost",
+  "https://localhost",
+];
+const corsAllowedSet = new Set([...corsOriginsExplicit, ...mobileWebViewOrigins]);
+
+function corsOriginOption(): boolean | ((origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => void) {
+  if (allowAllCors || corsOriginsExplicit.length === 0) {
+    return true;
+  }
+  return (origin, callback) => {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+    if (corsAllowedSet.has(origin)) {
+      callback(null, true);
+      return;
+    }
+    // Some Capacitor builds vary the scheme/host slightly
+    if (/^capacitor:\/\//i.test(origin) || /^ionic:\/\//i.test(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(null, false);
+  };
+}
+
 app.use(
   cors({
-    origin: allowAllCors || corsOrigins.length === 0 ? true : corsOrigins,
+    origin: corsOriginOption(),
     credentials: true,
   })
 );
@@ -598,10 +631,20 @@ protectedRouter.get("/api/sales", async (req: AuthRequest, res) => {
   try {
     const storeId = (req as any).storeId;
     if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    const { from, to } = req.query as { from?: string; to?: string };
+    const { from, to, voidFilter } = req.query as {
+      from?: string;
+      to?: string;
+      voidFilter?: string;
+    };
+    const vfRaw = voidFilter?.toLowerCase();
+    const voidFilterParsed =
+      vfRaw === "voided" || vfRaw === "all" || vfRaw === "active"
+        ? (vfRaw as "active" | "voided" | "all")
+        : undefined;
     const sales = await saleService.listSales(storeId, {
       from: from ? new Date(from) : undefined,
       to: to ? new Date(to) : undefined,
+      voidFilter: voidFilterParsed,
     });
     res.json(sales);
   } catch (error: unknown) {
@@ -679,7 +722,12 @@ protectedRouter.post("/api/sales", async (req: AuthRequest, res) => {
     const discountAmount = subtotal * Math.max(0, Math.min(100, discountPercent)) / 100;
     const netSubtotal = Math.max(0, subtotal - discountAmount);
     const total = netSubtotal + netSubtotal * taxRate;
-    const change = amountReceived - total;
+    const receivedCents = phpToCents(amountReceived);
+    const totalCents = phpToCents(total);
+    if (!paymentCoversTotal(amountReceived, total)) {
+      return res.status(400).json({ message: "Amount received is less than total due" });
+    }
+    const change = changePhpFromCents(receivedCents, totalCents);
 
     const items = cartItems.map((item) => ({
       productId: item.productId,
@@ -738,6 +786,22 @@ orgRouter.get("/api/stores", async (req: AuthRequest, res) => {
     const role = req.auth?.role;
     const storeIds = req.auth?.storeIds ?? [];
 
+    // Super admin has no org and JWT storeIds are empty — return Demo org stores so POS can load catalog
+    if (role === "super_admin" && !orgId) {
+      const demoOrg = await saasPrisma.organization.findFirst({
+        where: { name: "Demo Organization", email: "demo@example.com" },
+      });
+      if (demoOrg) {
+        const stores = await saasPrisma.store.findMany({
+          where: { organizationId: demoOrg.id },
+          select: { id: true, name: true },
+          orderBy: { createdAt: "asc" },
+        });
+        return res.json(stores);
+      }
+      return res.json([]);
+    }
+
     // Owners get all org stores so they can switch and cover for cashiers
     if (role === "owner" && orgId) {
       const stores = await saasPrisma.store.findMany({
@@ -748,7 +812,16 @@ orgRouter.get("/api/stores", async (req: AuthRequest, res) => {
       return res.json(stores);
     }
 
-    // Cashiers get only their assigned stores
+    // Cashiers / other org users: list stores from DB (JWT storeIds may be stale after reseed)
+    if (req.auth?.userId && orgId) {
+      const rows = await saasPrisma.userStore.findMany({
+        where: { userId: req.auth.userId },
+        include: { store: { select: { id: true, name: true } } },
+        orderBy: { storeId: "asc" },
+      });
+      return res.json(rows.map((r) => ({ id: r.store.id, name: r.store.name })));
+    }
+
     if (storeIds.length === 0) {
       return res.json([]);
     }
@@ -967,19 +1040,53 @@ async function unsuspendDemoOrg() {
     where: { email: "owner@demo.com" },
   });
   if (!owner?.organizationId) return;
-  const trialEndsAt = new Date("2026-06-01");
+  const trialEndsAt = addDays(new Date(), DEMO_TRIAL_DAYS);
   await saasPrisma.organization.update({
     where: { id: owner.organizationId },
     data: { plan: "free", trialEndsAt },
   });
-  console.log(`[Demo] Demo organization active. Trial ends 2026-06-01.`);
+  console.log(`[Demo] Demo organization active. Trial ends ${trialEndsAt.toISOString().slice(0, 10)}.`);
+}
+
+/** Full demo seed when Demo Organization has no catalog (or DB is empty). Dev only. */
+async function runSeedDemoIfEmptyDev() {
+  if (process.env.NODE_ENV === "production") return;
+  if (process.env.SAAS_AUTO_SEED_DEMO === "false") return;
+
+  const demoOrg = await saasPrisma.organization.findFirst({
+    where: { name: "Demo Organization", email: "demo@example.com" },
+    include: { stores: { select: { id: true } } },
+  });
+
+  let needFullSeed = false;
+  if (!demoOrg) {
+    const totalProducts = await saasPrisma.product.count();
+    needFullSeed = totalProducts === 0;
+  } else {
+    const storeIds = demoOrg.stores.map((s) => s.id);
+    const demoProductCount =
+      storeIds.length === 0
+        ? 0
+        : await saasPrisma.product.count({ where: { storeId: { in: storeIds } } });
+    needFullSeed = demoProductCount === 0;
+  }
+
+  if (!needFullSeed) return;
+
+  console.log(
+    "[Bootstrap] Demo catalog empty (no Demo org or no products in its stores) — running full demo seed (2 stores, 15-day trial, sales history)…"
+  );
+  await runSeedDemo();
+  console.log("[Bootstrap] Full demo seed finished.");
 }
 
 async function start() {
   try {
     await runBootstrapSeed();
-    // In dev, ensure demo accounts work: reset passwords and unsuspend demo org
+    // Dev: full catalog seed when empty, then quick-login emails (after seed: cashier@demo.com), passwords, trial
     if (process.env.NODE_ENV !== "production") {
+      await runSeedDemoIfEmptyDev();
+      await ensureDemoQuickLoginUsers();
       await resetDemoPasswords();
       await unsuspendDemoOrg();
     }

@@ -188,7 +188,7 @@ const AppLayout = () => {
       <main className="flex-1 overflow-auto lg:mt-0 mt-16 flex flex-col">
         <TrialBanner />
         <NotificationBanner />
-        <div className="flex-1 min-h-0">
+        <div className="flex flex-1 min-h-0 flex-col">
           <Outlet />
         </div>
       </main>

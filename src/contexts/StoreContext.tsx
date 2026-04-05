@@ -2,6 +2,11 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import { isSaaS } from "@/config/appMode";
 import { getSaasToken, fetchStores } from "@/lib/saasAuth";
 
+const initialStoresLoading = (): boolean => {
+  if (typeof window === "undefined" || !isSaaS()) return false;
+  return !!getSaasToken();
+};
+
 const DEFAULT_STORE_ID = "default";
 const STORES_STORAGE_KEY = "saas_stores";
 
@@ -34,7 +39,7 @@ export const StoreProvider = ({ children }: { children: React.ReactNode }) => {
     return DEFAULT_STORE_ID;
   });
   const [stores, setStoresState] = useState<Array<{ id: string; name: string }>>(getStoredStores);
-  const [storesLoading, setStoresLoading] = useState(false);
+  const [storesLoading, setStoresLoading] = useState(initialStoresLoading);
 
   const setActiveStoreId = useCallback((id: string) => {
     setActiveStoreIdState(id);
@@ -59,23 +64,38 @@ export const StoreProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [stores, setActiveStoreId]);
 
+  // Always refresh stores from the API when logged in. Cached localStorage can list store IDs
+  // that no longer exist after a DB reseed, which yields empty products / 403.
   useEffect(() => {
-    if (!isSaaS() || stores.length > 0) return;
+    if (!isSaaS()) return;
     const token = getSaasToken();
-    if (!token) return;
+    if (!token) {
+      setStoresLoading(false);
+      return;
+    }
     setStoresLoading(true);
     void fetchStores()
       .then((list) => {
-        if (list.length > 0) {
-          setStores(list);
-          const current = window.localStorage.getItem("saas_active_store_id");
-          if (!current || current === "default" || !list.some((s) => s.id === current)) {
-            setActiveStoreId(list[0].id);
-          }
+        const current = window.localStorage.getItem("saas_active_store_id");
+        const activeInvalid =
+          !!list.length &&
+          !!current &&
+          current !== "default" &&
+          !list.some((s) => s.id === current);
+        if (activeInvalid) {
+          void import("@/lib/saasOffline").then(({ clearOfflineData }) =>
+            clearOfflineData().catch(() => {})
+          );
+        }
+        setStores(list);
+        if (!list.length) {
+          setActiveStoreId(DEFAULT_STORE_ID);
+        } else if (!current || current === "default" || activeInvalid) {
+          setActiveStoreId(list[0].id);
         }
       })
       .finally(() => setStoresLoading(false));
-  }, [stores.length, setStores, setActiveStoreId]);
+  }, [setStores, setActiveStoreId]);
 
   return (
     <StoreContext.Provider

@@ -41,6 +41,12 @@ import {
 import { OCRScanDialog } from "@/components/inventory/OCRScanDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import {
+  isLowStock,
+  hasZeroStock,
+  outOfStockVariantCount,
+  needsStockAttention,
+} from "@/lib/inventoryStockStatus";
 
 const Inventory = () => {
   const dataService = useDataLayer();
@@ -113,33 +119,6 @@ const Inventory = () => {
       }
     }
   }, [formBasePrice, formMarginPercentage]);
-
-  // Low stock: stock > 0 AND stock <= threshold (excludes zero - zero gets "Out of Stock" badge)
-  const isLowStock = (product: Product): boolean => {
-    if (product.hasVariants && product.variants) {
-      return product.variants.some(
-        (v) => v.stock > 0 && v.stock <= product.lowStockThreshold
-      );
-    }
-    const stock = product.stock || 0;
-    return stock > 0 && stock <= product.lowStockThreshold;
-  };
-
-  const hasZeroStock = (product: Product): boolean => {
-    if (product.hasVariants && product.variants) {
-      return product.variants.some((v) => (v.stock ?? 0) <= 0);
-    }
-    return (product.stock ?? 0) <= 0;
-  };
-
-  const outOfStockVariantCount = (product: Product): number => {
-    if (!product.hasVariants || !product.variants) return 0;
-    return product.variants.filter((v) => (v.stock ?? 0) <= 0).length;
-  };
-
-  const needsStockAttention = (product: Product): boolean => {
-    return isLowStock(product) || hasZeroStock(product);
-  };
 
   const filtered = products.filter((p) => {
     // Apply search filter

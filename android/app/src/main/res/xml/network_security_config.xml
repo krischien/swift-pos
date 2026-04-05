@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Allows cleartext (HTTP) for API connections (local and remote).
-     For production Play Store release with HTTPS API, you can remove this file
-     and the networkSecurityConfig reference from AndroidManifest. -->
+<!-- Cleartext HTTP for SaaS API (LAN, emulator 10.0.2.2, and remote IP).
+     Explicit domains help some WebView/OEM builds; base-config keeps a safe default. -->
 <network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">57.129.115.42</domain>
+    </domain-config>
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />

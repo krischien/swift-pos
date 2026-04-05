@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -20,14 +20,45 @@ import JsBarcode from "jsbarcode";
 import QRCode from "qrcode";
 import { Printer } from "lucide-react";
 
+/** Select value is `productId` (base) or `productId::variantId`. */
+function parseStickerSelection(value: string): { productId: string; variantId?: string } {
+  const parts = value.split("::");
+  if (parts.length === 2 && parts[0] && parts[1]) {
+    return { productId: parts[0], variantId: parts[1] };
+  }
+  return { productId: value };
+}
+
+function buildStickerSelectOptions(products: Product[]): { value: string; label: string }[] {
+  const items: { value: string; label: string }[] = [];
+  for (const p of products.filter((x) => x.status === "active")) {
+    if (p.hasVariants && p.variants && p.variants.length > 0) {
+      for (const v of p.variants) {
+        const code = p.sku || p.itemCode;
+        items.push({
+          value: `${p.id}::${v.id}`,
+          label: `${p.name} — ${v.name}${code ? ` (${code})` : ""}`,
+        });
+      }
+    } else {
+      items.push({
+        value: p.id,
+        label: `${p.name} ${p.sku ? `(${p.sku})` : p.itemCode ? `(${p.itemCode})` : ""}`.trim(),
+      });
+    }
+  }
+  return items;
+}
+
 const StickerGenerator = () => {
   const dataService = useDataLayer();
   const { activeStoreId } = useStore();
   const { toast } = useToast();
-  const { stickerCodeType } = useSettings();
+  const { stickerCodeType, enablePerKiloPurchase } = useSettings();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedProductId, setSelectedProductId] = useState<string>("");
+  /** `productId` or `productId::variantId` */
+  const [selectedOptionValue, setSelectedOptionValue] = useState<string>("");
   const [sku, setSku] = useState("");
   const [weight, setWeight] = useState("");
   const [price, setPrice] = useState("");
@@ -36,36 +67,83 @@ const StickerGenerator = () => {
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
   const [stickerData, setStickerData] = useState<{
     sku: string;
-    weight: number;
     price: number;
     productName: string;
+    /** Only when Per Kilo Purchase is enabled */
+    weight?: number;
   } | null>(null);
+
+  const stickerOptions = useMemo(() => buildStickerSelectOptions(products), [products]);
+
+  const effectiveUnitPrice = useMemo(() => {
+    if (!selectedOptionValue) return undefined;
+    const { productId, variantId } = parseStickerSelection(selectedOptionValue);
+    const product = products.find((p) => p.id === productId);
+    if (!product) return undefined;
+    if (variantId) {
+      const v = product.variants?.find((x) => x.id === variantId);
+      if (v) return v.price;
+    }
+    return product.price;
+  }, [selectedOptionValue, products]);
 
   useEffect(() => {
     loadProducts();
   }, [activeStoreId]);
 
   useEffect(() => {
-    if (selectedProductId) {
-      const product = products.find((p) => p.id === selectedProductId);
-      if (product) {
-        setSku(product.sku || product.itemCode || "");
-        setProductName(product.name);
-        // Calculate price based on weight if product has price
-        if (product.price && weight) {
-          const calculatedPrice = parseFloat(weight) * product.price;
-          setPrice(calculatedPrice.toFixed(2));
-        } else if (product.price) {
-          setPrice(product.price.toString());
+    if (!selectedOptionValue) return;
+    const { productId, variantId } = parseStickerSelection(selectedOptionValue);
+    const product = products.find((p) => p.id === productId);
+    if (!product) return;
+
+    if (variantId) {
+      const variant = product.variants?.find((v) => v.id === variantId);
+      if (variant) {
+        const baseCode = product.sku || product.itemCode || "";
+        setSku(baseCode ? `${baseCode}-${variant.name}` : variant.id.slice(0, 8));
+        setProductName(`${product.name} — ${variant.name}`);
+        if (variant.price == null) return;
+        if (!enablePerKiloPurchase) {
+          setPrice(String(variant.price));
+          return;
         }
+        if (weight) {
+          setPrice((parseFloat(weight) * variant.price).toFixed(2));
+        } else {
+          setPrice(String(variant.price));
+        }
+        return;
       }
     }
-  }, [selectedProductId, products, weight]);
+
+    setSku(product.sku || product.itemCode || "");
+    setProductName(product.name);
+    if (product.price == null) return;
+    if (!enablePerKiloPurchase) {
+      setPrice(String(product.price));
+      return;
+    }
+    if (weight) {
+      setPrice((parseFloat(weight) * product.price).toFixed(2));
+    } else {
+      setPrice(String(product.price));
+    }
+  }, [selectedOptionValue, products, weight, enablePerKiloPurchase]);
+
+  useEffect(() => {
+    if (!selectedOptionValue) return;
+    if (!stickerOptions.some((o) => o.value === selectedOptionValue)) {
+      setSelectedOptionValue("");
+    }
+  }, [stickerOptions, selectedOptionValue]);
 
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const prods = await dataService.getProducts();
+      const storeId =
+        activeStoreId && activeStoreId !== "default" ? activeStoreId : undefined;
+      const prods = await dataService.getProducts(undefined, storeId);
       setProducts(prods as Product[]);
     } catch (error: any) {
       toast({
@@ -80,35 +158,47 @@ const StickerGenerator = () => {
 
   const handleWeightChange = (value: string) => {
     setWeight(value);
-    if (selectedProductId && value) {
-      const product = products.find((p) => p.id === selectedProductId);
-      if (product && product.price) {
-        const calculatedPrice = parseFloat(value) * product.price;
-        setPrice(calculatedPrice.toFixed(2));
-      }
+    if (!enablePerKiloPurchase) return;
+    if (selectedOptionValue && value && effectiveUnitPrice != null) {
+      setPrice((parseFloat(value) * effectiveUnitPrice).toFixed(2));
     }
   };
 
   const generateSticker = () => {
-    if (!sku || !weight || !price) {
+    if (!sku || !price) {
       toast({
         variant: "destructive",
         title: "Missing information",
-        description: "Please fill in SKU, Weight, and Price",
+        description: enablePerKiloPurchase
+          ? "Please fill in SKU, Weight, and Price"
+          : "Please fill in SKU and Price",
       });
       return;
     }
 
-    const weightNum = parseFloat(weight);
-    const priceNum = parseFloat(price);
-
-    if (isNaN(weightNum) || weightNum <= 0) {
+    if (enablePerKiloPurchase && !weight) {
       toast({
         variant: "destructive",
-        title: "Invalid weight",
-        description: "Weight must be a positive number",
+        title: "Missing information",
+        description: "Please enter weight (kg)",
       });
       return;
+    }
+
+    const priceNum = parseFloat(price);
+
+    let weightNum: number | undefined;
+    if (enablePerKiloPurchase) {
+      const w = parseFloat(weight);
+      if (isNaN(w) || w <= 0) {
+        toast({
+          variant: "destructive",
+          title: "Invalid weight",
+          description: "Weight must be a positive number",
+        });
+        return;
+      }
+      weightNum = w;
     }
 
     if (isNaN(priceNum) || priceNum <= 0) {
@@ -120,12 +210,9 @@ const StickerGenerator = () => {
       return;
     }
 
-    // Create data object to encode in barcode/QR code
-    const data = {
-      sku: sku,
-      weight: weightNum,
-      price: priceNum,
-    };
+    const data = enablePerKiloPurchase
+      ? { sku, weight: weightNum!, price: priceNum }
+      : { sku, price: priceNum };
 
     const dataString = JSON.stringify(data);
 
@@ -146,9 +233,9 @@ const StickerGenerator = () => {
         setQrCodeDataUrl(""); // Clear QR code
         setStickerData({
           sku,
-          weight: weightNum,
           price: priceNum,
           productName: productName || sku,
+          ...(enablePerKiloPurchase && weightNum != null ? { weight: weightNum } : {}),
         });
       } else {
         // Generate QR code only
@@ -162,9 +249,9 @@ const StickerGenerator = () => {
             setBarcodeDataUrl(""); // Clear barcode
             setStickerData({
               sku,
-              weight: weightNum,
               price: priceNum,
               productName: productName || sku,
+              ...(enablePerKiloPurchase && weightNum != null ? { weight: weightNum } : {}),
             });
           })
           .catch((error) => {
@@ -265,8 +352,8 @@ const StickerGenerator = () => {
             <div class="info sku">SKU: ${stickerData.sku}</div>
             ${stickerCodeType === "barcode" && barcodeDataUrl ? `<div class="barcode-container"><img src="${barcodeDataUrl}" alt="Barcode" /></div>` : ""}
             ${stickerCodeType === "qr" && qrCodeDataUrl ? `<div class="qr-container"><img src="${qrCodeDataUrl}" alt="QR Code" /></div>` : ""}
-            <div class="weight-price">
-              <span class="info">Weight: ${stickerData.weight} kg</span>
+            <div class="weight-price" style="${stickerData.weight != null ? "" : "justify-content: center;"}">
+              ${stickerData.weight != null ? `<span class="info">Weight: ${stickerData.weight} kg</span>` : ""}
               <span class="price">${formatCurrency(stickerData.price)}</span>
             </div>
           </div>
@@ -283,13 +370,15 @@ const StickerGenerator = () => {
     }, 250);
   };
 
-  const selectedProduct = products.find((p) => p.id === selectedProductId);
-
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
       <div>
         <h1 className="text-3xl font-bold">Sticker Generator</h1>
-        <p className="text-muted-foreground">Generate QR/Barcode stickers for weighed items</p>
+        <p className="text-muted-foreground">
+          {enablePerKiloPurchase
+            ? "Generate QR/Barcode stickers for weighed (per kg) items"
+            : "Generate QR/Barcode stickers with SKU and price"}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -302,18 +391,16 @@ const StickerGenerator = () => {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="product">Product</Label>
-              <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+              <Select value={selectedOptionValue} onValueChange={setSelectedOptionValue}>
                 <SelectTrigger id="product">
-                  <SelectValue placeholder="Select a product" />
+                  <SelectValue placeholder="Select a product or variant" />
                 </SelectTrigger>
                 <SelectContent>
-                  {products
-                    .filter((p) => p.status === "active")
-                    .map((product) => (
-                      <SelectItem key={product.id} value={product.id}>
-                        {product.name} {product.sku ? `(${product.sku})` : ""}
-                      </SelectItem>
-                    ))}
+                  {stickerOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -338,25 +425,27 @@ const StickerGenerator = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="weight">Weight (kg)</Label>
-              <Input
-                id="weight"
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                value={weight}
-                onChange={(e) => handleWeightChange(e.target.value)}
-              />
-              {selectedProduct && selectedProduct.price && (
-                <p className="text-xs text-muted-foreground">
-                  Price per kg: {formatCurrency(selectedProduct.price)}
-                </p>
-              )}
-            </div>
+            {enablePerKiloPurchase && (
+              <div className="space-y-2">
+                <Label htmlFor="weight">Weight (kg)</Label>
+                <Input
+                  id="weight"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={weight}
+                  onChange={(e) => handleWeightChange(e.target.value)}
+                />
+                {effectiveUnitPrice != null && (
+                  <p className="text-xs text-muted-foreground">
+                    Price per kg: {formatCurrency(effectiveUnitPrice)}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
-              <Label htmlFor="price">Price</Label>
+              <Label htmlFor="price">{enablePerKiloPurchase ? "Price" : "Price (unit)"}</Label>
               <Input
                 id="price"
                 type="number"
@@ -398,8 +487,12 @@ const StickerGenerator = () => {
                     </div>
                   )}
                   
-                  <div className="flex justify-between items-center mt-4 text-sm">
-                    <span>Weight: {stickerData.weight} kg</span>
+                  <div
+                    className={`flex mt-4 text-sm ${enablePerKiloPurchase && stickerData.weight != null ? "justify-between items-center" : "justify-center"}`}
+                  >
+                    {enablePerKiloPurchase && stickerData.weight != null && (
+                      <span>Weight: {stickerData.weight} kg</span>
+                    )}
                     <span className="text-lg font-bold text-primary">
                       {formatCurrency(stickerData.price)}
                     </span>

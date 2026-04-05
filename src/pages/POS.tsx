@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CategoryTabs } from "@/components/pos/CategoryTabs";
@@ -18,7 +18,43 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { Capacitor } from "@capacitor/core";
 import { printerService } from "@/lib/printer";
 import { formatCurrency } from "@/lib/currency";
+import { changePhpFromCents, phpToCents } from "@/lib/phpMoney";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QuickScanCard } from "@/components/pos/QuickScanCard";
+
+/** Values to compare against sku / itemCode / barcode (whitespace, leading zeros). */
+function scanMatchVariants(raw: string): Set<string> {
+  const t = raw.trim().replace(/\s+/g, "");
+  const digits = t.replace(/\D/g, "");
+  const out = new Set<string>([t]);
+  if (digits.length) {
+    out.add(digits);
+    out.add(digits.replace(/^0+/, "") || "0");
+  }
+  return out;
+}
+
+function fieldMatchesAnyVariant(field: string | undefined | null, variants: Set<string>): boolean {
+  if (field == null || field === "") return false;
+  const fv = String(field).trim().replace(/\s+/g, "");
+  const fvDigits = fv.replace(/\D/g, "");
+  for (const v of variants) {
+    if (v === fv || v === fvDigits) return true;
+    const vd = v.replace(/\D/g, "");
+    if (vd && fvDigits && vd === fvDigits) return true;
+  }
+  return false;
+}
+
+function findProductByScan(products: Product[], scannedData: string): Product | undefined {
+  const variants = scanMatchVariants(scannedData);
+  return products.find(
+    (p) =>
+      fieldMatchesAnyVariant(p.sku, variants) ||
+      fieldMatchesAnyVariant(p.itemCode, variants) ||
+      fieldMatchesAnyVariant(p.barcode, variants),
+  );
+}
 
 const POS = () => {
   const dataService = useDataLayer();
@@ -34,6 +70,7 @@ const POS = () => {
     taxRatePercent,
     selectedPrinter,
     enablePerKiloPurchase,
+    enableBarcodeScanning,
   } = useSettings();
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -49,9 +86,33 @@ const POS = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [discountPercent, setDiscountPercent] = useState(0);
+  const [productBrowseExpanded, setProductBrowseExpanded] = useState(false);
+
+  /** Shown when camera/USB scan decodes but no product matches (or catalog empty). */
+  const toastScanNotRecognized = useCallback(
+    (scannedCode: string) => {
+      const label = scannedCode.trim().length > 0 ? scannedCode.trim() : "(empty)";
+      toast({
+        variant: "destructive",
+        title: "Barcode not recognized",
+        description:
+          products.length === 0
+            ? "No products loaded for this store. Select a store or wait for the catalog to finish loading."
+            : `No results for "${label}". In Inventory, set Item code, SKU, or Barcode to match this scan.`,
+      });
+    },
+    [products.length, toast],
+  );
 
   const { activeStoreId, stores, storesLoading } = useStore();
+
   useEffect(() => {
+    if (enableBarcodeScanning) {
+      setProductBrowseExpanded(false);
+    }
+  }, [enableBarcodeScanning]);
+  useEffect(() => {
+    if (storesLoading) return;
     setCart([]); // Clear cart when switching stores
     // Wait for a valid store - cashiers need explicit storeId to load correct products
     const isValidStore =
@@ -85,7 +146,7 @@ const POS = () => {
       }
     };
     load();
-  }, [activeStoreId, stores, dataService]);
+  }, [activeStoreId, stores, dataService, storesLoading]);
 
   const filteredProducts = products.filter((product) => {
     const matchesCategory = !selectedCategory || product.categoryId === selectedCategory;
@@ -125,40 +186,35 @@ const POS = () => {
   };
 
   const addToCart = (product: Product, variant?: Variant) => {
-    // Calculate selling price
     let price: number;
     if (variant) {
-      // For variants: variant.price is base price, calculate selling price with margin percentage
       const basePrice = variant.price;
       const marginPercent = product.marginPercentage || 0;
       price = basePrice * (1 + marginPercent / 100);
     } else {
-      // For regular products: use product.price (which is already calculated with margin)
       price = product.price || 0;
     }
 
     const existingItemId = variant
       ? `${product.id}-${variant.id}`
       : product.id;
-    
-    const existingItem = cart.find((item) => item.id === existingItemId);
-    const incrementAmount = enablePerKiloPurchase ? 0.1 : 1;
-    // (debug) enablePerKiloPurchase influences increment and initial quantity
 
-    if (existingItem) {
-      const newQuantity = existingItem.quantity + incrementAmount;
-      setCart(
-        cart.map((item) =>
+    const incrementAmount = enablePerKiloPurchase ? 0.1 : 1;
+
+    setCart((prev) => {
+      const existingItem = prev.find((item) => item.id === existingItemId);
+      if (existingItem) {
+        const newQuantity = existingItem.quantity + incrementAmount;
+        return prev.map((item) =>
           item.id === existingItemId
             ? {
                 ...item,
                 quantity: newQuantity,
                 subtotal: newQuantity * item.price,
               }
-            : item
-        )
-      );
-    } else {
+            : item,
+        );
+      }
       const initialQuantity = enablePerKiloPurchase ? 0.1 : 1;
       const newItem: CartItem = {
         id: existingItemId,
@@ -170,34 +226,56 @@ const POS = () => {
         quantity: initialQuantity,
         subtotal: initialQuantity * price,
       };
-      setCart([...cart, newItem]);
-    }
+      return [...prev, newItem];
+    });
   };
 
   // Handle scanned weighted item sticker (from barcode/QR code)
   const handleScannedWeightedItem = (scannedData: string) => {
+    const applyScanToProduct = (product: Product) => {
+      if (isProductOutOfStock(product)) {
+        toast({
+          variant: "destructive",
+          title: "Out of stock",
+          description: `${product.name} is currently out of stock.`,
+        });
+        return;
+      }
+      if (product.hasVariants) {
+        setSelectedProduct(product);
+        setShowVariantModal(true);
+        toast({
+          title: "Select variant",
+          description: `Choose options for ${product.name}`,
+        });
+      } else {
+        addToCart(product);
+        toast({
+          title: "Added to cart",
+          description: product.name,
+        });
+      }
+    };
+
     try {
-      // Try to parse JSON data from scanned barcode/QR code
       const data = JSON.parse(scannedData);
-      
-      if (data.sku && typeof data.weight === "number" && typeof data.price === "number") {
-        // Find product by SKU or itemCode
-        const product = products.find(
-          (p) => p.sku === data.sku || p.itemCode === data.sku
-        );
+
+      if (
+        data &&
+        typeof data === "object" &&
+        data.sku &&
+        typeof data.weight === "number" &&
+        typeof data.price === "number"
+      ) {
+        const product = findProductByScan(products, String(data.sku));
 
         if (!product) {
-          toast({
-            variant: "destructive",
-            title: "Product not found",
-            description: `Product with SKU "${data.sku}" not found`,
-          });
+          toastScanNotRecognized(String(data.sku));
           return;
         }
 
-        // Create a unique ID for this weighted item
         const weightedItemId = `weighted-${product.id}-${Date.now()}`;
-        
+
         const newItem: CartItem = {
           id: weightedItemId,
           productId: product.id,
@@ -208,42 +286,73 @@ const POS = () => {
           subtotal: data.price,
         };
 
-        setCart([...cart, newItem]);
-        
+        setCart((prev) => [...prev, newItem]);
+
         toast({
           title: "Item added",
           description: `${product.name} (${data.weight} kg) added to cart`,
         });
-      } else {
-        // Not a weighted item sticker, try normal product lookup
-        const product = products.find(
-          (p) => p.sku === scannedData || p.itemCode === scannedData || p.barcode === scannedData
-        );
-        
-        if (product) {
-          handleProductSelect(product);
-        } else {
+      } else if (
+        data &&
+        typeof data === "object" &&
+        data.sku != null &&
+        String(data.sku).length > 0 &&
+        typeof data.price === "number" &&
+        typeof data.weight !== "number"
+      ) {
+        // Sticker generator without per-kilo: { sku, price } only
+        const product = findProductByScan(products, String(data.sku));
+        if (!product) {
+          toastScanNotRecognized(String(data.sku));
+          return;
+        }
+        if (isProductOutOfStock(product)) {
           toast({
             variant: "destructive",
-            title: "Product not found",
-            description: "Scanned code not recognized",
+            title: "Out of stock",
+            description: `${product.name} is currently out of stock.`,
           });
+          return;
+        }
+        if (product.hasVariants) {
+          setSelectedProduct(product);
+          setShowVariantModal(true);
+          toast({
+            title: "Select variant",
+            description: `Choose options for ${product.name}`,
+          });
+          return;
+        }
+        const unitId = `sticker-unit-${product.id}-${Date.now()}`;
+        setCart((prev) => [
+          ...prev,
+          {
+            id: unitId,
+            productId: product.id,
+            name: product.name,
+            price: data.price,
+            quantity: 1,
+            subtotal: data.price,
+          },
+        ]);
+        toast({
+          title: "Item added",
+          description: `${product.name} added to cart`,
+        });
+      } else {
+        const product = findProductByScan(products, scannedData);
+        if (product) {
+          applyScanToProduct(product);
+        } else {
+          toastScanNotRecognized(scannedData);
         }
       }
-    } catch (error) {
-      // Not JSON, try to find product by SKU/itemCode/barcode
-      const product = products.find(
-        (p) => p.sku === scannedData || p.itemCode === scannedData || p.barcode === scannedData
-      );
-      
+    } catch {
+      const product = findProductByScan(products, scannedData);
       if (product) {
-        handleProductSelect(product);
+        applyScanToProduct(product);
       } else {
-        toast({
-          variant: "destructive",
-          title: "Product not found",
-          description: "Scanned code not recognized",
-        });
+        toastScanNotRecognized(scannedData);
       }
     }
   };
@@ -478,7 +587,7 @@ const POS = () => {
     const netSubtotal = Math.max(0, subtotal - discountAmount);
     const taxAmount = netSubtotal * taxRate;
     const total = netSubtotal + taxAmount;
-    const change = amountReceived - total;
+    const change = changePhpFromCents(phpToCents(amountReceived), phpToCents(total));
 
     try {
       if (!user) {
@@ -552,9 +661,9 @@ const POS = () => {
   });
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
       {/* Header - desktop/tablet only */}
-      <header className="bg-card border-b p-4 items-center justify-between hidden md:flex">
+      <header className="bg-card border-b p-4 items-center justify-between hidden md:flex shrink-0">
         <div className="flex items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold">Point of Sale</h1>
@@ -572,62 +681,140 @@ const POS = () => {
         </div>
       </header>
 
-      <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden md:h-[calc(100vh-96px)] md:max-h-[calc(100vh-96px)]">
-        {/* Products Section */}
-        <div className="flex-1 flex flex-col md:overflow-hidden">
-          <div className="p-4 space-y-4 border-b bg-background">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-12 text-base"
-              />
-            </div>
-            <CategoryTabs
-              categories={categories}
-              selectedCategory={selectedCategory}
-              onSelectCategory={setSelectedCategory}
-            />
-          </div>
+      <div className="flex flex-1 min-h-0 flex-col md:flex-row md:overflow-hidden">
+        {/* Main column ~2/3 — scan / search / products */}
+        <div className="flex-1 flex flex-col min-h-0 md:min-w-0 md:flex-[2_1_0%] md:overflow-hidden bg-background">
+          {enableBarcodeScanning ? (
+            <>
+              <div className="shrink-0 p-4 md:p-5 space-y-4 border-b border-border bg-background">
+                <QuickScanCard
+                  onScan={handleScannedWeightedItem}
+                  browseExpanded={productBrowseExpanded}
+                  onBrowseProducts={() => setProductBrowseExpanded(true)}
+                  onBackToScan={() => setProductBrowseExpanded(false)}
+                  inlineCollapsedHint={false}
+                />
+                {!productBrowseExpanded && (
+                  <p className="md:hidden px-1 text-center text-xs leading-relaxed text-muted-foreground">
+                    Scan to add items. Tap Browse products above to search or pick from the grid.
+                  </p>
+                )}
+                {productBrowseExpanded && (
+                  <>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        placeholder="Search products..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10 h-12 text-base border-primary/40 focus-visible:ring-primary/30"
+                      />
+                    </div>
+                    <CategoryTabs
+                      categories={categories}
+                      selectedCategory={selectedCategory}
+                      onSelectCategory={setSelectedCategory}
+                    />
+                  </>
+                )}
+              </div>
 
-          <div className="flex-1 overflow-auto p-4">
-            {loading && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                {Array.from({ length: 10 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-auto flex flex-col p-4 bg-pos-product rounded-lg border"
-                  >
-                    <Skeleton className="w-full aspect-square mb-3 rounded-lg" />
-                    <Skeleton className="h-4 w-3/4 mb-2" />
-                    <Skeleton className="h-4 w-1/2" />
-                  </div>
-                ))}
-              </div>
-            )}
-            {error && !loading && (
-              <p className="text-sm text-destructive">Failed to load: {error}</p>
-            )}
-            {!loading && !error && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                {filteredProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onSelect={handleProductSelect}
-                    isOutOfStock={isProductOutOfStock(product)}
+              {!productBrowseExpanded ? (
+                <div className="hidden md:flex flex-1 min-h-[8rem] items-center justify-center px-8 py-12 bg-background">
+                  <p className="max-w-md text-center text-xs leading-relaxed text-muted-foreground">
+                    Scan to add items. Tap Browse products above to search or pick from the grid.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex-1 overflow-auto p-4 md:p-5 min-h-0">
+                  {loading ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                      {Array.from({ length: 10 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="h-auto flex flex-col p-4 bg-pos-product rounded-lg border"
+                        >
+                          <Skeleton className="w-full aspect-square mb-3 rounded-lg" />
+                          <Skeleton className="h-4 w-3/4 mb-2" />
+                          <Skeleton className="h-4 w-1/2" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : error ? (
+                    <p className="text-sm text-destructive">Failed to load: {error}</p>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                      {filteredProducts.map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          onSelect={handleProductSelect}
+                          isOutOfStock={isProductOutOfStock(product)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="shrink-0 p-4 md:p-5 space-y-4 border-b border-border bg-background">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    placeholder="Search products..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 h-12 text-base"
                   />
-                ))}
+                </div>
+                <CategoryTabs
+                  categories={categories}
+                  selectedCategory={selectedCategory}
+                  onSelectCategory={setSelectedCategory}
+                />
               </div>
-            )}
-          </div>
+
+              <div className="flex-1 overflow-auto p-4 md:p-5 min-h-0">
+                {loading && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="h-auto flex flex-col p-4 bg-pos-product rounded-lg border"
+                      >
+                        <Skeleton className="w-full aspect-square mb-3 rounded-lg" />
+                        <Skeleton className="h-4 w-3/4 mb-2" />
+                        <Skeleton className="h-4 w-1/2" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {error && !loading && (
+                  <p className="text-sm text-destructive">Failed to load: {error}</p>
+                )}
+                {!loading && !error && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                    {filteredProducts.map((product) => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        onSelect={handleProductSelect}
+                        isOutOfStock={isProductOutOfStock(product)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Cart Section - desktop/tablet */}
-        <div className="hidden md:flex md:flex-col md:w-96 lg:w-[420px] md:h-full">
+        {/* Cart column ~1/3 — full viewport height beside products */}
+        <div className="hidden min-h-0 min-w-[280px] max-w-[min(440px,36%)] shrink-0 flex flex-col border-l border-border bg-pos-cart md:flex md:h-full md:max-h-full md:self-stretch">
           <Cart
+            variant="sidebar"
             items={cart}
             onUpdateQuantity={handleUpdateQuantity}
             onRemoveItem={handleRemoveItem}

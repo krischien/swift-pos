@@ -52,6 +52,12 @@ import { getOrgStores } from "@/lib/saasOrgStoresApi";
 import { formatCurrency } from "@/lib/currency";
 import { PHP_DENOMINATIONS } from "@/lib/cashDenominations";
 import { Product } from "@/types/pos";
+import {
+  buildAggregatedStockAlertLines,
+  buildLowStockLineItems,
+  buildOutOfStockLineItems,
+  type StoreCatalogSlice,
+} from "@/lib/inventoryStockStatus";
 import { Input } from "@/components/ui/input";
 import {
   Bar,
@@ -103,7 +109,7 @@ type DateRangePreset = "today" | "7" | "30" | "90" | "all";
 
 const Reports = () => {
   const dataService = useDataLayer();
-  const { stores, storesLoading, activeStoreId } = useStore();
+  const { stores, storesLoading } = useStore();
   const [reportStores, setReportStores] = useState<Array<{ id: string; name: string }>>([]);
   const [reportStoresLoading, setReportStoresLoading] = useState(false);
   const [sales, setSales] = useState<any[]>([]);
@@ -132,6 +138,7 @@ const Reports = () => {
   });
   const [denominationCounts, setDenominationCounts] = useState<Record<string, number>>({});
   const [gcashTransactionSearch, setGcashTransactionSearch] = useState("");
+  const [allStoresCatalogs, setAllStoresCatalogs] = useState<StoreCatalogSlice[]>([]);
 
   const showStoreFilter = isSaaS();
   const storesToUse = reportStores.length > 0 ? reportStores : stores;
@@ -231,26 +238,29 @@ const Reports = () => {
         if (showStoreFilter && reportStoreId === "all" && storesToUse.length > 0) {
           const allSales: any[] = [];
           const allProducts: Product[] = [];
+          const catalogs: StoreCatalogSlice[] = [];
           for (const store of storesToUse) {
             try {
               const [s, p] = await Promise.all([
                 dataService.getSales(params, store.id),
                 dataService.getProducts(undefined, store.id),
               ]);
+              const list = (p as Product[]) || [];
               allSales.push(...((s as any[]) || []));
-              allProducts.push(...((p as Product[]) || []));
+              allProducts.push(...list);
+              catalogs.push({ storeId: store.id, storeName: store.name, products: list });
             } catch (err) {
               console.warn(`Failed to fetch data for store ${store.name}:`, err);
             }
           }
-          return { sales: allSales, products: allProducts };
+          return { sales: allSales, products: allProducts, allStoresCatalogs: catalogs };
         }
         const storeId = showStoreFilter && reportStoreId !== "all" ? reportStoreId : undefined;
         const [s, p] = await Promise.all([
           dataService.getSales(params, storeId),
           dataService.getProducts(undefined, storeId),
         ]);
-        return { sales: (s as any[]) || [], products: (p as Product[]) || [] };
+        return { sales: (s as any[]) || [], products: (p as Product[]) || [], allStoresCatalogs: [] as StoreCatalogSlice[] };
       };
 
       const fetchVoidCount = async (): Promise<number> => {
@@ -284,6 +294,7 @@ const Reports = () => {
 
       setSales(main.sales);
       setProducts(main.products);
+      setAllStoresCatalogs(main.allStoresCatalogs ?? []);
       setVoidCount(voidCountResult);
       setComparisonSales({
         today: sumSales(todaySales),
@@ -302,7 +313,7 @@ const Reports = () => {
 
   useEffect(() => {
     void loadData();
-  }, [datePreset, fromDate, toDate, reportStoreId, reportStores, stores, activeStoreId]);
+  }, [datePreset, fromDate, toDate, reportStoreId, reportStores, stores]);
 
   const stats = useMemo(() => {
     const total = sales.reduce((sum, s) => sum + (s.total ?? 0), 0);
@@ -521,33 +532,18 @@ const Reports = () => {
   }, [sales, products]);
 
   const lowStockItems = useMemo(() => {
-    return products.flatMap((p) => {
-      if (p.hasVariants && p.variants?.length) {
-        return p.variants
-          .filter((v) => (v.stock ?? 0) <= (p.lowStockThreshold ?? 0) && (v.stock ?? 0) > 0)
-          .map((v) => ({ id: `${p.id}-${v.id}`, name: `${p.name} - ${v.name}`, stock: v.stock ?? 0, status: "Low" }));
-      }
-      const stock = p.stock ?? 0;
-      if (stock <= (p.lowStockThreshold ?? 0) && stock > 0) {
-        return [{ id: `${p.id}-base`, name: p.name, stock, status: "Low" }];
-      }
-      return [];
-    });
-  }, [products]);
+    if (showStoreFilter && reportStoreId === "all" && allStoresCatalogs.length > 0) {
+      return buildAggregatedStockAlertLines(allStoresCatalogs, buildLowStockLineItems);
+    }
+    return buildLowStockLineItems(products);
+  }, [showStoreFilter, reportStoreId, allStoresCatalogs, products]);
 
   const outOfStockItems = useMemo(() => {
-    return products.flatMap((p) => {
-      if (p.hasVariants && p.variants?.length) {
-        return p.variants
-          .filter((v) => (v.stock ?? 0) === 0)
-          .map((v) => ({ id: `${p.id}-${v.id}`, name: `${p.name} - ${v.name}`, stock: 0, status: "Out of Stock" }));
-      }
-      if ((p.stock ?? 0) === 0) {
-        return [{ id: `${p.id}-base`, name: p.name, stock: 0, status: "Out of Stock" }];
-      }
-      return [];
-    });
-  }, [products]);
+    if (showStoreFilter && reportStoreId === "all" && allStoresCatalogs.length > 0) {
+      return buildAggregatedStockAlertLines(allStoresCatalogs, buildOutOfStockLineItems);
+    }
+    return buildOutOfStockLineItems(products);
+  }, [showStoreFilter, reportStoreId, allStoresCatalogs, products]);
 
   const storeColorMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -782,7 +778,7 @@ const Reports = () => {
       if (outOfStockItems.length) {
         XLSX.utils.book_append_sheet(
           wb,
-          XLSX.utils.json_to_sheet(outOfStockItems.map((x) => ({ Product: x.name, Stock: 0, Status: x.status }))),
+          XLSX.utils.json_to_sheet(outOfStockItems.map((x) => ({ Product: x.name, Stock: x.stock, Status: x.status }))),
           "Out of Stock"
         );
       }
@@ -1442,10 +1438,13 @@ const Reports = () => {
                   <AlertTriangle className="w-4 h-4 text-destructive" />
                   Low Stock Alerts
                 </CardTitle>
-                <CardDescription>Items below stock threshold</CardDescription>
               </CardHeader>
-              <CardContent>
-                {lowStockItems.length ? (
+              <CardContent className="pt-8">
+                {loading && showStoreFilter && reportStoreId === "all" ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : lowStockItems.length ? (
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -1480,10 +1479,13 @@ const Reports = () => {
                   <Package className="w-4 h-4 text-destructive" />
                   Out of Stock Items
                 </CardTitle>
-                <CardDescription>Items with zero stock</CardDescription>
               </CardHeader>
-              <CardContent>
-                {outOfStockItems.length ? (
+              <CardContent className="pt-8">
+                {loading && showStoreFilter && reportStoreId === "all" ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : outOfStockItems.length ? (
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -1496,7 +1498,7 @@ const Reports = () => {
                       {outOfStockItems.map((item) => (
                         <TableRow key={item.id}>
                           <TableCell className="font-medium">{item.name}</TableCell>
-                          <TableCell className="text-center">0</TableCell>
+                          <TableCell className="text-center">{item.stock}</TableCell>
                           <TableCell className="text-center">
                             <span className="text-destructive">Out of Stock</span>
                           </TableCell>

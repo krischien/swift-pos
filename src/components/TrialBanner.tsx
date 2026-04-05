@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { isSaaS } from "@/config/appMode";
@@ -7,7 +8,7 @@ import { AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 
 const TrialBanner = () => {
-  const { user, organization } = useAuth();
+  const { user, organization, syncOrganization } = useAuth();
 
   const shouldFetch =
     isSaaS() &&
@@ -21,6 +22,17 @@ const TrialBanner = () => {
     enabled: shouldFetch,
     staleTime: 5 * 60 * 1000,
   });
+
+  useEffect(() => {
+    if (orgInfo) {
+      syncOrganization({
+        id: orgInfo.id,
+        name: orgInfo.name,
+        plan: orgInfo.plan,
+        trialEndsAt: orgInfo.trialEndsAt,
+      });
+    }
+  }, [orgInfo, syncOrganization]);
 
   // Prefer fresh API data over cached org from login (handles backfilled trialEndsAt)
   const org = orgInfo ?? organization;

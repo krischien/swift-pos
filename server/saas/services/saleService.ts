@@ -1,4 +1,5 @@
 import { saasPrisma } from "../db.js";
+import { changePhpFromCents, paymentCoversTotal, phpToCents } from "../../utils/money.js";
 
 export interface CartItemInput {
   productId: string;
@@ -26,11 +27,12 @@ export interface CreateSaleInput {
 export async function createSale(input: CreateSaleInput) {
   const { storeId, cashierId, cashierName, amountReceived, items } = input;
   const total = input.total;
-  const change = input.change;
-
-  if (change < 0) {
+  const receivedCents = phpToCents(amountReceived);
+  const totalCents = phpToCents(total);
+  if (!paymentCoversTotal(amountReceived, total)) {
     throw new Error("Amount received is less than total due");
   }
+  const change = changePhpFromCents(receivedCents, totalCents);
 
   return saasPrisma.$transaction(async (tx) => {
     const ticketNumber =
@@ -98,9 +100,13 @@ export async function createSale(input: CreateSaleInput) {
   });
 }
 
+export type SaleVoidFilter = "active" | "voided" | "all";
+
 export interface ListSalesOptions {
   from?: Date;
   to?: Date;
+  /** active = non-voided (default); voided = void only; all = include both */
+  voidFilter?: SaleVoidFilter;
 }
 
 export async function countVoidedSales(storeId: string, options: ListSalesOptions = {}) {
@@ -123,11 +129,19 @@ export async function countVoidedSales(storeId: string, options: ListSalesOption
 
 export async function listSales(storeId: string, options: ListSalesOptions = {}) {
   const { from, to } = options;
+  const vf = options.voidFilter ?? "active";
+
+  const statusWhere =
+    vf === "voided"
+      ? { status: "void" as const }
+      : vf === "all"
+        ? {}
+        : { status: { not: "void" } };
 
   return saasPrisma.sale.findMany({
     where: {
       storeId,
-      status: { not: "void" },
+      ...statusWhere,
       ...(from || to
         ? {
             createdAt: {

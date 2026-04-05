@@ -13,7 +13,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Receipt, TrendingUp, Calendar, Download, DollarSign, Printer, Ban, Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Receipt,
+  TrendingUp,
+  Calendar as CalendarIcon,
+  Download,
+  DollarSign,
+  Printer,
+  Ban,
+  Search,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { useEffect, useMemo, useState } from "react";
 import { useDataLayer } from "@/contexts/DataLayerContext";
@@ -41,7 +53,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import type { DateRange } from "react-day-picker";
 import {
   Select,
   SelectContent,
@@ -95,8 +111,12 @@ const Sales = () => {
   const [saleToVoid, setSaleToVoid] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
+  type SaleVoidFilter = "active" | "voided" | "all";
+  const [voidFilter, setVoidFilter] = useState<SaleVoidFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [txnRangeOpen, setTxnRangeOpen] = useState(false);
+  const [calendarRange, setCalendarRange] = useState<DateRange | undefined>();
 
   type ExportRange = "today" | "weekly" | "monthly" | "quarterly" | "annual";
   type QuickRange = "all" | "today" | "week" | "month" | "year" | "custom";
@@ -107,7 +127,7 @@ const Sales = () => {
       setLoading(true);
       setError(null);
       const [salesData, productsData] = await Promise.all([
-        dataService.getSales({ from, to }),
+        dataService.getSales({ from, to, voidFilter }),
         dataService.getProducts(),
       ]);
       const salesArray = salesData as any[];
@@ -209,6 +229,17 @@ const Sales = () => {
     return { from, to, label };
   };
 
+  const getCurrentSalesRangeParams = (): { from?: string; to?: string } => {
+    if (quickRange === "custom") {
+      return {
+        from: fromDate ? new Date(fromDate).toISOString() : undefined,
+        to: toDate ? new Date(toDate).toISOString() : undefined,
+      };
+    }
+    const { from, to } = getQuickRangeBounds(quickRange);
+    return { from: from?.toISOString(), to: to?.toISOString() };
+  };
+
   const applyQuickRange = (range: QuickRange) => {
     if (range === "custom") {
       return;
@@ -221,13 +252,65 @@ const Sales = () => {
     void loadSales(from?.toISOString(), to?.toISOString());
   };
 
+  const applyCustomDateRange = (opts?: { fromDateStr: string; toDateStr: string }) => {
+    const f = opts?.fromDateStr ?? fromDate;
+    const t = opts?.toDateStr ?? toDate;
+    const from = f ? new Date(f).toISOString() : undefined;
+    const to = t ? new Date(t).toISOString() : undefined;
+    setQuickRange("custom");
+    if (opts) {
+      setFromDate(opts.fromDateStr);
+      setToDate(opts.toDateStr);
+    }
+    void loadSales(from, to);
+    setActiveRangeLabel(f || t ? `${f || "…"} – ${t || "…"}` : "All time");
+  };
+
+  const clearDateRangeFilter = () => {
+    setFromDate("");
+    setToDate("");
+    setQuickRange("all");
+    setActiveRangeLabel("All time");
+    setCalendarRange(undefined);
+    void loadSales();
+  };
+
+  const handleTxnRangeOpenChange = (open: boolean) => {
+    setTxnRangeOpen(open);
+    if (open) {
+      setCalendarRange({
+        from: fromDate ? new Date(`${fromDate}T12:00:00`) : undefined,
+        to: toDate ? new Date(`${toDate}T12:00:00`) : undefined,
+      });
+    }
+  };
+
+  const handleApplyTxnCalendarRange = () => {
+    if (!calendarRange?.from) {
+      setTxnRangeOpen(false);
+      return;
+    }
+    const fromStr = format(calendarRange.from, "yyyy-MM-dd");
+    const toStr = calendarRange.to ? format(calendarRange.to, "yyyy-MM-dd") : fromStr;
+    applyCustomDateRange({ fromDateStr: fromStr, toDateStr: toStr });
+    setTxnRangeOpen(false);
+  };
+
+  const txnRangeButtonLabel = useMemo(() => {
+    if (quickRange === "custom" && fromDate && toDate) {
+      return `${format(new Date(`${fromDate}T12:00:00`), "MMM d, yyyy")} – ${format(new Date(`${toDate}T12:00:00`), "MMM d, yyyy")}`;
+    }
+    if (activeRangeLabel && activeRangeLabel !== "All time") return activeRangeLabel;
+    return "Select date range";
+  }, [quickRange, fromDate, toDate, activeRangeLabel]);
+
   const handleExport = async (range: ExportRange) => {
     try {
       setExporting(true);
       const { fromISO, toISO, label } = getRangeForExport(range);
 
       const [salesData, productsData] = await Promise.all([
-        dataService.getSales({ from: fromISO, to: toISO }),
+        dataService.getSales({ from: fromISO, to: toISO, voidFilter: "active" }),
         dataService.getProducts(),
       ]);
 
@@ -303,8 +386,25 @@ const Sales = () => {
     }
   };
 
+  /** Non-voided sales only — used for dashboard metrics & charts (voided excluded). */
+  const salesNonVoid = useMemo(
+    () => sales.filter((s) => (s.status ?? "").toLowerCase() !== "void"),
+    [sales],
+  );
+
+  /** Top KPI row is labeled “Today’s …” — must use calendar today only, not all loaded rows (load can be all-time). */
+  const salesTodayNonVoid = useMemo(() => {
+    const now = new Date();
+    const from = startOfDay(now);
+    const to = endOfDay(now);
+    return salesNonVoid.filter((s) => {
+      const d = new Date(s.createdAt);
+      return d >= from && d <= to;
+    });
+  }, [salesNonVoid]);
+
   const stats = useMemo(() => {
-    if (!sales.length) {
+    if (!salesTodayNonVoid.length) {
       return [
         { title: "Today's Sales", value: formatCurrency(0), icon: PesoIcon, trend: "" },
         { title: "Transactions", value: "0", icon: Receipt, trend: "" },
@@ -313,62 +413,29 @@ const Sales = () => {
       ];
     }
 
-    const total = sales.reduce((sum, s) => sum + s.total, 0);
-    const count = sales.length;
+    const total = salesTodayNonVoid.reduce((sum, s) => sum + s.total, 0);
+    const count = salesTodayNonVoid.length;
     const avg = total / count;
 
-    // Calculate total profit using actual selling prices from sale items
     let totalProfit = 0;
-    console.log(`[PROFIT] Starting calculation. Sales: ${sales.length}, Products: ${products.length}`);
-    
-    // Log first sale for debugging
-    if (sales.length > 0 && sales[0].items) {
-      console.log(`[PROFIT] Sample sale item:`, sales[0].items[0]);
-    }
-    
-    for (const sale of sales) {
-      if (!sale.items || sale.items.length === 0) {
-        console.warn(`[PROFIT] Sale ${sale.id} has no items`);
-        continue;
-      }
-      
+    for (const sale of salesTodayNonVoid) {
+      if (!sale.items || sale.items.length === 0) continue;
+
       for (const item of sale.items) {
-        // Get margin percentage from product (we still need this)
         const product = products.find((p) => p.id === item.productId);
-        if (!product) {
-          console.warn(`[PROFIT] Product not found for sale item: ${item.productId}, Item: ${item.productName}`);
-          continue;
-        }
+        if (!product) continue;
 
         const marginPercent = product.marginPercentage ?? 0;
-        if (marginPercent === 0 || marginPercent === null || marginPercent === undefined) {
-          console.warn(`[PROFIT] Product "${product.name}" has no margin percentage set (value: ${product.marginPercentage})`);
-          continue;
-        }
+        if (marginPercent === 0 || marginPercent === null || marginPercent === undefined) continue;
 
-        // Use the actual selling price from the sale item (this is what was sold at)
         const sellingPrice = item.price;
-        
-        if (!sellingPrice || sellingPrice <= 0) {
-          console.warn(`[PROFIT] Invalid selling price for item: ${item.productName}, price: ${sellingPrice}`);
-          continue;
-        }
-        
-        // Calculate base price from selling price
-        // sellingPrice = basePrice × (1 + marginPercent/100)
-        // basePrice = sellingPrice / (1 + marginPercent/100)
+        if (!sellingPrice || sellingPrice <= 0) continue;
+
         const basePrice = sellingPrice / (1 + marginPercent / 100);
-        
-        // Profit = basePrice × marginPercent/100 × quantity
         const profitPerUnit = (basePrice * marginPercent) / 100;
-        const profitForItem = profitPerUnit * item.quantity;
-        totalProfit += profitForItem;
-        
-        console.log(`[PROFIT] Item: ${item.productName || product.name}, Selling Price: ${sellingPrice}, Margin: ${marginPercent}%, Base: ${basePrice.toFixed(2)}, Qty: ${item.quantity}, Profit: ${profitForItem.toFixed(2)}`);
+        totalProfit += profitPerUnit * item.quantity;
       }
     }
-    
-    console.log(`[PROFIT] Total profit calculated: ${totalProfit.toFixed(2)}`);
 
     return [
       { title: "Today's Sales", value: formatCurrency(total), icon: PesoIcon, trend: "" },
@@ -376,12 +443,12 @@ const Sales = () => {
       { title: "Average Sale", value: formatCurrency(avg), icon: TrendingUp, trend: "" },
       { title: "Total Profit", value: formatCurrency(totalProfit), icon: DollarSign, trend: "" },
     ];
-  }, [sales, products]);
+  }, [salesTodayNonVoid, products]);
 
   const comparativeSales = useMemo(() => {
     const now = new Date();
     const sumRange = (from: Date, to: Date) =>
-      sales.reduce((sum, sale) => {
+      salesNonVoid.reduce((sum, sale) => {
         const createdAt = new Date(sale.createdAt);
         if (createdAt >= from && createdAt <= to) {
           return sum + sale.total;
@@ -415,7 +482,7 @@ const Sales = () => {
       thisYear: sumRange(thisYearStart, thisYearEnd),
       lastYear: sumRange(lastYearStart, lastYearEnd),
     };
-  }, [sales]);
+  }, [salesNonVoid]);
 
   const topSalesData = useMemo(() => {
     const rowsMap = new Map<
@@ -423,7 +490,7 @@ const Sales = () => {
       { name: string; salesAmount: number; quantitySold: number }
     >();
 
-    for (const sale of sales) {
+    for (const sale of salesNonVoid) {
       for (const item of sale.items ?? []) {
         const product = products.find((p) => p.id === item.productId);
         const baseName = item.productName || product?.name || "Unknown Item";
@@ -440,7 +507,7 @@ const Sales = () => {
     return Array.from(rowsMap.values())
       .sort((a, b) => b.salesAmount - a.salesAmount)
       .slice(0, 5);
-  }, [sales, products]);
+  }, [salesNonVoid, products]);
 
   const topSalesChartConfig = {
     salesAmount: {
@@ -469,12 +536,16 @@ const Sales = () => {
       const q = searchQuery.trim().toLowerCase();
       const digitsOnly = q.replace(/\D/g, "");
       result = result.filter((sale) => {
+        const cashier = (sale.cashierName ?? "").toLowerCase();
+        const ticket = (sale.ticketNumber ?? "").toLowerCase();
         const txnId = String(sale.id).slice(-6).padStart(6, "0");
         const fullId = String(sale.id).toLowerCase();
         const amountStr = String(sale.total ?? 0);
         const matchesTxn = fullId.includes(q) || txnId.includes(digitsOnly) || txnId.includes(q);
         const matchesAmount = amountStr.includes(q) || amountStr.includes(digitsOnly);
-        return matchesTxn || matchesAmount;
+        const matchesCashier = cashier.includes(q);
+        const matchesTicket = ticket.includes(q);
+        return matchesTxn || matchesAmount || matchesCashier || matchesTicket;
       });
     }
 
@@ -492,7 +563,7 @@ const Sales = () => {
   }, [currentPage, totalPages]);
 
   const salesOverTimeData = useMemo(() => {
-    if (!sales.length) {
+    if (!salesNonVoid.length) {
       return [];
     }
 
@@ -509,7 +580,7 @@ const Sales = () => {
     }
 
     if (!from || !to) {
-      const timestamps = sales
+      const timestamps = salesNonVoid
         .map((sale) => new Date(sale.createdAt).getTime())
         .filter((value) => Number.isFinite(value));
       if (!timestamps.length) {
@@ -555,7 +626,7 @@ const Sales = () => {
       totals.set(getBucketKey(tick), 0);
     }
 
-    for (const sale of sales) {
+    for (const sale of salesNonVoid) {
       const createdAt = new Date(sale.createdAt);
       if (createdAt < from || createdAt > to) {
         continue;
@@ -568,7 +639,7 @@ const Sales = () => {
       label: getLabel(tick),
       total: totals.get(getBucketKey(tick)) ?? 0,
     }));
-  }, [sales, quickRange, fromDate, toDate]);
+  }, [salesNonVoid, quickRange, fromDate, toDate]);
 
   const salesOverTimeChartConfig = {
     total: {
@@ -616,10 +687,8 @@ const Sales = () => {
         setDetailsOpen(false);
         setDetailsSale(null);
       }
-      const { from, to } = getQuickRangeBounds(quickRange);
-      const fromStr = quickRange === "custom" && fromDate ? new Date(fromDate).toISOString() : from?.toISOString();
-      const toStr = quickRange === "custom" && toDate ? new Date(toDate).toISOString() : to?.toISOString();
-      void loadSales(fromStr, toStr);
+      const { from, to } = getCurrentSalesRangeParams();
+      void loadSales(from, to);
     } catch (e: any) {
       setError(e.message ?? "Failed to void transaction");
     } finally {
@@ -713,6 +782,9 @@ const Sales = () => {
           <p className="text-muted-foreground">
             View and manage your sales transactions{activeRangeLabel ? ` (${activeRangeLabel})` : ""}
           </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Dashboard metrics and charts exclude voided sales. The table can show all, non-voided, or voided only.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -755,7 +827,7 @@ const Sales = () => {
               className="gap-2 w-full md:w-auto"
               onClick={() => setFilterOpen(true)}
             >
-              <Calendar className="w-4 h-4" />
+              <CalendarIcon className="w-4 h-4" />
               Filter by Date
             </Button>
             <DialogContent>
@@ -787,11 +859,7 @@ const Sales = () => {
                   <Button
                     variant="outline"
                     onClick={() => {
-                      setFromDate("");
-                      setToDate("");
-                      setQuickRange("all");
-                      setActiveRangeLabel("All time");
-                      void loadSales();
+                      clearDateRangeFilter();
                       setFilterOpen(false);
                     }}
                   >
@@ -799,15 +867,7 @@ const Sales = () => {
                   </Button>
                   <Button
                     onClick={() => {
-                      const from = fromDate ? new Date(fromDate).toISOString() : undefined;
-                      const to = toDate ? new Date(toDate).toISOString() : undefined;
-                      setQuickRange("custom");
-                      void loadSales(from, to);
-                      const label =
-                        fromDate || toDate
-                          ? `${fromDate || "…"} – ${toDate || "…"}`
-                          : "All time";
-                      setActiveRangeLabel(label);
+                      applyCustomDateRange();
                       setFilterOpen(false);
                     }}
                   >
@@ -1108,46 +1168,112 @@ const Sales = () => {
       </Card>
 
       <div className="space-y-4">
+        {!error && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Popover open={txnRangeOpen} onOpenChange={handleTxnRangeOpenChange}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 max-w-[min(100vw-2rem,320px)]"
+                  disabled={loading}
+                >
+                  <CalendarIcon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{txnRangeButtonLabel}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto max-w-[calc(100vw-1.5rem)] p-0" align="start">
+                <Calendar
+                  mode="range"
+                  defaultMonth={calendarRange?.from ?? calendarRange?.to ?? new Date()}
+                  selected={calendarRange}
+                  onSelect={setCalendarRange}
+                  numberOfMonths={2}
+                  className="p-2 sm:p-3"
+                />
+                <div className="flex flex-wrap justify-end gap-2 border-t p-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      clearDateRangeFilter();
+                      setTxnRangeOpen(false);
+                    }}
+                  >
+                    Clear
+                  </Button>
+                  <Button type="button" size="sm" onClick={handleApplyTxnCalendarRange}>
+                    Apply
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
         {!loading && !error && (
-          <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-            <div className="relative flex-1">
+          <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
+            <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search by transaction ID or amount..."
+                placeholder="Search by transaction ID, ticket, cashier, or amount..."
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                 className="pl-9"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
+            <div className="flex flex-wrap items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground shrink-0 hidden sm:block" />
               <Select value={paymentFilter} onValueChange={(v) => { setPaymentFilter(v); setCurrentPage(1); }}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Payment method" />
+                <SelectTrigger className="w-[min(100vw-2rem,180px)] sm:w-[160px]">
+                  <SelectValue placeholder="Payment" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All payment methods</SelectItem>
-                  {paymentMethods.map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {m === "gcash" ? "GCash" : m === "cash" ? "Cash" : m.charAt(0).toUpperCase() + m.slice(1)}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="all">All payments</SelectItem>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="gcash">GCash</SelectItem>
+                  {paymentMethods
+                    .filter((m) => m !== "cash" && m !== "gcash")
+                    .map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {m.charAt(0).toUpperCase() + m.slice(1)}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Per page:</span>
-              <Select value={String(itemsPerPage)} onValueChange={(v) => { setItemsPerPage(Number(v)); setCurrentPage(1); }}>
-                <SelectTrigger className="w-20 h-8">
-                  <SelectValue />
+              <Select
+                value={voidFilter}
+                onValueChange={(v) => {
+                  setVoidFilter(v as SaleVoidFilter);
+                  setCurrentPage(1);
+                  const { from, to } = getCurrentSalesRangeParams();
+                  void loadSales(from, to);
+                }}
+              >
+                <SelectTrigger className="w-[min(100vw-2rem,200px)] sm:w-[200px]">
+                  <SelectValue placeholder="Void status" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[5, 10, 25, 50, 100].map((n) => (
-                    <SelectItem key={n} value={String(n)}>{n}</SelectItem>
-                  ))}
+                  <SelectItem value="all">All (incl. voided)</SelectItem>
+                  <SelectItem value="active">Non-voided only</SelectItem>
+                  <SelectItem value="voided">Voided only</SelectItem>
                 </SelectContent>
               </Select>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">Per page</span>
+                <Select value={String(itemsPerPage)} onValueChange={(v) => { setItemsPerPage(Number(v)); setCurrentPage(1); }}>
+                  <SelectTrigger className="w-20 h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[5, 10, 25, 50, 100].map((n) => (
+                      <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         )}
@@ -1240,14 +1366,19 @@ const Sales = () => {
                       </TableCell>
                     </TableRow>
                   ) : (
-                  paginatedSales.map((sale) => (
-                    <TableRow key={sale.id}>
+                  paginatedSales.map((sale) => {
+                    const voided = (sale.status ?? "").toLowerCase() === "void";
+                    return (
+                    <TableRow key={sale.id} className={voided ? "opacity-80" : undefined}>
                       <TableCell className="font-mono">
-                        #{String(sale.id).slice(-6).padStart(6, "0")}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span>#{String(sale.id).slice(-6).padStart(6, "0")}</span>
+                          {voided && <Badge variant="destructive">Voided</Badge>}
+                        </div>
                       </TableCell>
                       <TableCell>{sale.cashierName}</TableCell>
                       <TableCell>{sale.items?.length ?? 0} items</TableCell>
-                      <TableCell>{sale.paymentMethod}</TableCell>
+                      <TableCell className="capitalize">{sale.paymentMethod}</TableCell>
                       <TableCell>
                         {new Date(sale.createdAt).toLocaleString()}
                       </TableCell>
@@ -1255,11 +1386,11 @@ const Sales = () => {
                         {formatCurrency(sale.total)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-end gap-1 flex-wrap">
                           <Button variant="ghost" size="sm" onClick={() => openSaleDetails(sale)}>
                             View Details
                           </Button>
-                          {dataService.voidSale && (
+                          {dataService.voidSale && !voided && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1272,14 +1403,15 @@ const Sales = () => {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
+                    );
+                  })
                   )}
                 </TableBody>
               </Table>
             </div>
 
             {filteredSales.length > 0 && (
-              <div className="flex items-center justify-center gap-2 py-4">
+              <div className="hidden md:flex items-center justify-center gap-2 py-4">
                 <Button
                   variant="outline"
                   size="sm"
@@ -1288,7 +1420,7 @@ const Sales = () => {
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-wrap justify-center">
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
                     .filter((p) => p === 1 || p === totalPages || (p >= currentPage - 2 && p <= currentPage + 2))
                     .map((p, idx, arr) => (
@@ -1313,6 +1445,9 @@ const Sales = () => {
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
+                <span className="text-sm text-muted-foreground ml-2">
+                  Page {currentPage} of {totalPages}
+                </span>
               </div>
             )}
 
@@ -1323,18 +1458,23 @@ const Sales = () => {
                   {sales.length === 0 ? "No transactions yet" : "No transactions match your search or filter"}
                 </div>
               ) : (
-              paginatedSales.map((sale) => (
-                <div key={sale.id} className="bg-card rounded-lg border p-4 space-y-3 shadow-sm">
-                  <div className="flex justify-between items-center">
+              paginatedSales.map((sale) => {
+                const voided = (sale.status ?? "").toLowerCase() === "void";
+                return (
+                <div key={sale.id} className={`bg-card rounded-lg border p-4 space-y-3 shadow-sm ${voided ? "opacity-90" : ""}`}>
+                  <div className="flex justify-between items-start gap-2">
                     <div>
-                      <p className="font-mono text-sm font-bold">
-                        #{String(sale.id).slice(-6).padStart(6, "0")}
-                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-mono text-sm font-bold">
+                          #{String(sale.id).slice(-6).padStart(6, "0")}
+                        </p>
+                        {voided && <Badge variant="destructive">Voided</Badge>}
+                      </div>
                       <p className="text-xs text-muted-foreground">
                         {new Date(sale.createdAt).toLocaleString()}
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right shrink-0">
                       <p className="font-bold text-lg">{formatCurrency(sale.total)}</p>
                       <p className="text-xs text-muted-foreground capitalize">{sale.paymentMethod}</p>
                     </div>
@@ -1360,7 +1500,7 @@ const Sales = () => {
                     >
                       View Details
                     </Button>
-                    {dataService.voidSale && (
+                    {dataService.voidSale && !voided && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -1372,9 +1512,51 @@ const Sales = () => {
                     )}
                   </div>
                 </div>
-              ))
+                );
+              })
               )}
             </div>
+
+            {filteredSales.length > 0 && (
+              <div className="flex md:hidden items-center justify-center gap-2 py-4 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <div className="flex items-center gap-1 flex-wrap justify-center">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((p) => p === 1 || p === totalPages || (p >= currentPage - 2 && p <= currentPage + 2))
+                    .map((p, idx, arr) => (
+                      <span key={p} className="flex items-center gap-1">
+                        {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1">…</span>}
+                        <Button
+                          variant={currentPage === p ? "default" : "outline"}
+                          size="sm"
+                          className="min-w-8 h-8 p-0"
+                          onClick={() => setCurrentPage(p)}
+                        >
+                          {p}
+                        </Button>
+                      </span>
+                    ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <span className="text-sm text-muted-foreground w-full text-center">
+                  Page {currentPage} of {totalPages}
+                </span>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -1427,6 +1609,16 @@ const Sales = () => {
                   <p className="text-muted-foreground text-xs">Total</p>
                   <p className="font-semibold">{formatCurrency(detailsSale.total)}</p>
                 </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Status</p>
+                  <p className="font-semibold">
+                    {(detailsSale.status ?? "").toLowerCase() === "void" ? (
+                      <Badge variant="destructive">Voided</Badge>
+                    ) : (
+                      "Active"
+                    )}
+                  </p>
+                </div>
               </div>
               <div className="rounded-lg border">
                 <Table>
@@ -1457,7 +1649,7 @@ const Sales = () => {
                     </TableBody>
                 </Table>
               </div>
-              {dataService.voidSale && (
+              {dataService.voidSale && (detailsSale.status ?? "").toLowerCase() !== "void" && (
                 <div className="flex justify-end pt-4">
                   <Button
                     variant="destructive"

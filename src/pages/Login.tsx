@@ -98,9 +98,18 @@ const Login = () => {
           <CardTitle className="text-3xl font-bold">QuickScale</CardTitle>
           <CardDescription>Sign in to your account</CardDescription>
           {isSaaS() && Capacitor.isNativePlatform() && (
-            <p className="text-xs text-muted-foreground mt-1 font-mono break-all">
-              API: {getSaasApiBase() || "(not set)"}
-            </p>
+            <div className="mt-1 space-y-1 text-left">
+              <p className="text-xs text-muted-foreground font-mono break-all">
+                API: {getSaasApiBase() || "(not set)"}
+              </p>
+              {(getSaasApiBase() || "").includes("10.0.2.2") && (
+                <p className="text-xs text-amber-600 dark:text-amber-500">
+                  This points at your PC via the emulator (not your VPS). Rebuild with{" "}
+                  <span className="font-mono">VITE_SAAS_API_URL</span> in <span className="font-mono">.env.saas</span>{" "}
+                  (<span className="font-mono">npm run build:mobile:saas</span>) to use the remote server.
+                </p>
+              )}
+            </div>
           )}
           {suspendedReason && isSaaS() && (
             <p className="text-sm text-amber-600 dark:text-amber-500 mt-2">

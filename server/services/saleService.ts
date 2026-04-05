@@ -1,5 +1,6 @@
 import { prisma } from "../db";
 import type { CartItem } from "../types";
+import { changePhpFromCents, paymentCoversTotal, phpToCents } from "../utils/money.js";
 
 export interface CreateSaleInput {
   cartItems: CartItem[];
@@ -23,11 +24,12 @@ export async function createSale(input: CreateSaleInput) {
   const netSubtotal = Math.max(0, subtotal - discountAmount);
   const tax = netSubtotal * taxRate;
   const total = netSubtotal + tax;
-  const change = amountReceived - total;
-
-  if (change < 0) {
+  const receivedCents = phpToCents(amountReceived);
+  const totalCents = phpToCents(total);
+  if (!paymentCoversTotal(amountReceived, total)) {
     throw new Error("Amount received is less than total due");
   }
+  const change = changePhpFromCents(receivedCents, totalCents);
 
   return prisma.$transaction(async (tx) => {
     const ticketNumber =

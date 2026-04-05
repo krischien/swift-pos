@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DollarSign, Receipt, Smartphone } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
+import { centsToPhp, phpToCents } from "@/lib/phpMoney";
 
 export type PaymentMethod = "cash" | "gcash";
 
@@ -37,7 +38,11 @@ export const CheckoutModal = ({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [amountReceived, setAmountReceived] = useState<string>("");
   const [gcashTransactionId, setGcashTransactionId] = useState<string>("");
-  const change = parseFloat(amountReceived || "0") - total;
+  const amountReceivedCents = phpToCents(parseFloat(amountReceived || "0"));
+  const totalCents = phpToCents(total);
+  const changeCents = amountReceivedCents - totalCents;
+  const changeDisplayPhp =
+    changeCents >= 0 ? centsToPhp(changeCents) : centsToPhp(-changeCents);
 
   useEffect(() => {
     if (open) {
@@ -58,14 +63,17 @@ export const CheckoutModal = ({
     if (paymentMethod === "gcash" && !gcashTransactionId.trim()) {
       return;
     }
-    if (paymentMethod === "cash" && change < 0) {
+    if (paymentMethod === "cash" && phpToCents(amt) < totalCents) {
       return;
     }
-    if (paymentMethod === "gcash" && amt < total) {
+    if (paymentMethod === "gcash" && phpToCents(amt) < totalCents) {
       return;
     }
     const result: CheckoutResult = {
-      amountReceived: amt,
+      amountReceived:
+        paymentMethod === "gcash"
+          ? centsToPhp(totalCents)
+          : centsToPhp(phpToCents(amt)),
       paymentMethod,
       gcashTransactionId: paymentMethod === "gcash" ? gcashTransactionId.trim() : undefined,
     };
@@ -77,9 +85,9 @@ export const CheckoutModal = ({
 
   const canComplete =
     paymentMethod === "cash"
-      ? change >= 0 && !!amountReceived
+      ? amountReceivedCents >= totalCents && !!amountReceived
       : paymentMethod === "gcash"
-      ? parseFloat(amountReceived || "0") >= total && !!gcashTransactionId.trim()
+      ? amountReceivedCents >= totalCents && !!gcashTransactionId.trim()
       : false;
 
   return (
@@ -165,10 +173,10 @@ export const CheckoutModal = ({
           {amountReceived && (
             <div className="bg-success/10 rounded-lg p-4 text-center border border-success/20">
               <p className="text-sm text-muted-foreground mb-1">Change</p>
-              <p className={`text-2xl font-bold ${change >= 0 ? "text-success" : "text-destructive"}`}>
-                {formatCurrency(Math.abs(change))}
+              <p className={`text-2xl font-bold ${changeCents >= 0 ? "text-success" : "text-destructive"}`}>
+                {formatCurrency(changeDisplayPhp)}
               </p>
-              {change < 0 && paymentMethod === "cash" && (
+              {changeCents < 0 && paymentMethod === "cash" && (
                 <p className="text-xs text-destructive mt-1">Insufficient amount</p>
               )}
             </div>

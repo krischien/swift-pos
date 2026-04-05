@@ -31,9 +31,11 @@ export async function saasLogin(email: string, password: string): Promise<SaasLo
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Network error";
-    throw new Error(
-      `Cannot reach API at ${url}. ${msg}. Check server is running and CORS allows capacitor://localhost.`
-    );
+    const isFailedFetch = /failed to fetch|networkerror|load failed/i.test(msg);
+    const hint = isFailedFetch
+      ? " Check: phone can reach this host (Wi‑Fi/data, firewall port 4001 open), and the API server allows CORS for capacitor://localhost (redeploy server with updated SAAS_CORS_ORIGINS if needed)."
+      : " Check server is running and CORS allows capacitor://localhost.";
+    throw new Error(`Cannot reach API at ${url}. ${msg}.${hint}`);
   }
   const text = await res.text();
   if (text.trimStart().toLowerCase().startsWith("<!")) {
@@ -95,11 +97,15 @@ export async function fetchStores(): Promise<Array<{ id: string; name: string }>
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (!res.ok) return [];
     const text = await res.text();
+    if (!res.ok) {
+      console.warn("[fetchStores] HTTP", res.status, text.slice(0, 300));
+      return [];
+    }
     if (text.trimStart().toLowerCase().startsWith("<!")) return [];
     return JSON.parse(text) as Array<{ id: string; name: string }>;
-  } catch {
+  } catch (e) {
+    console.warn("[fetchStores]", e);
     return [];
   }
 }

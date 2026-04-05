@@ -34,7 +34,10 @@ export interface DataService {
   deleteVariant: (id: string, storeId?: string) => Promise<void>;
 
   // Sales
-  getSales: (params?: { from?: string; to?: string }, storeId?: string) => Promise<Sale[]>;
+  getSales: (
+    params?: { from?: string; to?: string; voidFilter?: "active" | "voided" | "all" },
+    storeId?: string,
+  ) => Promise<Sale[]>;
   getVoidCount?: (params?: { from?: string; to?: string }, storeId?: string) => Promise<number>;
   createSale: (payload: CreateSalePayload, storeId?: string) => Promise<Sale>;
   voidSale?: (id: string, storeId?: string) => Promise<Sale | null>;

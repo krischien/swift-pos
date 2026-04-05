@@ -14,9 +14,15 @@ const DEFAULT_SAAS_PORT = 4001;
 function getBaseFromEnv(): string {
   const envUrl = (import.meta.env.VITE_SAAS_API_URL || "").trim();
   if (import.meta.env.DEV && import.meta.env.VITE_APP_MODE === "saas") {
-    // Web dev: use explicit local API URL so requests hit the SaaS server directly.
-    // Avoids proxy confusion when VITE_SAAS_API_URL points to production.
-    if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
+    // Web dev: when VITE_SAAS_API_URL points at HTTPS production (Vercel / domain), use the
+    // local Node API so you don't hit prod DB by mistake. Explicit http:// hosts (LAN IP, VPS)
+    // are left unchanged so dev can target a remote HTTP API.
+    if (
+      envUrl &&
+      !envUrl.includes("localhost") &&
+      !envUrl.includes("127.0.0.1") &&
+      envUrl.startsWith("https://")
+    ) {
       return `http://localhost:${DEFAULT_SAAS_PORT}`;
     }
     return envUrl || `http://localhost:${DEFAULT_SAAS_PORT}`;

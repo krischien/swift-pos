@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Scan, Loader2, Upload, Camera } from "lucide-react";
+import { Scan, Loader2, Upload, Camera, Trash2 } from "lucide-react";
 import { processImage, parseMenuItems } from "@/lib/ocrService";
 import { Category } from "@/types/pos";
 
@@ -31,6 +31,9 @@ export interface ParsedMenuItem {
   name: string;
   price: number;
 }
+
+/** Internal row with stable id for list edits / deletes */
+type ParsedMenuRow = ParsedMenuItem & { id: string };
 
 interface OCRScanDialogProps {
   categories: Category[];
@@ -54,7 +57,7 @@ export function OCRScanDialog({ categories, onImport }: OCRScanDialogProps) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [items, setItems] = useState<ParsedMenuItem[]>([]);
+  const [items, setItems] = useState<ParsedMenuRow[]>([]);
   const [extracting, setExtracting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [bulkCategoryId, setBulkCategoryId] = useState<string>("");
@@ -146,7 +149,7 @@ export function OCRScanDialog({ categories, onImport }: OCRScanDialogProps) {
     try {
       const lines = await processImage(imageFile);
       const parsed = parseMenuItems(lines);
-      setItems(parsed);
+      setItems(parsed.map((p) => ({ ...p, id: crypto.randomUUID() })));
       if (parsed.length === 0) {
         alert("No menu items found. Try a clearer image or different format.");
       }
@@ -158,13 +161,19 @@ export function OCRScanDialog({ categories, onImport }: OCRScanDialogProps) {
     }
   }, [imageFile]);
 
-  const updateItem = useCallback((index: number, field: "name" | "price", value: string | number) => {
-    setItems((prev) => {
-      const next = [...prev];
-      if (field === "name") next[index] = { ...next[index], name: value as string };
-      else next[index] = { ...next[index], price: typeof value === "number" ? value : parseFloat(String(value)) || 0 };
-      return next;
-    });
+  const updateItem = useCallback((id: string, field: "name" | "price", value: string | number) => {
+    setItems((prev) =>
+      prev.map((row) => {
+        if (row.id !== id) return row;
+        if (field === "name") return { ...row, name: value as string };
+        const price = typeof value === "number" ? value : parseFloat(String(value)) || 0;
+        return { ...row, price };
+      }),
+    );
+  }, []);
+
+  const removeItem = useCallback((id: string) => {
+    setItems((prev) => prev.filter((row) => row.id !== id));
   }, []);
 
   const handleImport = useCallback(async () => {
@@ -322,22 +331,26 @@ export function OCRScanDialog({ categories, onImport }: OCRScanDialogProps) {
           {items.length > 0 && (
             <>
               <div className="space-y-2">
-                <p className="text-sm font-medium">2. Edit items (optional)</p>
+                <p className="text-sm font-medium">2. Edit or remove items (optional)</p>
+                <p className="text-xs text-muted-foreground">
+                  Remove any row that is a bad OCR match or you don&apos;t want to import.
+                </p>
                 <div className="border rounded-md max-h-48 overflow-y-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Name</TableHead>
                         <TableHead className="w-24">Price</TableHead>
+                        <TableHead className="w-12 text-right sr-only">Remove</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {items.map((item, i) => (
-                        <TableRow key={i}>
+                      {items.map((item) => (
+                        <TableRow key={item.id}>
                           <TableCell>
                             <Input
                               value={item.name}
-                              onChange={(e) => updateItem(i, "name", e.target.value)}
+                              onChange={(e) => updateItem(item.id, "name", e.target.value)}
                               className="h-8"
                             />
                           </TableCell>
@@ -347,9 +360,22 @@ export function OCRScanDialog({ categories, onImport }: OCRScanDialogProps) {
                               min="0"
                               step="0.01"
                               value={item.price}
-                              onChange={(e) => updateItem(i, "price", e.target.value)}
+                              onChange={(e) => updateItem(item.id, "price", e.target.value)}
                               className="h-8"
                             />
+                          </TableCell>
+                          <TableCell className="w-12 p-1 text-right align-middle">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                              onClick={() => removeItem(item.id)}
+                              aria-label={`Remove ${item.name || "row"}`}
+                              title="Remove row"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
