@@ -31,7 +31,9 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
+// Default body limit is ~100kb; product images are base64 in JSON and exceed that.
+app.use(express.json({ limit: "15mb" }));
+app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 
 // Restore API path when Vercel rewrite maps /api/(.*) to /api?__path=$1
 app.use((req, _res, next) => {
