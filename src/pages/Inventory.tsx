@@ -138,7 +138,8 @@ const Inventory = () => {
   const filtered = products.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch) return false;
-    if (stockFilter === "lowStock") return needsStockAttention(p);
+    // "Low Stock" = threshold warning only (stock > 0 && stock <= threshold), not OOS
+    if (stockFilter === "lowStock") return isLowStock(p);
     if (stockFilter === "outOfStock") return hasZeroStock(p);
     return true;
   });
@@ -146,6 +147,10 @@ const Inventory = () => {
   const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedItems = filtered.slice(startIndex, startIndex + itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [stockFilter, search]);
 
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) setCurrentPage(totalPages);
@@ -1394,10 +1399,25 @@ const Inventory = () => {
               <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuItem onClick={() => setStockFilter("all")}>All</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStockFilter("outOfStock")}>Out of Stock</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStockFilter("lowStock")}>Low Stock</DropdownMenuItem>
+          <DropdownMenuContent align="start" className="min-w-[12rem]">
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onSelect={() => setStockFilter("all")}
+            >
+              All
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onSelect={() => setStockFilter("outOfStock")}
+            >
+              Out of Stock
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onSelect={() => setStockFilter("lowStock")}
+            >
+              Low Stock
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <div className="flex gap-4 text-sm font-medium">

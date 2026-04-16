@@ -140,6 +140,17 @@ const Sales = () => {
     [sales],
   );
 
+  /** Top metric cards are always "today" only (local calendar day), independent of chart/table range. */
+  const todaySalesForMetrics = useMemo(() => {
+    const now = new Date();
+    const todayStart = startOfDay(now);
+    const todayEnd = endOfDay(now);
+    return salesForMetrics.filter((s) => {
+      const createdAt = new Date(s.createdAt);
+      return createdAt >= todayStart && createdAt <= todayEnd;
+    });
+  }, [salesForMetrics]);
+
   const filteredSales = useMemo(() => {
     const q = tableSearch.trim().toLowerCase();
     return sales.filter((sale) => {
@@ -357,29 +368,29 @@ const Sales = () => {
   };
 
   const stats = useMemo(() => {
-    if (!salesForMetrics.length) {
+    if (!todaySalesForMetrics.length) {
       return [
-        { title: "Today's Sales", value: formatCurrency(0), icon: PesoIcon, trend: "" },
-        { title: "Transactions", value: "0", icon: Receipt, trend: "" },
-        { title: "Average Sale", value: formatCurrency(0), icon: TrendingUp, trend: "" },
-        { title: "Total Profit", value: formatCurrency(0), icon: DollarSign, trend: "" },
+        { title: "Today's Sales", value: formatCurrency(0), icon: PesoIcon },
+        { title: "Transactions", value: "0", icon: Receipt },
+        { title: "Average Sale", value: formatCurrency(0), icon: TrendingUp },
+        { title: "Total Profit", value: formatCurrency(0), icon: DollarSign },
       ];
     }
 
-    const total = salesForMetrics.reduce((sum, s) => sum + s.total, 0);
-    const count = salesForMetrics.length;
+    const total = todaySalesForMetrics.reduce((sum, s) => sum + s.total, 0);
+    const count = todaySalesForMetrics.length;
     const avg = total / count;
 
     // Calculate total profit using actual selling prices from sale items
     let totalProfit = 0;
-    console.log(`[PROFIT] Starting calculation. Sales: ${salesForMetrics.length}, Products: ${products.length}`);
+    console.log(`[PROFIT] Starting calculation (today only). Sales: ${todaySalesForMetrics.length}, Products: ${products.length}`);
     
     // Log first sale for debugging
-    if (salesForMetrics.length > 0 && salesForMetrics[0].items) {
-      console.log(`[PROFIT] Sample sale item:`, salesForMetrics[0].items[0]);
+    if (todaySalesForMetrics.length > 0 && todaySalesForMetrics[0].items) {
+      console.log(`[PROFIT] Sample sale item:`, todaySalesForMetrics[0].items[0]);
     }
     
-    for (const sale of salesForMetrics) {
+    for (const sale of todaySalesForMetrics) {
       if (!sale.items || sale.items.length === 0) {
         console.warn(`[PROFIT] Sale ${sale.id} has no items`);
         continue;
@@ -424,12 +435,12 @@ const Sales = () => {
     console.log(`[PROFIT] Total profit calculated: ${totalProfit.toFixed(2)}`);
 
     return [
-      { title: "Today's Sales", value: formatCurrency(total), icon: PesoIcon, trend: "" },
-      { title: "Transactions", value: `${count}`, icon: Receipt, trend: "" },
-      { title: "Average Sale", value: formatCurrency(avg), icon: TrendingUp, trend: "" },
-      { title: "Total Profit", value: formatCurrency(totalProfit), icon: DollarSign, trend: "" },
+      { title: "Today's Sales", value: formatCurrency(total), icon: PesoIcon },
+      { title: "Transactions", value: `${count}`, icon: Receipt },
+      { title: "Average Sale", value: formatCurrency(avg), icon: TrendingUp },
+      { title: "Total Profit", value: formatCurrency(totalProfit), icon: DollarSign },
     ];
-  }, [salesForMetrics, products]);
+  }, [todaySalesForMetrics, products]);
 
   const comparativeSales = useMemo(() => {
     const now = new Date();
@@ -843,7 +854,7 @@ const Sales = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-xs text-success mt-1">{stat.trend} from yesterday</p>
+                <p className="text-xs text-muted-foreground mt-1">Today</p>
               </CardContent>
             </Card>
           );
