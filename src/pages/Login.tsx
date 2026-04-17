@@ -137,15 +137,6 @@ const Login = () => {
                     variant="outline"
                     size="sm"
                     className="flex-1"
-                    onClick={() => handleQuickLogin("admin")}
-                  >
-                    Admin
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
                     onClick={() => handleQuickLogin("owner")}
                   >
                     Owner
@@ -167,15 +158,6 @@ const Login = () => {
                     variant="outline"
                     size="sm"
                     className="flex-1"
-                    onClick={() => handleQuickLogin("admin")}
-                  >
-                    Admin
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
                     onClick={() => handleQuickLogin("cashier")}
                   >
                     Cashier
@@ -185,7 +167,7 @@ const Login = () => {
             </div>
             {isSaaS() && (
               <p className="text-center text-xs text-muted-foreground">
-                admin@demo.com · owner@demo.com · cashier@demo.com · password: password123
+                owner@demo.com · cashier@demo.com · password: password123
               </p>
             )}
             {!isSaaS() && (
