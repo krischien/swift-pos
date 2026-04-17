@@ -8,17 +8,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useStore } from "@/contexts/StoreContext";
 import { useToast } from "@/hooks/use-toast";
 import { isSaaS } from "@/config/appMode";
+import { showLoginQuickDemo } from "@/config/loginDemo";
 
-// SaaS demo credentials (used when isSaaS())
+// SaaS demo credentials for quick-login only (super-admin is never quick-login)
 const DEMO_CREDENTIALS = {
-  admin: { email: "admin@demo.com", password: "password123" },
   owner: { email: "owner@demo.com", password: "password123" },
   cashier: { email: "cashier@demo.com", password: "password123" },
 } as const;
 
-// Solo mode credentials (from server/seed.ts and mobileDb seed)
+// Solo mode quick-login (from server/seed.ts and mobileDb seed)
 const SOLO_CREDENTIALS = {
-  admin: { email: "john@example.com", password: "password123" },
   cashier: { email: "cashier@example.com", password: "password123" },
 } as const;
 
@@ -38,7 +37,9 @@ const Login = () => {
     }
   }, [isAuthenticated, user, navigate]);
 
-  const handleQuickLogin = async (role: keyof typeof DEMO_CREDENTIALS | keyof typeof SOLO_CREDENTIALS) => {
+  const handleQuickLogin = async (
+    role: keyof typeof DEMO_CREDENTIALS | keyof typeof SOLO_CREDENTIALS,
+  ) => {
     const creds = isSaaS() ? DEMO_CREDENTIALS : SOLO_CREDENTIALS;
     const { email: e, password: p } = creds[role as keyof typeof creds];
     setEmail(e);
@@ -128,52 +129,54 @@ const Login = () => {
             <Button type="submit" className="w-full h-12 text-base font-semibold">
               Sign In
             </Button>
-            <div className="space-y-2">
-              <p className="text-center text-xs text-muted-foreground">Quick login (demo)</p>
-              {isSaaS() ? (
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleQuickLogin("owner")}
-                  >
-                    Owner
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleQuickLogin("cashier")}
-                  >
-                    Cashier
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleQuickLogin("cashier")}
-                  >
-                    Cashier
-                  </Button>
-                </div>
-              )}
-            </div>
-            {isSaaS() && (
-              <p className="text-center text-xs text-muted-foreground">
-                owner@demo.com · cashier@demo.com · password: password123
-              </p>
-            )}
-            {!isSaaS() && (
-              <p className="text-center text-xs text-muted-foreground">
-                john@example.com or cashier@example.com · password: password123
-              </p>
+            {showLoginQuickDemo() && (
+              <div className="space-y-2">
+                <p className="text-center text-xs text-muted-foreground">Quick login (demo)</p>
+                {isSaaS() ? (
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleQuickLogin("owner")}
+                    >
+                      Owner
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleQuickLogin("cashier")}
+                    >
+                      Cashier
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleQuickLogin("cashier")}
+                    >
+                      Cashier
+                    </Button>
+                  </div>
+                )}
+                {isSaaS() && (
+                  <p className="text-center text-xs text-muted-foreground">
+                    owner@demo.com · cashier@demo.com · password: password123
+                  </p>
+                )}
+                {!isSaaS() && (
+                  <p className="text-center text-xs text-muted-foreground">
+                    john@example.com or cashier@example.com · password: password123
+                  </p>
+                )}
+              </div>
             )}
             {isSaaS() && (
               <p className="text-center text-sm text-muted-foreground mt-4">
