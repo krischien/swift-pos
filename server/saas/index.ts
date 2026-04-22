@@ -20,6 +20,10 @@ import * as userService from "./services/userService.js";
 import { runSeedDemo } from "./services/seedDemoService.js";
 import { runBootstrapSeed, ensureDemoQuickLoginUsers } from "./services/bootstrapSeedService.js";
 import { DEMO_TRIAL_DAYS, addDays } from "./constants/demo.js";
+import { normalizeBusinessMode } from "./utils/businessMode.js";
+import * as fnbService from "./services/fnbService.js";
+import { FnbStoreError } from "./services/fnbService.js";
+import { ensureSqliteSaasDatabaseUrl } from "./validateDatabaseEnv.js";
 
 const app = express();
 const port = process.env.SAAS_PORT || 4001;
@@ -354,6 +358,11 @@ ownerRouter.patch("/api/store", async (req: AuthRequest, res) => {
   try {
     const storeId = (req as any).storeId;
     if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    if (req.body && Object.prototype.hasOwnProperty.call(req.body, "businessMode")) {
+      return res.status(400).json({
+        message: "Store type (retail vs F&B) cannot be changed. Create a new store instead.",
+      });
+    }
     const { name, address } = req.body as { name?: string; address?: string };
     const store = await saasPrisma.store.update({
       where: { id: storeId },
@@ -361,7 +370,7 @@ ownerRouter.patch("/api/store", async (req: AuthRequest, res) => {
         ...(name !== undefined && { name: name.trim() }),
         ...(address !== undefined && { address: address?.trim() || null }),
       },
-      select: { id: true, name: true, address: true, receiptLogoUrl: true },
+      select: { id: true, name: true, address: true, receiptLogoUrl: true, businessMode: true },
     });
     res.json(store);
   } catch (error: unknown) {
@@ -466,6 +475,184 @@ ownerRouter.delete("/api/users/:id", async (req: AuthRequest, res) => {
   }
 });
 
+function fnbErrorStatus(e: unknown): number {
+  if (e instanceof FnbStoreError) return 403;
+  return 400;
+}
+
+// --- F&B (owner): ingredients, menu, recipes — requires storeId + fnb businessMode ---
+ownerRouter.post("/api/ingredients", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await fnbService.requireFnbStore(storeId);
+    const { name, sku, barcode, stock, lowStockThreshold, unitOfMeasure, status } = req.body as Record<
+      string,
+      unknown
+    >;
+    if (!name || typeof name !== "string" || !name.trim()) {
+      return res.status(400).json({ message: "Ingredient name is required" });
+    }
+    const row = await fnbService.createIngredient(storeId, {
+      name,
+      sku: sku as string | undefined,
+      barcode: barcode as string | undefined,
+      stock: typeof stock === "number" ? stock : undefined,
+      lowStockThreshold: typeof lowStockThreshold === "number" ? lowStockThreshold : undefined,
+      unitOfMeasure: unitOfMeasure as string | undefined,
+      status: status as string | undefined,
+    });
+    res.status(201).json(row);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(fnbErrorStatus(error)).json({ message: (error as Error).message ?? "Failed" });
+  }
+});
+
+ownerRouter.patch("/api/ingredients/:id", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await fnbService.requireFnbStore(storeId);
+    const row = await fnbService.updateIngredient(req.params.id, storeId, req.body as Record<string, unknown>);
+    res.json(row);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(fnbErrorStatus(error)).json({ message: (error as Error).message ?? "Failed" });
+  }
+});
+
+ownerRouter.delete("/api/ingredients/:id", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await fnbService.requireFnbStore(storeId);
+    await fnbService.deleteIngredient(req.params.id, storeId);
+    res.status(204).send();
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(fnbErrorStatus(error)).json({ message: (error as Error).message ?? "Failed" });
+  }
+});
+
+ownerRouter.post("/api/menu-categories", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await fnbService.requireFnbStore(storeId);
+    const { name } = req.body as { name?: string };
+    if (!name?.trim()) return res.status(400).json({ message: "Category name is required" });
+    const row = await fnbService.createMenuCategory(storeId, name);
+    res.status(201).json(row);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(fnbErrorStatus(error)).json({ message: (error as Error).message ?? "Failed" });
+  }
+});
+
+ownerRouter.patch("/api/menu-categories/:id", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await fnbService.requireFnbStore(storeId);
+    const { name } = req.body as { name?: string };
+    if (!name?.trim()) return res.status(400).json({ message: "Category name is required" });
+    const row = await fnbService.updateMenuCategory(req.params.id, storeId, name);
+    res.json(row);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(fnbErrorStatus(error)).json({ message: (error as Error).message ?? "Failed" });
+  }
+});
+
+ownerRouter.delete("/api/menu-categories/:id", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await fnbService.requireFnbStore(storeId);
+    await fnbService.deleteMenuCategory(req.params.id, storeId);
+    res.status(204).send();
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(fnbErrorStatus(error)).json({ message: (error as Error).message ?? "Failed" });
+  }
+});
+
+ownerRouter.post("/api/menu-items", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await fnbService.requireFnbStore(storeId);
+    const { menuCategoryId, name, price, status, image, barcode } = req.body as Record<string, unknown>;
+    if (!menuCategoryId || typeof menuCategoryId !== "string") {
+      return res.status(400).json({ message: "menuCategoryId is required" });
+    }
+    if (!name || typeof name !== "string" || !name.trim()) {
+      return res.status(400).json({ message: "Menu item name is required" });
+    }
+    if (typeof price !== "number" || price < 0) {
+      return res.status(400).json({ message: "Valid price is required" });
+    }
+    const row = await fnbService.createMenuItem(storeId, {
+      menuCategoryId,
+      name,
+      price,
+      status: status as string | undefined,
+      image: image as string | undefined,
+      barcode: barcode as string | undefined,
+    });
+    res.status(201).json(row);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(fnbErrorStatus(error)).json({ message: (error as Error).message ?? "Failed" });
+  }
+});
+
+ownerRouter.patch("/api/menu-items/:id", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await fnbService.requireFnbStore(storeId);
+    const row = await fnbService.updateMenuItem(req.params.id, storeId, req.body as Record<string, unknown>);
+    res.json(row);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(fnbErrorStatus(error)).json({ message: (error as Error).message ?? "Failed" });
+  }
+});
+
+ownerRouter.delete("/api/menu-items/:id", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await fnbService.requireFnbStore(storeId);
+    await fnbService.deleteMenuItem(req.params.id, storeId);
+    res.status(204).send();
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(fnbErrorStatus(error)).json({ message: (error as Error).message ?? "Failed" });
+  }
+});
+
+ownerRouter.put("/api/menu-items/:id/recipe", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await fnbService.requireFnbStore(storeId);
+    const { lines } = req.body as {
+      lines?: Array<{ ingredientId: string; quantity: number; wastagePercent?: number }>;
+    };
+    if (!Array.isArray(lines)) {
+      return res.status(400).json({ message: "lines array is required" });
+    }
+    const row = await fnbService.replaceRecipe(req.params.id, storeId, lines);
+    res.json(row);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(fnbErrorStatus(error)).json({ message: (error as Error).message ?? "Failed" });
+  }
+});
+
 // Protected routes (auth + tenant) - POS, products, sales, etc. Owner + cashier can access.
 const protectedRouter = express.Router();
 protectedRouter.use(authMiddleware);
@@ -491,13 +678,65 @@ protectedRouter.get("/api/store", async (req: AuthRequest, res) => {
     if (!storeId) return res.status(400).json({ message: "storeId is required" });
     const store = await saasPrisma.store.findFirst({
       where: { id: storeId },
-      select: { id: true, name: true, address: true, receiptLogoUrl: true },
+      select: { id: true, name: true, address: true, receiptLogoUrl: true, businessMode: true },
     });
     if (!store) return res.status(404).json({ message: "Store not found" });
     res.json(store);
   } catch (error: unknown) {
     console.error(error);
     res.status(500).json({ message: "Failed to fetch store" });
+  }
+});
+
+protectedRouter.get("/api/ingredients", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    try {
+      await fnbService.requireFnbStore(storeId);
+    } catch {
+      return res.status(403).json({ message: "Ingredients are only available for Food & Beverage stores" });
+    }
+    const rows = await fnbService.listIngredients(storeId);
+    res.json(rows);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch ingredients" });
+  }
+});
+
+protectedRouter.get("/api/menu-categories", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    try {
+      await fnbService.requireFnbStore(storeId);
+    } catch {
+      return res.status(403).json({ message: "Menu is only available for Food & Beverage stores" });
+    }
+    const rows = await fnbService.listMenuCategories(storeId);
+    res.json(rows);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch menu categories" });
+  }
+});
+
+protectedRouter.get("/api/menu-items", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    try {
+      await fnbService.requireFnbStore(storeId);
+    } catch {
+      return res.status(403).json({ message: "Menu is only available for Food & Beverage stores" });
+    }
+    const { menuCategoryId } = req.query as { menuCategoryId?: string };
+    const rows = await fnbService.listMenuItems(storeId, menuCategoryId || null);
+    res.json(rows);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch menu items" });
   }
 });
 
@@ -703,7 +942,8 @@ protectedRouter.post("/api/sales", async (req: AuthRequest, res) => {
     if (!storeId) return res.status(400).json({ message: "storeId is required" });
     const body = req.body as Record<string, unknown>;
     const cartItems = (body.cartItems || body.items) as Array<{
-      productId: string;
+      productId?: string;
+      menuItemId?: string;
       variantId?: string;
       name?: string;
       productName?: string;
@@ -731,6 +971,7 @@ protectedRouter.post("/api/sales", async (req: AuthRequest, res) => {
 
     const items = cartItems.map((item) => ({
       productId: item.productId,
+      menuItemId: item.menuItemId,
       variantId: item.variantId,
       productName: item.productName ?? item.name ?? "",
       variantName: item.variantName,
@@ -794,7 +1035,7 @@ orgRouter.get("/api/stores", async (req: AuthRequest, res) => {
       if (demoOrg) {
         const stores = await saasPrisma.store.findMany({
           where: { organizationId: demoOrg.id },
-          select: { id: true, name: true },
+          select: { id: true, name: true, businessMode: true },
           orderBy: { createdAt: "asc" },
         });
         return res.json(stores);
@@ -806,7 +1047,7 @@ orgRouter.get("/api/stores", async (req: AuthRequest, res) => {
     if (role === "owner" && orgId) {
       const stores = await saasPrisma.store.findMany({
         where: { organizationId: orgId },
-        select: { id: true, name: true },
+        select: { id: true, name: true, businessMode: true },
         orderBy: { createdAt: "asc" },
       });
       return res.json(stores);
@@ -816,10 +1057,16 @@ orgRouter.get("/api/stores", async (req: AuthRequest, res) => {
     if (req.auth?.userId && orgId) {
       const rows = await saasPrisma.userStore.findMany({
         where: { userId: req.auth.userId },
-        include: { store: { select: { id: true, name: true } } },
+        include: { store: { select: { id: true, name: true, businessMode: true } } },
         orderBy: { storeId: "asc" },
       });
-      return res.json(rows.map((r) => ({ id: r.store.id, name: r.store.name })));
+      return res.json(
+        rows.map((r) => ({
+          id: r.store.id,
+          name: r.store.name,
+          businessMode: r.store.businessMode,
+        })),
+      );
     }
 
     if (storeIds.length === 0) {
@@ -827,7 +1074,7 @@ orgRouter.get("/api/stores", async (req: AuthRequest, res) => {
     }
     const stores = await saasPrisma.store.findMany({
       where: { id: { in: storeIds } },
-      select: { id: true, name: true },
+      select: { id: true, name: true, businessMode: true },
     });
     res.json(stores);
   } catch (error: unknown) {
@@ -871,7 +1118,7 @@ orgRouter.get("/api/org/stores", async (req: AuthRequest, res) => {
     if (req.auth?.role !== "owner") return res.status(403).json({ message: "Owner access required" });
     const stores = await saasPrisma.store.findMany({
       where: { organizationId: orgId },
-      select: { id: true, name: true, address: true, createdAt: true },
+      select: { id: true, name: true, address: true, createdAt: true, businessMode: true },
       orderBy: { createdAt: "asc" },
     });
     res.json(stores);
@@ -888,19 +1135,25 @@ orgRouter.post("/api/org/stores", async (req: AuthRequest, res) => {
     if (req.auth?.role !== "owner") return res.status(403).json({ message: "Owner access required" });
     const userId = req.auth?.userId;
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
-    const { name, address } = req.body as { name?: string; address?: string };
+    const { name, address, businessMode: rawMode } = req.body as {
+      name?: string;
+      address?: string;
+      businessMode?: string;
+    };
     if (!name?.trim()) return res.status(400).json({ message: "Store name is required" });
     const org = await saasPrisma.organization.findUnique({
       where: { id: orgId },
       select: { address: true },
     });
+    const businessMode = normalizeBusinessMode(rawMode);
     const store = await saasPrisma.store.create({
       data: {
         organizationId: orgId,
         name: name.trim(),
         address: address?.trim() || org?.address || null,
+        businessMode,
       },
-      select: { id: true, name: true, address: true, createdAt: true },
+      select: { id: true, name: true, address: true, createdAt: true, businessMode: true },
     });
     await saasPrisma.userStore.create({
       data: { userId, storeId: store.id },
@@ -921,6 +1174,11 @@ orgRouter.patch("/api/org/stores/:id", async (req: AuthRequest, res) => {
       where: { id: req.params.id, organizationId: orgId },
     });
     if (!existing) return res.status(404).json({ message: "Store not found" });
+    if (req.body && Object.prototype.hasOwnProperty.call(req.body, "businessMode")) {
+      return res.status(400).json({
+        message: "Store type (retail vs F&B) cannot be changed. Create a new store instead.",
+      });
+    }
     const { name, address } = req.body as { name?: string; address?: string };
     const store = await saasPrisma.store.update({
       where: { id: req.params.id },
@@ -928,7 +1186,7 @@ orgRouter.patch("/api/org/stores/:id", async (req: AuthRequest, res) => {
         ...(name !== undefined && { name: name.trim() }),
         ...(address !== undefined && { address: address?.trim() || null }),
       },
-      select: { id: true, name: true, address: true, createdAt: true },
+      select: { id: true, name: true, address: true, createdAt: true, businessMode: true },
     });
     res.json(store);
   } catch (error: unknown) {
@@ -1074,13 +1332,14 @@ async function runSeedDemoIfEmptyDev() {
   if (!needFullSeed) return;
 
   console.log(
-    "[Bootstrap] Demo catalog empty (no Demo org or no products in its stores) — running full demo seed (2 stores, 15-day trial, sales history)…"
+    "[Bootstrap] Demo catalog empty (no Demo org or no products in its stores) — running full demo seed (3 stores incl. F&B, trial, sales history)…"
   );
   await runSeedDemo();
   console.log("[Bootstrap] Full demo seed finished.");
 }
 
 async function start() {
+  ensureSqliteSaasDatabaseUrl();
   try {
     await runBootstrapSeed();
     // Dev: full catalog seed when empty, then quick-login emails (after seed: cashier@demo.com), passwords, trial

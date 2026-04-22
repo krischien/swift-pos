@@ -22,9 +22,21 @@ import { Trophy, Store, Calendar, Eye } from "lucide-react";
 import { format, subDays, subYears, startOfDay, endOfDay } from "date-fns";
 import { formatCurrency } from "@/lib/currency";
 
-type DatePreset = "today" | "7" | "30" | "90" | "all";
+type DatePreset = "today" | "7" | "30" | "90" | "year" | "all";
 
-type ExpandedRow = { productId: string; variantId: string | null } | null;
+/** Calendar YTD aligned to UTC so filters match `Sale.createdAt` stored by the server. */
+function utcYearToDateBounds(now: Date) {
+  const y = now.getUTCFullYear();
+  const from = new Date(Date.UTC(y, 0, 1, 0, 0, 0, 0));
+  const to = new Date(Date.UTC(y, now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
+  return { from, to };
+}
+
+type ExpandedRow = {
+  productId: string | null;
+  variantId: string | null;
+  menuItemId: string | null;
+} | null;
 
 const ProductRanking = () => {
   const [datePreset, setDatePreset] = useState<DatePreset>("30");
@@ -47,6 +59,8 @@ const ProductRanking = () => {
         return { from: startOfDay(subDays(now, 30)), to: endOfDay(now) };
       case "90":
         return { from: startOfDay(subDays(now, 90)), to: endOfDay(now) };
+      case "year":
+        return utcYearToDateBounds(now);
       case "all":
       default:
         return { from: startOfDay(subYears(now, 1)), to: endOfDay(now) };
@@ -69,6 +83,7 @@ const ProductRanking = () => {
       "product-ranking-drilldown",
       expandedRow?.productId,
       expandedRow?.variantId,
+      expandedRow?.menuItemId,
       from.toISOString(),
       to.toISOString(),
     ],
@@ -77,9 +92,13 @@ const ProductRanking = () => {
         expandedRow!.productId,
         expandedRow!.variantId,
         from.toISOString(),
-        to.toISOString()
+        to.toISOString(),
+        expandedRow!.menuItemId
       ),
-    enabled: !!expandedRow && storeId === "all",
+    enabled:
+      !!expandedRow &&
+      storeId === "all" &&
+      !!(expandedRow?.productId || expandedRow?.menuItemId),
   });
 
   const isLoading = storesLoading || rankingLoading;
@@ -119,7 +138,8 @@ const ProductRanking = () => {
               <SelectItem value="7">Last 7 days</SelectItem>
               <SelectItem value="30">Last 30 days</SelectItem>
               <SelectItem value="90">Last 90 days</SelectItem>
-              <SelectItem value="all">Last year</SelectItem>
+              <SelectItem value="year">This year</SelectItem>
+              <SelectItem value="all">Last 12 months</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -133,6 +153,7 @@ const ProductRanking = () => {
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             {format(from, "MMM d, yyyy")} – {format(to, "MMM d, yyyy")}
+            {datePreset === "year" && " · Year-to-date (UTC)"}
             {storeId !== "all" && stores?.find((s) => s.id === storeId) && (
               <> · {stores.find((s) => s.id === storeId)?.name}</>
             )}
@@ -142,8 +163,12 @@ const ProductRanking = () => {
           {isLoading ? (
             <div className="text-muted-foreground py-8 text-center">Loading...</div>
           ) : !ranking || ranking.length === 0 ? (
-            <div className="text-muted-foreground py-8 text-center">
-              No data for selected period
+            <div className="text-muted-foreground py-8 text-center space-y-2 max-w-lg mx-auto">
+              <p>No product or menu lines in this range (non-void sales only).</p>
+              <p className="text-sm">
+                Try <strong>Last 12 months</strong> if your sales are older, or confirm dates on the
+                store <strong>Sales</strong> screen.
+              </p>
             </div>
           ) : (
             <Table>
@@ -159,10 +184,13 @@ const ProductRanking = () => {
               </TableHeader>
               <TableBody>
                 {ranking.map((r) => {
-                  const rowKey = `${r.productId}:${r.variantId ?? "base"}`;
-                  const isExpanded =
-                    expandedRow?.productId === r.productId &&
-                    (expandedRow?.variantId ?? "base") === (r.variantId ?? "base");
+                  const rowKey = r.menuItemId
+                    ? `m:${r.menuItemId}`
+                    : `${r.productId}:${r.variantId ?? "base"}`;
+                  const isExpanded = r.menuItemId
+                    ? expandedRow?.menuItemId === r.menuItemId
+                    : expandedRow?.productId === r.productId &&
+                      (expandedRow?.variantId ?? "base") === (r.variantId ?? "base");
 
                   return (
                     <Fragment key={rowKey}>
@@ -185,7 +213,13 @@ const ProductRanking = () => {
                               className="h-8 gap-1"
                               onClick={() =>
                                 setExpandedRow(
-                                  isExpanded ? null : { productId: r.productId, variantId: r.variantId }
+                                  isExpanded
+                                    ? null
+                                    : {
+                                        productId: r.productId,
+                                        variantId: r.variantId,
+                                        menuItemId: r.menuItemId ?? null,
+                                      }
                                 )
                               }
                             >

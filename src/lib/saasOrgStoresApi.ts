@@ -11,6 +11,7 @@ export interface OrgStore {
   name: string;
   address: string | null;
   createdAt: string;
+  businessMode?: string;
 }
 
 export async function getOrgStores(): Promise<OrgStore[]> {
@@ -26,7 +27,11 @@ export async function getOrgStores(): Promise<OrgStore[]> {
   return res.json();
 }
 
-export async function createOrgStore(data: { name: string; address?: string }): Promise<OrgStore> {
+export async function createOrgStore(data: {
+  name: string;
+  address?: string;
+  businessMode?: "retail" | "fnb";
+}): Promise<OrgStore> {
   const token = getAuthToken();
   if (!token) throw new Error("Not authenticated");
   const res = await fetch(`${getSaasApiBase().replace(/\/$/, "")}/api/org/stores`, {

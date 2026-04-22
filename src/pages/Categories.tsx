@@ -11,8 +11,10 @@ import {
 } from "@/components/ui/table";
 import { FolderPlus, Search, Trash2, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useDataLayer } from "@/contexts/DataLayerContext";
 import { useStore } from "@/contexts/StoreContext";
+import { isSaaS } from "@/config/appMode";
 import { Category } from "@/types/pos";
 import {
   Dialog,
@@ -42,7 +44,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const Categories = () => {
   const dataService = useDataLayer();
-  const { activeStoreId } = useStore();
+  const navigate = useNavigate();
+  const { activeStoreId, stores } = useStore();
+  const isFnb = isSaaS() && stores.find((s) => s.id === activeStoreId)?.businessMode === "fnb";
+
+  useEffect(() => {
+    if (isFnb) navigate("/menu", { replace: true });
+  }, [isFnb, navigate]);
   const [search, setSearch] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);

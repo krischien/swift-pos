@@ -199,5 +199,79 @@ export const createSaasDataService = (): DataService => {
         method: "DELETE",
         storeId: sid ?? storeId(),
       }) as Promise<any>,
+
+    getIngredients: (sid) =>
+      saasRequest(`/api/ingredients`, { storeId: sid ?? storeId() }) as Promise<any>,
+    createIngredient: (payload, sid) =>
+      saasRequest("/api/ingredients", {
+        method: "POST",
+        body: JSON.stringify(payload),
+        storeId: sid ?? storeId(),
+      }) as Promise<any>,
+    updateIngredient: (id, payload, sid) =>
+      saasRequest(`/api/ingredients/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+        storeId: sid ?? storeId(),
+      }) as Promise<any>,
+    deleteIngredient: (id, sid) =>
+      saasRequest(`/api/ingredients/${id}`, {
+        method: "DELETE",
+        storeId: sid ?? storeId(),
+      }) as Promise<any>,
+
+    getMenuCategories: (sid) =>
+      saasRequest(`/api/menu-categories`, { storeId: sid ?? storeId() }) as Promise<any>,
+    createMenuCategory: (payload, sid) =>
+      saasRequest("/api/menu-categories", {
+        method: "POST",
+        body: JSON.stringify(payload),
+        storeId: sid ?? storeId(),
+      }) as Promise<any>,
+    updateMenuCategory: (id, payload, sid) =>
+      saasRequest(`/api/menu-categories/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+        storeId: sid ?? storeId(),
+      }) as Promise<any>,
+    deleteMenuCategory: (id, sid) =>
+      saasRequest(`/api/menu-categories/${id}`, {
+        method: "DELETE",
+        storeId: sid ?? storeId(),
+      }) as Promise<any>,
+
+    getMenuItems: (params, sid) => {
+      const url = new URL("/api/menu-items", getSaasApiBase() || window.location.origin);
+      if (params?.menuCategoryId) url.searchParams.set("menuCategoryId", params.menuCategoryId);
+      const effectiveStoreId = sid ?? storeId();
+      if (effectiveStoreId) url.searchParams.set("storeId", effectiveStoreId);
+      return saasRequest(
+        url.toString(),
+        effectiveStoreId ? { storeId: effectiveStoreId } : undefined,
+      ) as Promise<any>;
+    },
+    createMenuItem: (payload, sid) =>
+      saasRequest("/api/menu-items", {
+        method: "POST",
+        body: JSON.stringify(payload),
+        storeId: sid ?? storeId(),
+      }) as Promise<any>,
+    updateMenuItem: (id, payload, sid) =>
+      saasRequest(`/api/menu-items/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+        storeId: sid ?? storeId(),
+      }) as Promise<any>,
+    deleteMenuItem: (id, sid) =>
+      saasRequest(`/api/menu-items/${id}`, {
+        method: "DELETE",
+        storeId: sid ?? storeId(),
+      }) as Promise<any>,
+    replaceMenuItemRecipe: (menuItemId, payload, sid) =>
+      saasRequest(`/api/menu-items/${menuItemId}/recipe`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+        storeId: sid ?? storeId(),
+      }) as Promise<any>,
   };
 };

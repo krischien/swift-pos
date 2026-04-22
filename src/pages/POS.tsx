@@ -6,7 +6,7 @@ import { ProductCard } from "@/components/pos/ProductCard";
 import { Cart } from "@/components/pos/Cart";
 import { VariantModal } from "@/components/pos/VariantModal";
 import { CheckoutModal } from "@/components/pos/CheckoutModal";
-import { CartItem, Product, Variant, Category } from "@/types/pos";
+import { CartItem, Product, Variant, Category, MenuItem, MenuCategory } from "@/types/pos";
 import { useAuth } from "@/contexts/AuthContext";
 import { Search, Calendar, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -56,6 +56,22 @@ function findProductByScan(products: Product[], scannedData: string): Product | 
   );
 }
 
+function menuItemToProduct(m: MenuItem): Product {
+  return {
+    id: m.id,
+    name: m.name,
+    categoryId: m.menuCategoryId,
+    itemCode: m.barcode ?? "",
+    hasVariants: false,
+    price: m.price,
+    stock: 1_000_000,
+    lowStockThreshold: 0,
+    status: m.status === "inactive" ? "inactive" : "active",
+    image: m.image ?? undefined,
+    barcode: m.barcode ?? undefined,
+  };
+}
+
 const POS = () => {
   const dataService = useDataLayer();
   const { user } = useAuth();
@@ -88,6 +104,10 @@ const POS = () => {
   const [discountPercent, setDiscountPercent] = useState(0);
   const [productBrowseExpanded, setProductBrowseExpanded] = useState(false);
 
+  const { activeStoreId, stores, storesLoading } = useStore();
+  const activeStore = stores.find((s) => s.id === activeStoreId);
+  const isFnb = !!activeStore && activeStore.businessMode === "fnb";
+
   /** Shown when camera/USB scan decodes but no product matches (or catalog empty). */
   const toastScanNotRecognized = useCallback(
     (scannedCode: string) => {
@@ -97,14 +117,16 @@ const POS = () => {
         title: "Barcode not recognized",
         description:
           products.length === 0
-            ? "No products loaded for this store. Select a store or wait for the catalog to finish loading."
-            : `No results for "${label}". In Inventory, set Item code, SKU, or Barcode to match this scan.`,
+            ? "No catalog loaded for this store. Select a store or wait for it to finish loading."
+            : `No results for "${label}". ${
+                isFnb
+                  ? "In Menu, set a barcode on the item to match this scan."
+                  : "In Inventory, set Item code, SKU, or Barcode to match this scan."
+              }`,
       });
     },
-    [products.length, toast],
+    [products.length, toast, isFnb],
   );
-
-  const { activeStoreId, stores, storesLoading } = useStore();
 
   useEffect(() => {
     if (enableBarcodeScanning) {
@@ -133,12 +155,21 @@ const POS = () => {
       try {
         setLoading(true);
         setError(null);
-        const [cats, prods] = await Promise.all([
-          dataService.getCategories(activeStoreId),
-          dataService.getProducts(undefined, activeStoreId),
-        ]);
-        setCategories(cats as Category[]);
-        setProducts(prods as Product[]);
+        if (isFnb) {
+          const [mcats, mitems] = await Promise.all([
+            dataService.getMenuCategories(activeStoreId),
+            dataService.getMenuItems(undefined, activeStoreId),
+          ]);
+          setCategories((mcats as MenuCategory[]).map((c) => ({ id: c.id, name: c.name })));
+          setProducts((mitems as MenuItem[]).map(menuItemToProduct));
+        } else {
+          const [cats, prods] = await Promise.all([
+            dataService.getCategories(activeStoreId),
+            dataService.getProducts(undefined, activeStoreId),
+          ]);
+          setCategories(cats as Category[]);
+          setProducts(prods as Product[]);
+        }
       } catch (e: any) {
         setError(e.message ?? "Failed to load products");
       } finally {
@@ -146,7 +177,7 @@ const POS = () => {
       }
     };
     load();
-  }, [activeStoreId, stores, dataService, storesLoading]);
+  }, [activeStoreId, stores, dataService, storesLoading, isFnb]);
 
   const filteredProducts = products.filter((product) => {
     const matchesCategory = !selectedCategory || product.categoryId === selectedCategory;
@@ -155,6 +186,7 @@ const POS = () => {
   });
 
   const isProductOutOfStock = (product: Product): boolean => {
+    if (isFnb) return false;
     if (product.hasVariants && product.variants?.length) {
       const totalStock = product.variants.reduce((sum, v) => sum + (v.stock ?? 0), 0);
       return totalStock <= 0;
@@ -186,6 +218,36 @@ const POS = () => {
   };
 
   const addToCart = (product: Product, variant?: Variant) => {
+    if (isFnb) {
+      const price = product.price || 0;
+      const existingItemId = product.id;
+      setCart((prev) => {
+        const existingItem = prev.find((item) => item.id === existingItemId);
+        if (existingItem) {
+          const newQuantity = existingItem.quantity + 1;
+          return prev.map((item) =>
+            item.id === existingItemId
+              ? {
+                  ...item,
+                  quantity: newQuantity,
+                  subtotal: newQuantity * item.price,
+                }
+              : item,
+          );
+        }
+        const newItem: CartItem = {
+          id: existingItemId,
+          menuItemId: product.id,
+          name: product.name,
+          price,
+          quantity: 1,
+          subtotal: price,
+        };
+        return [...prev, newItem];
+      });
+      return;
+    }
+
     let price: number;
     if (variant) {
       const basePrice = variant.price;
@@ -278,7 +340,7 @@ const POS = () => {
 
         const newItem: CartItem = {
           id: weightedItemId,
-          productId: product.id,
+          ...(isFnb ? { menuItemId: product.id } : { productId: product.id }),
           name: product.name,
           variantName: data.productName ? undefined : `${data.weight} kg`,
           price: data.price,
@@ -328,7 +390,7 @@ const POS = () => {
           ...prev,
           {
             id: unitId,
-            productId: product.id,
+            ...(isFnb ? { menuItemId: product.id } : { productId: product.id }),
             name: product.name,
             price: data.price,
             quantity: 1,
@@ -358,15 +420,16 @@ const POS = () => {
   };
 
   const handleUpdateQuantity = (itemId: string, quantity: number) => {
-    const minQuantity = enablePerKiloPurchase ? 0.1 : 1;
-    if (quantity < minQuantity) {
+    const minQuantity = isFnb ? 1 : enablePerKiloPurchase ? 0.1 : 1;
+    const effectiveQty = isFnb ? Math.max(1, Math.floor(quantity)) : quantity;
+    if (effectiveQty < minQuantity) {
       handleRemoveItem(itemId);
       return;
     }
     setCart(
       cart.map((item) =>
         item.id === itemId
-          ? { ...item, quantity, subtotal: quantity * item.price }
+          ? { ...item, quantity: effectiveQty, subtotal: effectiveQty * item.price }
           : item
       )
     );
@@ -824,7 +887,7 @@ const POS = () => {
             onDiscountChange={setDiscountPercent}
             taxRatePercent={taxRatePercent}
             enableTax={enableTax}
-            enablePerKiloPurchase={enablePerKiloPurchase}
+            enablePerKiloPurchase={enablePerKiloPurchase && !isFnb}
           />
         </div>
       </div>
@@ -855,7 +918,7 @@ const POS = () => {
             onDiscountChange={setDiscountPercent}
             taxRatePercent={taxRatePercent}
             enableTax={enableTax}
-            enablePerKiloPurchase={enablePerKiloPurchase}
+            enablePerKiloPurchase={enablePerKiloPurchase && !isFnb}
           />
         </SheetContent>
       </Sheet>

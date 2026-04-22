@@ -221,13 +221,17 @@ export const adminApi = {
 
   getProductRanking: (storeId: string, from: string, to: string) => {
     const params = new URLSearchParams();
-    params.set("storeId", storeId);
+    // Omit storeId for "all" so nothing in the chain treats it as a literal id
+    if (storeId && storeId !== "all") {
+      params.set("storeId", storeId);
+    }
     params.set("from", from);
     params.set("to", to);
     return adminRequest<
       Array<{
         rank: number;
-        productId: string;
+        productId: string | null;
+        menuItemId: string | null;
         variantId: string | null;
         productName: string;
         variantName: string | null;
@@ -238,14 +242,19 @@ export const adminApi = {
   },
 
   getProductRankingDrilldown: (
-    productId: string,
+    productId: string | null,
     variantId: string | null,
     from: string,
-    to: string
+    to: string,
+    menuItemId?: string | null
   ) => {
     const params = new URLSearchParams();
-    params.set("productId", productId);
-    if (variantId) params.set("variantId", variantId);
+    if (menuItemId) {
+      params.set("menuItemId", menuItemId);
+    } else if (productId) {
+      params.set("productId", productId);
+      if (variantId) params.set("variantId", variantId);
+    }
     params.set("from", from);
     params.set("to", to);
     return adminRequest<

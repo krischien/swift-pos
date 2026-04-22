@@ -2,7 +2,8 @@ import { saasPrisma } from "../db.js";
 import { changePhpFromCents, paymentCoversTotal, phpToCents } from "../../utils/money.js";
 
 export interface CartItemInput {
-  productId: string;
+  productId?: string;
+  menuItemId?: string;
   variantId?: string;
   productName: string;
   variantName?: string;
@@ -22,6 +23,33 @@ export interface CreateSaleInput {
   items: CartItemInput[];
   ticketNumber?: string;
   gcashTransactionId?: string;
+  /** When set (e.g. demo seed), persists on the sale row for reports/charts */
+  createdAt?: Date;
+}
+
+function consumptionUnits(recipeQty: number, saleQty: number, wastagePercent: number | null): number {
+  const w = 1 + (wastagePercent ?? 0) / 100;
+  return Math.max(0, Math.ceil(recipeQty * saleQty * w));
+}
+
+async function validateCartForStoreMode(storeId: string, items: CartItemInput[]) {
+  const store = await saasPrisma.store.findFirst({ where: { id: storeId } });
+  if (!store) throw new Error("Store not found");
+  const mode = store.businessMode ?? "retail";
+  for (const item of items) {
+    const hasP = Boolean(item.productId);
+    const hasM = Boolean(item.menuItemId);
+    if (hasP === hasM) {
+      throw new Error("Each line must have exactly one of productId or menuItemId");
+    }
+    if (mode === "retail" && hasM) {
+      throw new Error("This store is retail-only; menu items are not sold here");
+    }
+    if (mode === "fnb" && hasP) {
+      throw new Error("This is a Food & Beverage store; use menu items on the POS, not products");
+    }
+  }
+  return store;
 }
 
 export async function createSale(input: CreateSaleInput) {
@@ -33,6 +61,8 @@ export async function createSale(input: CreateSaleInput) {
     throw new Error("Amount received is less than total due");
   }
   const change = changePhpFromCents(receivedCents, totalCents);
+
+  await validateCartForStoreMode(storeId, items);
 
   return saasPrisma.$transaction(async (tx) => {
     const ticketNumber =
@@ -52,6 +82,7 @@ export async function createSale(input: CreateSaleInput) {
         amountReceived,
         change,
         gcashTransactionId: input.gcashTransactionId ?? null,
+        ...(input.createdAt ? { createdAt: input.createdAt } : {}),
       },
     });
 
@@ -59,8 +90,9 @@ export async function createSale(input: CreateSaleInput) {
       await tx.saleItem.create({
         data: {
           saleId: sale.id,
-          productId: item.productId,
-          variantId: item.variantId,
+          productId: item.productId ?? null,
+          menuItemId: item.menuItemId ?? null,
+          variantId: item.variantId ?? null,
           productName: item.productName,
           variantName: item.variantName,
           quantity: item.quantity,
@@ -69,24 +101,49 @@ export async function createSale(input: CreateSaleInput) {
         },
       });
 
-      if (item.variantId) {
-        await tx.variant.update({
-          where: { id: item.variantId },
-          data: {
-            stock: {
-              decrement: item.quantity,
-            },
-          },
+      if (item.menuItemId) {
+        const menuItem = await tx.menuItem.findFirst({
+          where: { id: item.menuItemId, storeId },
+          include: { recipeLines: true },
         });
-      } else {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            stock: {
-              decrement: item.quantity,
+        if (!menuItem) throw new Error("Menu item not found");
+        if (menuItem.status !== "active") throw new Error(`Menu item is not active: ${menuItem.name}`);
+
+        for (const line of menuItem.recipeLines) {
+          const dec = consumptionUnits(line.quantity, item.quantity, line.wastagePercent);
+          if (dec <= 0) continue;
+          const ing = await tx.ingredient.findFirst({
+            where: { id: line.ingredientId, storeId },
+          });
+          if (!ing) throw new Error("Recipe references a missing ingredient");
+          if (ing.stock < dec) {
+            throw new Error(`Insufficient stock for ingredient: ${ing.name}`);
+          }
+          await tx.ingredient.update({
+            where: { id: line.ingredientId },
+            data: { stock: { decrement: dec } },
+          });
+        }
+      } else if (item.productId) {
+        if (item.variantId) {
+          await tx.variant.update({
+            where: { id: item.variantId },
+            data: {
+              stock: {
+                decrement: item.quantity,
+              },
             },
-          },
-        });
+          });
+        } else {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: {
+              stock: {
+                decrement: item.quantity,
+              },
+            },
+          });
+        }
       }
     }
 
@@ -183,16 +240,33 @@ export async function voidSale(id: string, storeId: string) {
 
   return saasPrisma.$transaction(async (tx) => {
     for (const item of sale.items) {
-      if (item.variantId) {
-        await tx.variant.update({
-          where: { id: item.variantId },
-          data: { stock: { increment: item.quantity } },
+      if (item.menuItemId) {
+        const menuItem = await tx.menuItem.findFirst({
+          where: { id: item.menuItemId, storeId },
+          include: { recipeLines: true },
         });
-      } else {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stock: { increment: item.quantity } },
-        });
+        if (menuItem) {
+          for (const line of menuItem.recipeLines) {
+            const dec = consumptionUnits(line.quantity, item.quantity, line.wastagePercent);
+            if (dec <= 0) continue;
+            await tx.ingredient.update({
+              where: { id: line.ingredientId },
+              data: { stock: { increment: dec } },
+            });
+          }
+        }
+      } else if (item.productId) {
+        if (item.variantId) {
+          await tx.variant.update({
+            where: { id: item.variantId },
+            data: { stock: { increment: item.quantity } },
+          });
+        } else {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { increment: item.quantity } },
+          });
+        }
       }
     }
     return tx.sale.update({

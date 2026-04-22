@@ -41,5 +41,12 @@ Capabilities present in **QuickScale** today (see also [`README.md`](README.md))
 
 ### Fixed
 
+- **Super Admin — Product ranking (`/admin/product-ranking`):** “All stores” could return no rows, hang, or **500** on SQLite because Prisma generated a very slow/ stuck plan for `SaleItem` → `Sale` with `storeId: { in: [many ids] }`. Ranking now runs **one `saleItem` query per store** (same fast shape as a single-store filter) and merges results. **All stores** also omits the `storeId` query param in the client so it is not mistaken for a real store id; the server normalizes `storeId` and parses `from` / `to` so invalid/empty strings do not produce `Invalid Date` errors.
+- **Super Admin — Product ranking:** Aggregates both **retail** (`productId`) and **F&B** (`menuItemId`) lines; store drilldown supports **menu** rows via `menuItemId`.
 - Quick login “invalid credentials” when bootstrap did not run because the DB already had users.
 - Empty POS / reports after seed or reseed: stale `saas_stores` / `saas_active_store_id` in `localStorage` pointing at deleted store IDs; **403 “Access denied to this store”** on categories/products for cashiers when JWT `storeIds` did not match current `UserStore` rows in the database.
+
+### Added (Admin — product ranking)
+
+- Date presets: **This year** (year-to-date, UTC) and clearer label **Last 12 months** (replaces the older “last year” wording for the rolling window).
+- Empty-state copy when there are no lines in range (suggests widening the range and checking Sales).

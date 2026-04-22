@@ -1,4 +1,13 @@
-import type { Category, Product, Variant, User, Sale } from "@/types/pos";
+import type {
+  Category,
+  Product,
+  Variant,
+  User,
+  Sale,
+  Ingredient,
+  MenuCategory,
+  MenuItem,
+} from "@/types/pos";
 
 export interface DataService {
   // Auth
@@ -42,6 +51,45 @@ export interface DataService {
   createSale: (payload: CreateSalePayload, storeId?: string) => Promise<Sale>;
   voidSale?: (id: string, storeId?: string) => Promise<Sale | null>;
 
+  // F&B (SaaS fnb stores only)
+  getIngredients: (storeId?: string) => Promise<Ingredient[]>;
+  createIngredient: (
+    payload: CreateIngredientPayload,
+    storeId?: string,
+  ) => Promise<Ingredient>;
+  updateIngredient: (
+    id: string,
+    payload: UpdateIngredientPayload,
+    storeId?: string,
+  ) => Promise<Ingredient>;
+  deleteIngredient: (id: string, storeId?: string) => Promise<void>;
+
+  getMenuCategories: (storeId?: string) => Promise<MenuCategory[]>;
+  createMenuCategory: (payload: { name: string }, storeId?: string) => Promise<MenuCategory>;
+  updateMenuCategory: (
+    id: string,
+    payload: { name: string },
+    storeId?: string,
+  ) => Promise<MenuCategory>;
+  deleteMenuCategory: (id: string, storeId?: string) => Promise<void>;
+
+  getMenuItems: (
+    params?: { menuCategoryId?: string | null },
+    storeId?: string,
+  ) => Promise<MenuItem[]>;
+  createMenuItem: (payload: CreateMenuItemPayload, storeId?: string) => Promise<MenuItem>;
+  updateMenuItem: (
+    id: string,
+    payload: UpdateMenuItemPayload,
+    storeId?: string,
+  ) => Promise<MenuItem>;
+  deleteMenuItem: (id: string, storeId?: string) => Promise<void>;
+  replaceMenuItemRecipe: (
+    menuItemId: string,
+    payload: ReplaceRecipePayload,
+    storeId?: string,
+  ) => Promise<MenuItem>;
+
   // Users (org-scoped in SaaS; store-scoped or global in Solo)
   getUsers: (storeId?: string) => Promise<User[]>;
   createUser: (payload: CreateUserPayload, storeId?: string) => Promise<User>;
@@ -72,6 +120,44 @@ export type UpdateProductPayload = Partial<CreateProductPayload> & {
   status?: "active" | "inactive";
 };
 
+export interface CreateIngredientPayload {
+  name: string;
+  sku?: string;
+  barcode?: string;
+  stock?: number;
+  lowStockThreshold?: number;
+  unitOfMeasure?: string;
+  status?: string;
+}
+
+export type UpdateIngredientPayload = Partial<CreateIngredientPayload> & {
+  sku?: string | null;
+  barcode?: string | null;
+  unitOfMeasure?: string | null;
+};
+
+export interface CreateMenuItemPayload {
+  menuCategoryId: string;
+  name: string;
+  price: number;
+  status?: string;
+  image?: string;
+  barcode?: string;
+}
+
+export type UpdateMenuItemPayload = Partial<{
+  menuCategoryId: string;
+  name: string;
+  price: number;
+  status: string;
+  image: string | null;
+  barcode: string | null;
+}>;
+
+export interface ReplaceRecipePayload {
+  lines: Array<{ ingredientId: string; quantity: number; wastagePercent?: number }>;
+}
+
 export interface CreateSalePayload {
   cashierId: string;
   cashierName: string;
@@ -83,9 +169,21 @@ export interface CreateSalePayload {
   discountPercent?: number;
   ticketNumber?: string;
   gcashTransactionId?: string;
-  cartItems?: Array<{ id: string; productId: string; variantId?: string; name?: string; productName?: string; variantName?: string; quantity: number; price: number; subtotal: number }>;
+  cartItems?: Array<{
+    id: string;
+    productId?: string;
+    menuItemId?: string;
+    variantId?: string;
+    name?: string;
+    productName?: string;
+    variantName?: string;
+    quantity: number;
+    price: number;
+    subtotal: number;
+  }>;
   items?: Array<{
-    productId: string;
+    productId?: string;
+    menuItemId?: string;
     variantId?: string;
     productName: string;
     variantName?: string;

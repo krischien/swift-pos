@@ -11,7 +11,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, AlertTriangle, Trash2, Download, ChevronDown, ChevronLeft, ChevronRight, Barcode, QrCode, FileSpreadsheet, FileText, Package } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
+import { isSaaS } from "@/config/appMode";
 import { api } from "@/lib/api";
 import { useDataLayer } from "@/contexts/DataLayerContext";
 import { useStore } from "@/contexts/StoreContext";
@@ -50,7 +52,13 @@ import {
 
 const Inventory = () => {
   const dataService = useDataLayer();
-  const { activeStoreId } = useStore();
+  const navigate = useNavigate();
+  const { activeStoreId, stores } = useStore();
+  const isFnb = isSaaS() && stores.find((s) => s.id === activeStoreId)?.businessMode === "fnb";
+
+  useEffect(() => {
+    if (isFnb) navigate("/ingredients", { replace: true });
+  }, [isFnb, navigate]);
   const { storeName, storeAddress } = useSettings();
   const [search, setSearch] = useState("");
   const [stockFilter, setStockFilter] = useState<"all" | "lowStock" | "outOfStock">("all");

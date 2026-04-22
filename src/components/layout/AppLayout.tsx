@@ -17,6 +17,7 @@ import {
   Shield,
   FileBarChart,
   Store,
+  ClipboardList,
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -31,6 +32,7 @@ const AppLayout = () => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const activeStore = stores.find((s) => s.id === activeStoreId) || stores[0];
+  const isFnb = isSaaS() && activeStore?.businessMode === "fnb";
 
   const handleLogout = () => {
     logout();
@@ -42,11 +44,18 @@ const AppLayout = () => {
       ? [{ to: "/admin", icon: Shield, label: "Super Admin", roles: ["super_admin"] }]
       : []),
     { to: "/pos", icon: ShoppingCart, label: "POS", roles: ["admin", "cashier", "owner"] },
-    { to: "/sticker-generator", icon: QrCode, label: "Sticker Generator", roles: ["owner"] },
-    { to: "/inventory", icon: Package, label: "Inventory", roles: ["owner"] },
+    ...(!isFnb ? [{ to: "/sticker-generator", icon: QrCode, label: "Sticker Generator", roles: ["owner"] }] : []),
+    ...(isFnb
+      ? [
+          { to: "/ingredients", icon: Package, label: "Ingredients", roles: ["owner"] },
+          { to: "/menu", icon: ClipboardList, label: "Menu", roles: ["owner"] },
+        ]
+      : [
+          { to: "/inventory", icon: Package, label: "Inventory", roles: ["owner"] },
+          { to: "/categories", icon: FolderTree, label: "Categories", roles: ["owner"] },
+        ]),
     { to: "/sales", icon: TrendingUp, label: "Sales", roles: ["owner"] },
     { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["owner", "admin", "super_admin"] },
-    { to: "/categories", icon: FolderTree, label: "Categories", roles: ["owner"] },
     { to: "/stores", icon: Store, label: "Stores", roles: ["owner"] },
     { to: "/users", icon: Users, label: "Users", roles: ["owner"] },
     { to: "/settings", icon: Settings, label: "Settings", roles: ["owner", "super_admin"] },

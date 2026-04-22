@@ -7,7 +7,7 @@ export interface SaasLoginResponse {
   token: string;
   user: { id: string; name: string; email: string; role: string };
   organization: { id: string; name: string; plan: string; trialEndsAt?: string | null } | null;
-  stores: Array<{ id: string; name: string }>;
+  stores: Array<{ id: string; name: string; businessMode?: string }>;
 }
 
 export interface SaasSignupPayload {
@@ -88,7 +88,7 @@ export function setSaasToken(token: string): void {
   }
 }
 
-export async function fetchStores(): Promise<Array<{ id: string; name: string }>> {
+export async function fetchStores(): Promise<Array<{ id: string; name: string; businessMode?: string }>> {
   const token = getSaasToken();
   if (!token) return [];
   try {
@@ -103,7 +103,7 @@ export async function fetchStores(): Promise<Array<{ id: string; name: string }>
       return [];
     }
     if (text.trimStart().toLowerCase().startsWith("<!")) return [];
-    return JSON.parse(text) as Array<{ id: string; name: string }>;
+    return JSON.parse(text) as Array<{ id: string; name: string; businessMode?: string }>;
   } catch (e) {
     console.warn("[fetchStores]", e);
     return [];

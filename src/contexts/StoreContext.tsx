@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { isSaaS } from "@/config/appMode";
 import { getSaasToken, fetchStores } from "@/lib/saasAuth";
+import type { BusinessMode } from "@/types/pos";
+
+export interface StoreSummary {
+  id: string;
+  name: string;
+  businessMode: BusinessMode;
+}
 
 const initialStoresLoading = (): boolean => {
   if (typeof window === "undefined" || !isSaaS()) return false;
@@ -10,12 +17,19 @@ const initialStoresLoading = (): boolean => {
 const DEFAULT_STORE_ID = "default";
 const STORES_STORAGE_KEY = "saas_stores";
 
-const getStoredStores = (): Array<{ id: string; name: string }> => {
+const normalizeStore = (s: { id: string; name: string; businessMode?: string }): StoreSummary => ({
+  id: s.id,
+  name: s.name,
+  businessMode: s.businessMode === "fnb" ? "fnb" : "retail",
+});
+
+const getStoredStores = (): StoreSummary[] => {
   if (typeof window === "undefined" || !isSaaS()) return [];
   try {
     const raw = window.localStorage.getItem(STORES_STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw) as Array<{ id: string; name: string }>;
+    const parsed = JSON.parse(raw) as Array<{ id: string; name: string; businessMode?: string }>;
+    return parsed.map(normalizeStore);
   } catch {
     return [];
   }
@@ -24,8 +38,8 @@ const getStoredStores = (): Array<{ id: string; name: string }> => {
 interface StoreContextType {
   activeStoreId: string;
   setActiveStoreId: (id: string) => void;
-  stores: Array<{ id: string; name: string }>;
-  setStores: (stores: Array<{ id: string; name: string }>) => void;
+  stores: StoreSummary[];
+  setStores: (stores: StoreSummary[]) => void;
   storesLoading: boolean;
 }
 
@@ -38,7 +52,7 @@ export const StoreProvider = ({ children }: { children: React.ReactNode }) => {
     }
     return DEFAULT_STORE_ID;
   });
-  const [stores, setStoresState] = useState<Array<{ id: string; name: string }>>(getStoredStores);
+  const [stores, setStoresState] = useState<StoreSummary[]>(getStoredStores);
   const [storesLoading, setStoresLoading] = useState(initialStoresLoading);
 
   const setActiveStoreId = useCallback((id: string) => {
@@ -48,10 +62,11 @@ export const StoreProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
-  const setStores = useCallback((s: Array<{ id: string; name: string }>) => {
-    setStoresState(s);
+  const setStores = useCallback((s: StoreSummary[]) => {
+    const normalized = s.map(normalizeStore);
+    setStoresState(normalized);
     if (isSaaS() && typeof window !== "undefined") {
-      window.localStorage.setItem(STORES_STORAGE_KEY, JSON.stringify(s));
+      window.localStorage.setItem(STORES_STORAGE_KEY, JSON.stringify(normalized));
     }
   }, []);
 
@@ -87,7 +102,7 @@ export const StoreProvider = ({ children }: { children: React.ReactNode }) => {
             clearOfflineData().catch(() => {})
           );
         }
-        setStores(list);
+        setStores(list.map(normalizeStore));
         if (!list.length) {
           setActiveStoreId(DEFAULT_STORE_ID);
         } else if (!current || current === "default" || activeInvalid) {

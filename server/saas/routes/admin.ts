@@ -6,6 +6,22 @@ import { runSeedDemo } from "../services/seedDemoService.js";
 
 const router = Router();
 
+/** Single store id from query, or null when reporting across all stores */
+function parseAdminStoreIdQuery(raw: unknown): string | null {
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  if (v == null || typeof v !== "string") return null;
+  const s = v.trim();
+  if (s === "" || s === "all" || s === "undefined" || s === "null") return null;
+  return s;
+}
+
+function parseQueryDate(raw: unknown, fallback: Date): Date {
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  if (v == null || typeof v !== "string" || v.trim() === "") return fallback;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? fallback : d;
+}
+
 router.post("/organizations", async (req: AuthRequest, res) => {
   try {
     const { name, storeName, ownerEmail, ownerPassword, ownerName, phone, email, address } =
@@ -96,7 +112,7 @@ router.get("/stores", async (_req: AuthRequest, res) => {
   try {
     const stores = await saasPrisma.store.findMany({
       orderBy: { createdAt: "asc" },
-      select: { id: true, name: true, organizationId: true },
+      select: { id: true, name: true, organizationId: true, businessMode: true },
     });
     res.json(stores);
   } catch (error: unknown) {
@@ -107,27 +123,64 @@ router.get("/stores", async (_req: AuthRequest, res) => {
 
 router.get("/reports/product-ranking", async (req: AuthRequest, res) => {
   try {
-    const { storeId, from, to } = req.query as { storeId?: string; from?: string; to?: string };
-    const fromDate = from ? new Date(from) : new Date(0);
-    const toDate = to ? new Date(to) : new Date();
+    const storeIdFilter = parseAdminStoreIdQuery(req.query.storeId);
+    const fromDate = parseQueryDate(req.query.from, new Date(0));
+    const toDate = parseQueryDate(req.query.to, new Date());
 
-    const items = await saasPrisma.saleItem.findMany({
-      where: {
-        sale: {
-          status: { not: "void" },
-          createdAt: { gte: fromDate, lte: toDate },
-          ...(storeId && storeId !== "all" ? { storeId } : {}),
-        },
-      },
-      select: { productId: true, productName: true, variantId: true, variantName: true, quantity: true, subtotal: true },
-    });
+    const storeIds = storeIdFilter
+      ? [storeIdFilter]
+      : (await saasPrisma.store.findMany({ select: { id: true } })).map((s) => s.id);
+    if (storeIds.length === 0) {
+      return res.json([]);
+    }
+
+    const itemSelect = {
+      productId: true,
+      menuItemId: true,
+      productName: true,
+      variantId: true,
+      variantName: true,
+      quantity: true,
+      subtotal: true,
+    } as const;
+
+    const saleWhereBase = {
+      status: { not: "void" as const },
+      createdAt: { gte: fromDate, lte: toDate },
+    };
+
+    // SQLite: `sale: { storeId: { in: [...many] } }` on SaleItem can devolve into a very slow/hanging plan.
+    // One query per store matches the fast single-store path; merge in memory.
+    const items =
+      storeIds.length === 1
+        ? await saasPrisma.saleItem.findMany({
+            where: { sale: { storeId: storeIds[0], ...saleWhereBase } },
+            select: itemSelect,
+          })
+        : (
+            await Promise.all(
+              storeIds.map((sid) =>
+                saasPrisma.saleItem.findMany({
+                  where: { sale: { storeId: sid, ...saleWhereBase } },
+                  select: itemSelect,
+                })
+              )
+            )
+          ).flat();
 
     const map = new Map<
       string,
       { productName: string; variantId: string | null; variantName: string | null; quantity: number; revenue: number }
     >();
     for (const item of items) {
-      const key = item.variantId ? `${item.productId}:${item.variantId}` : item.productId;
+      let key: string | null = null;
+      if (item.productId) {
+        key = `p|${item.productId}|${item.variantId ?? ""}`;
+      } else if (item.menuItemId) {
+        key = `m|${item.menuItemId}`;
+      }
+      if (!key) continue;
+
       const existing = map.get(key);
       const qty = item.quantity ?? 0;
       const rev = item.subtotal ?? 0;
@@ -147,41 +200,64 @@ router.get("/reports/product-ranking", async (req: AuthRequest, res) => {
 
     const ranked = Array.from(map.entries())
       .map(([key, data]) => {
-        const parts = key.split(":");
-        return { productId: parts[0], variantId: data.variantId, ...data };
+        const parts = key.split("|");
+        if (parts[0] === "m") {
+          return {
+            productId: null as string | null,
+            menuItemId: parts[1],
+            variantId: null as string | null,
+            productName: data.productName,
+            variantName: data.variantName,
+            quantity: data.quantity,
+            revenue: data.revenue,
+          };
+        }
+        return {
+          productId: parts[1],
+          menuItemId: null as string | null,
+          variantId: parts[2] || null,
+          productName: data.productName,
+          variantName: data.variantName,
+          quantity: data.quantity,
+          revenue: data.revenue,
+        };
       })
       .sort((a, b) => b.quantity - a.quantity)
       .map((r, i) => ({ rank: i + 1, ...r }));
 
     res.json(ranked);
   } catch (error: unknown) {
-    console.error(error);
+    console.error("[product-ranking]", error);
     res.status(500).json({ message: "Failed to fetch product ranking" });
   }
 });
 
 router.get("/reports/product-ranking/drilldown", async (req: AuthRequest, res) => {
   try {
-    const { productId, variantId, from, to } = req.query as {
+    const { productId, variantId, menuItemId, from, to } = req.query as {
       productId?: string;
       variantId?: string;
+      menuItemId?: string;
       from?: string;
       to?: string;
     };
-    if (!productId) {
-      return res.status(400).json({ message: "productId is required" });
+    const menuItem =
+      menuItemId && menuItemId !== "null" && menuItemId !== "undefined" ? menuItemId : null;
+    if (!menuItem && !productId) {
+      return res.status(400).json({ message: "productId or menuItemId is required" });
     }
     const fromDate = from ? new Date(from) : new Date(0);
     const toDate = to ? new Date(to) : new Date();
 
     // Filter by variantId only when explicitly provided (for variant-specific rows)
     const variantFilter =
-      variantId && variantId !== "null" && variantId !== "undefined" ? { variantId } : {};
+      !menuItem && variantId && variantId !== "null" && variantId !== "undefined"
+        ? { variantId }
+        : {};
 
     const items = await saasPrisma.saleItem.findMany({
       where: {
-        productId,
-        ...variantFilter,
+        ...(menuItem ? { menuItemId: menuItem } : { productId: productId!, ...variantFilter }),
         sale: {
           status: { not: "void" },
           createdAt: { gte: fromDate, lte: toDate },
@@ -586,7 +662,11 @@ router.delete("/api/admin/organizations/:orgId/users/:userId", async (req: AuthR
 router.post("/organizations/:orgId/stores", async (req: AuthRequest, res) => {
   try {
     const orgId = req.params.orgId;
-    const { name, address } = req.body as { name?: string; address?: string };
+    const { name, address, businessMode: rawMode } = req.body as {
+      name?: string;
+      address?: string;
+      businessMode?: string;
+    };
     if (!name?.trim()) {
       return res.status(400).json({ message: "Store name is required" });
     }
@@ -595,13 +675,15 @@ router.post("/organizations/:orgId/stores", async (req: AuthRequest, res) => {
       select: { id: true, address: true },
     });
     if (!org) return res.status(404).json({ message: "Organization not found" });
+    const businessMode = rawMode === "fnb" ? "fnb" : "retail";
     const store = await saasPrisma.store.create({
       data: {
         organizationId: orgId,
         name: name.trim(),
         address: address?.trim() || org.address || null,
+        businessMode,
       },
-      select: { id: true, name: true, address: true, createdAt: true },
+      select: { id: true, name: true, address: true, createdAt: true, businessMode: true },
     });
     res.status(201).json(store);
   } catch (error: unknown) {
@@ -613,6 +695,11 @@ router.post("/organizations/:orgId/stores", async (req: AuthRequest, res) => {
 router.patch("/organizations/:orgId/stores/:storeId", async (req: AuthRequest, res) => {
   try {
     const { orgId, storeId } = req.params;
+    if (req.body && Object.prototype.hasOwnProperty.call(req.body, "businessMode")) {
+      return res.status(400).json({
+        message: "Store type (retail vs F&B) cannot be changed. Create a new store instead.",
+      });
+    }
     const { name, address } = req.body as { name?: string; address?: string };
     const existing = await saasPrisma.store.findFirst({
       where: { id: storeId, organizationId: orgId },
@@ -624,7 +711,7 @@ router.patch("/organizations/:orgId/stores/:storeId", async (req: AuthRequest, r
         ...(name !== undefined && { name: name.trim() }),
         ...(address !== undefined && { address: address?.trim() || null }),
       },
-      select: { id: true, name: true, address: true, createdAt: true },
+      select: { id: true, name: true, address: true, createdAt: true, businessMode: true },
     });
     res.json(store);
   } catch (error: unknown) {

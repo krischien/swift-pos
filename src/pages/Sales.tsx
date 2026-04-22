@@ -92,6 +92,79 @@ const PesoIcon = ({ className }: { className?: string }) => (
   </span>
 );
 
+function escapeCsvCell(value: string | number | null | undefined): string {
+  const s = value === null || value === undefined ? "" : String(value);
+  if (/[",\r\n]/.test(s)) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+function downloadFilteredSalesCsv(rows: any[]) {
+  const header = [
+    "Transaction ID",
+    "Ticket",
+    "Cashier",
+    "Payment",
+    "Date & Time",
+    "Sale Total",
+    "Status",
+    "Item",
+    "Variant",
+    "Qty",
+    "Unit Price",
+    "Line Subtotal",
+  ];
+  const bodyLines: string[] = [];
+  for (const sale of rows) {
+    const voided = (sale.status ?? "").toLowerCase() === "void";
+    const txnDisplay = `#${String(sale.id).slice(-6).padStart(6, "0")}`;
+    const base = [
+      escapeCsvCell(txnDisplay),
+      escapeCsvCell(sale.ticketNumber ?? ""),
+      escapeCsvCell(sale.cashierName ?? ""),
+      escapeCsvCell((sale.paymentMethod ?? "cash").toString()),
+      escapeCsvCell(new Date(sale.createdAt).toLocaleString()),
+      escapeCsvCell(formatCurrency(sale.total ?? 0)),
+      escapeCsvCell(voided ? "Voided" : "Active"),
+    ];
+    const items = Array.isArray(sale.items) ? sale.items : [];
+    if (items.length === 0) {
+      bodyLines.push(
+        [...base, escapeCsvCell(""), escapeCsvCell(""), escapeCsvCell(""), escapeCsvCell(""), escapeCsvCell("")].join(
+          ",",
+        ),
+      );
+      continue;
+    }
+    for (const item of items) {
+      bodyLines.push(
+        [
+          ...base,
+          escapeCsvCell(item.productName ?? ""),
+          escapeCsvCell(item.variantName ?? ""),
+          escapeCsvCell(item.quantity ?? ""),
+          escapeCsvCell(formatCurrency(item.price ?? 0)),
+          escapeCsvCell(formatCurrency(item.subtotal ?? 0)),
+        ].join(","),
+      );
+    }
+  }
+  const lines = [header.map((h) => escapeCsvCell(h)).join(","), ...bodyLines];
+  const stamp = format(new Date(), "yyyy-MM-dd-HHmm");
+  const blob = new Blob(["\uFEFF" + lines.join("\r\n")], {
+    type: "text/csv;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `sales-transactions-${stamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 const Sales = () => {
   const dataService = useDataLayer();
   const { activeStoreId } = useStore();
@@ -321,8 +394,25 @@ const Sales = () => {
 
       for (const sale of salesArr) {
         for (const item of sale.items ?? []) {
+          if (item.menuItemId) {
+            const key = `menu-${item.menuItemId}-${item.variantId || "base"}`;
+            const existing = rowsMap.get(key) || {
+              kind: "menu" as const,
+              menuItemId: item.menuItemId,
+              label: item.productName ?? "",
+              quantitySold: 0,
+              salesAmount: 0,
+            };
+            existing.quantitySold += item.quantity;
+            existing.salesAmount += item.subtotal;
+            if (!existing.label && item.productName) existing.label = item.productName;
+            rowsMap.set(key, existing);
+            continue;
+          }
+          if (!item.productId) continue;
           const key = `${item.productId}-${item.variantId || "base"}`;
           const existing = rowsMap.get(key) || {
+            kind: "product" as const,
             productId: item.productId,
             variantId: item.variantId,
             quantitySold: 0,
@@ -337,6 +427,20 @@ const Sales = () => {
       const rows: any[] = [];
 
       rowsMap.forEach((value) => {
+        if (value.kind === "menu") {
+          rows.push({
+            ItemCode: "",
+            ProductName: value.label || "Menu item",
+            VariantName: "",
+            Category: "Menu",
+            DateRange: label,
+            QuantitySold: value.quantitySold,
+            SalesAmount: value.salesAmount,
+            ApproxOpeningStock: "",
+            ClosingStock: "",
+          });
+          return;
+        }
         const product = productsArr.find((p) => p.id === value.productId);
         if (!product) return;
         const variant =
@@ -422,6 +526,7 @@ const Sales = () => {
       if (!sale.items || sale.items.length === 0) continue;
 
       for (const item of sale.items) {
+        if (!item.productId || item.menuItemId) continue;
         const product = products.find((p) => p.id === item.productId);
         if (!product) continue;
 
@@ -492,11 +597,13 @@ const Sales = () => {
 
     for (const sale of salesNonVoid) {
       for (const item of sale.items ?? []) {
-        const product = products.find((p) => p.id === item.productId);
+        const product = item.productId ? products.find((p) => p.id === item.productId) : undefined;
         const baseName = item.productName || product?.name || "Unknown Item";
         const variantName = item.variantName ? ` - ${item.variantName}` : "";
         const name = `${baseName}${variantName}`;
-        const key = `${item.productId}-${item.variantId || "base"}`;
+        const key = item.menuItemId
+          ? `menu-${item.menuItemId}-${item.variantId || "base"}`
+          : `${item.productId}-${item.variantId || "base"}`;
         const current = rowsMap.get(key) ?? { name, salesAmount: 0, quantitySold: 0 };
         current.salesAmount += item.subtotal ?? item.price * item.quantity;
         current.quantitySold += item.quantity ?? 0;
@@ -1169,7 +1276,7 @@ const Sales = () => {
 
       <div className="space-y-4">
         {!error && (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 justify-between">
             <Popover open={txnRangeOpen} onOpenChange={handleTxnRangeOpenChange}>
               <PopoverTrigger asChild>
                 <Button
@@ -1210,6 +1317,17 @@ const Sales = () => {
                 </div>
               </PopoverContent>
             </Popover>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-2 shrink-0"
+              disabled={loading || filteredSales.length === 0}
+              onClick={() => downloadFilteredSalesCsv(filteredSales)}
+            >
+              <Download className="h-4 w-4" />
+              Export to CSV
+            </Button>
           </div>
         )}
         {!loading && !error && (
@@ -1622,32 +1740,33 @@ const Sales = () => {
               </div>
               <div className="rounded-lg border">
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Item</TableHead>
-                      <TableHead className="text-right">Qty</TableHead>
-                      <TableHead className="text-right">Price</TableHead>
-                      <TableHead className="text-right">Subtotal</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(detailsSale.items ?? []).map((item: any) => (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <p className="font-medium">{item.productName}</p>
-                          {item.variantName && (
-                            <p className="text-xs text-muted-foreground">{item.variantName}</p>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">{item.quantity}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(item.price)}</TableCell>
-                        <TableCell className="text-right font-semibold">
-                          {formatCurrency(item.subtotal)}
-                        </TableCell>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Item</TableHead>
+                        <TableHead>Variant</TableHead>
+                        <TableHead className="text-right">Qty</TableHead>
+                        <TableHead className="text-right">Price</TableHead>
+                        <TableHead className="text-right">Subtotal</TableHead>
                       </TableRow>
-                    ))}
+                    </TableHeader>
+                    <TableBody>
+                      {(detailsSale.items ?? []).map((item: any) => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <p className="font-medium">{item.productName}</p>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {item.variantName ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-right">{item.quantity}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(item.price)}</TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {formatCurrency(item.subtotal)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
-                </Table>
+                  </Table>
               </div>
               {dataService.voidSale && (detailsSale.status ?? "").toLowerCase() !== "void" && (
                 <div className="flex justify-end pt-4">

@@ -14,6 +14,19 @@ const DEFAULT_SAAS_PORT = 4001;
 function getBaseFromEnv(): string {
   const envUrl = (import.meta.env.VITE_SAAS_API_URL || "").trim();
   if (import.meta.env.DEV && import.meta.env.VITE_APP_MODE === "saas") {
+    // Web browser (not Capacitor): use same-origin `/api/...` so Vite's proxy (see vite.config)
+    // forwards to localhost:4001. Avoids "Failed to fetch" when the browser talks to :4001 directly
+    // (firewall/CORS) and matches "one dev server" UX — you still must run `npm run dev:saas`.
+    if (!Capacitor.isNativePlatform()) {
+      const isLocalApi =
+        !envUrl ||
+        envUrl.includes("localhost") ||
+        envUrl.includes("127.0.0.1") ||
+        envUrl.includes("::1");
+      if (isLocalApi) {
+        return "";
+      }
+    }
     // Web dev: when VITE_SAAS_API_URL points at HTTPS production (Vercel / domain), use the
     // local Node API so you don't hit prod DB by mistake. Explicit http:// hosts (LAN IP, VPS)
     // are left unchanged so dev can target a remote HTTP API.

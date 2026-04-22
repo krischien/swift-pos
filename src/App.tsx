@@ -24,6 +24,8 @@ import Categories from "./pages/Categories";
 import StickerGenerator from "./pages/StickerGenerator";
 import Reports from "./pages/Reports";
 import Stores from "./pages/Stores";
+import Menu from "./pages/Menu";
+import Ingredients from "./pages/Ingredients";
 import NotFound from "./pages/NotFound";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -98,6 +100,22 @@ const App = () => {
                     element={
                       <ProtectedRoute allowedRoles={["owner"]}>
                         <Inventory />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/ingredients"
+                    element={
+                      <ProtectedRoute allowedRoles={["owner"]}>
+                        <Ingredients />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/menu"
+                    element={
+                      <ProtectedRoute allowedRoles={["owner"]}>
+                        <Menu />
                       </ProtectedRoute>
                     }
                   />

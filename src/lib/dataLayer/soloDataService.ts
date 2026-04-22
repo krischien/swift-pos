@@ -1,6 +1,10 @@
 import { api } from "@/lib/api";
 import type { DataService } from "./types";
 
+const fnbUnavailable = () => {
+  throw new Error("Food & beverage (ingredients, menu, recipes) is not available in solo mode.");
+};
+
 /**
  * Solo mode data service. Uses existing api (which routes to mobileServices on native, server on web).
  * Ignores storeId - single tenant, single store.
@@ -26,6 +30,20 @@ export const soloDataService: DataService = {
 
   getSales: (params) => api.getSales(params) as Promise<any>,
   createSale: (payload) => api.createSale(payload) as Promise<any>,
+
+  getIngredients: fnbUnavailable,
+  createIngredient: fnbUnavailable,
+  updateIngredient: fnbUnavailable,
+  deleteIngredient: fnbUnavailable,
+  getMenuCategories: fnbUnavailable,
+  createMenuCategory: fnbUnavailable,
+  updateMenuCategory: fnbUnavailable,
+  deleteMenuCategory: fnbUnavailable,
+  getMenuItems: fnbUnavailable,
+  createMenuItem: fnbUnavailable,
+  updateMenuItem: fnbUnavailable,
+  deleteMenuItem: fnbUnavailable,
+  replaceMenuItemRecipe: fnbUnavailable,
 
   getUsers: () => api.getUsers() as Promise<any>,
   createUser: (payload) => api.createUser(payload) as Promise<any>,

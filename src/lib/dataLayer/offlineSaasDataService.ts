@@ -346,6 +346,9 @@ export function createOfflineSaasDataService(): DataService {
       }
 
       const cartItems = payload.cartItems ?? payload.items ?? [];
+      if (cartItems.some((i: { menuItemId?: string }) => !!i.menuItemId)) {
+        throw new Error("Food & beverage sales require an internet connection.");
+      }
       const subtotal = cartItems.reduce((s, i) => s + (i.subtotal ?? i.quantity * i.price), 0);
       const discountPercent = payload.discountPercent ?? 0;
       const discountAmount = subtotal * (discountPercent / 100);
@@ -376,6 +379,7 @@ export function createOfflineSaasDataService(): DataService {
         id: generateId(),
         saleId,
         productId: it.productId,
+        menuItemId: it.menuItemId,
         variantId: it.variantId,
         productName: it.name ?? it.productName ?? "",
         variantName: it.variantName,
@@ -439,6 +443,61 @@ export function createOfflineSaasDataService(): DataService {
         throw new Error("Go online to delete users.");
       }
       return real.deleteUser(id, sid);
+    },
+
+    getIngredients: async (sid) => {
+      if (!isOnline()) throw new Error("Connect to load ingredients.");
+      return real.getIngredients(sid);
+    },
+    createIngredient: async (payload, sid) => {
+      if (!isOnline()) throw new Error("Go online to manage ingredients.");
+      return real.createIngredient(payload, sid);
+    },
+    updateIngredient: async (id, payload, sid) => {
+      if (!isOnline()) throw new Error("Go online to manage ingredients.");
+      return real.updateIngredient(id, payload, sid);
+    },
+    deleteIngredient: async (id, sid) => {
+      if (!isOnline()) throw new Error("Go online to manage ingredients.");
+      return real.deleteIngredient(id, sid);
+    },
+
+    getMenuCategories: async (sid) => {
+      if (!isOnline()) throw new Error("Connect to load menu.");
+      return real.getMenuCategories(sid);
+    },
+    createMenuCategory: async (payload, sid) => {
+      if (!isOnline()) throw new Error("Go online to manage menu.");
+      return real.createMenuCategory(payload, sid);
+    },
+    updateMenuCategory: async (id, payload, sid) => {
+      if (!isOnline()) throw new Error("Go online to manage menu.");
+      return real.updateMenuCategory(id, payload, sid);
+    },
+    deleteMenuCategory: async (id, sid) => {
+      if (!isOnline()) throw new Error("Go online to manage menu.");
+      return real.deleteMenuCategory(id, sid);
+    },
+
+    getMenuItems: async (params, sid) => {
+      if (!isOnline()) throw new Error("Connect to load menu.");
+      return real.getMenuItems(params, sid);
+    },
+    createMenuItem: async (payload, sid) => {
+      if (!isOnline()) throw new Error("Go online to manage menu.");
+      return real.createMenuItem(payload, sid);
+    },
+    updateMenuItem: async (id, payload, sid) => {
+      if (!isOnline()) throw new Error("Go online to manage menu.");
+      return real.updateMenuItem(id, payload, sid);
+    },
+    deleteMenuItem: async (id, sid) => {
+      if (!isOnline()) throw new Error("Go online to manage menu.");
+      return real.deleteMenuItem(id, sid);
+    },
+    replaceMenuItemRecipe: async (menuItemId, payload, sid) => {
+      if (!isOnline()) throw new Error("Go online to manage recipes.");
+      return real.replaceMenuItemRecipe(menuItemId, payload, sid);
     },
   };
 }

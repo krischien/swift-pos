@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { isSaaS } from "@/config/appMode";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -52,7 +54,13 @@ function buildStickerSelectOptions(products: Product[]): { value: string; label:
 
 const StickerGenerator = () => {
   const dataService = useDataLayer();
-  const { activeStoreId } = useStore();
+  const navigate = useNavigate();
+  const { activeStoreId, stores } = useStore();
+  const isFnb = isSaaS() && stores.find((s) => s.id === activeStoreId)?.businessMode === "fnb";
+
+  useEffect(() => {
+    if (isFnb) navigate("/pos", { replace: true });
+  }, [isFnb, navigate]);
   const { toast } = useToast();
   const { stickerCodeType, enablePerKiloPurchase } = useSettings();
   const [products, setProducts] = useState<Product[]>([]);

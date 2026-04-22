@@ -35,6 +35,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { isSaaS } from "@/config/appMode";
 import {
@@ -44,7 +46,7 @@ import {
   deleteOrgStore,
   type OrgStore,
 } from "@/lib/saasOrgStoresApi";
-import { useStore } from "@/contexts/StoreContext";
+import { useStore, type StoreSummary } from "@/contexts/StoreContext";
 
 const Stores = () => {
   const { setStores, activeStoreId, setActiveStoreId } = useStore();
@@ -62,6 +64,7 @@ const Stores = () => {
   const [deletingStore, setDeletingStore] = useState<OrgStore | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [formBusinessMode, setFormBusinessMode] = useState<"retail" | "fnb">("retail");
 
   const load = async () => {
     if (!isSaaS()) return;
@@ -80,7 +83,12 @@ const Stores = () => {
   };
 
   const refreshStoreContext = (list: OrgStore[]) => {
-    setStores(list.map((s) => ({ id: s.id, name: s.name })));
+    const mapped: StoreSummary[] = list.map((s) => ({
+      id: s.id,
+      name: s.name,
+      businessMode: s.businessMode === "fnb" ? "fnb" : "retail",
+    }));
+    setStores(mapped);
   };
 
   useEffect(() => {
@@ -107,6 +115,7 @@ const Stores = () => {
     setEditingStore(null);
     setFormName("");
     setFormAddress("");
+    setFormBusinessMode("retail");
     setFormError(null);
     setFormOpen(true);
   };
@@ -139,6 +148,7 @@ const Stores = () => {
         await createOrgStore({
           name: formName.trim(),
           address: formAddress.trim() || undefined,
+          businessMode: formBusinessMode,
         });
         toast({ title: "Store created", description: `${formName} has been added.` });
       }
@@ -239,6 +249,7 @@ const Stores = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Address</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -247,6 +258,7 @@ const Stores = () => {
                 {Array.from({ length: 8 }).map((_, i) => (
                   <TableRow key={i}>
                     <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-48" /></TableCell>
                     <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                   </TableRow>
@@ -282,6 +294,7 @@ const Stores = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Address</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -290,6 +303,11 @@ const Stores = () => {
                 {paginatedStores.map((store) => (
                   <TableRow key={store.id}>
                     <TableCell className="font-medium">{store.name}</TableCell>
+                    <TableCell>
+                      <Badge variant={store.businessMode === "fnb" ? "default" : "secondary"}>
+                        {store.businessMode === "fnb" ? "F&B" : "Retail"}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {store.address || "—"}
                     </TableCell>
@@ -325,9 +343,12 @@ const Stores = () => {
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <h3 className="font-semibold flex items-center gap-2">
+                    <h3 className="font-semibold flex items-center gap-2 flex-wrap">
                       <StoreIcon className="h-4 w-4 text-muted-foreground" />
                       {store.name}
+                      <Badge variant={store.businessMode === "fnb" ? "default" : "secondary"} className="text-xs">
+                        {store.businessMode === "fnb" ? "F&B" : "Retail"}
+                      </Badge>
                     </h3>
                     <p className="text-sm text-muted-foreground mt-1">
                       {store.address || "No address"}
@@ -427,6 +448,32 @@ const Stores = () => {
                 placeholder="123 Main St, City"
               />
             </div>
+            {!isEditing && (
+              <div className="space-y-2">
+                <Label>Store type</Label>
+                <p className="text-xs text-muted-foreground">
+                  Cannot be changed after creation. Create a new store if you need a different type.
+                </p>
+                <RadioGroup
+                  value={formBusinessMode}
+                  onValueChange={(v) => setFormBusinessMode(v as "retail" | "fnb")}
+                  className="flex flex-col gap-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="retail" id="bm-retail" />
+                    <Label htmlFor="bm-retail" className="font-normal cursor-pointer">
+                      Retail (products & variants)
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="fnb" id="bm-fnb" />
+                    <Label htmlFor="bm-fnb" className="font-normal cursor-pointer">
+                      Food &amp; beverage (ingredients, menu, recipes)
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            )}
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setFormOpen(false)}>

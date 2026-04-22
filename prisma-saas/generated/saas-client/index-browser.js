@@ -150,6 +150,7 @@ exports.Prisma.StoreScalarFieldEnum = {
   name: 'name',
   address: 'address',
   receiptLogoUrl: 'receiptLogoUrl',
+  businessMode: 'businessMode',
   createdAt: 'createdAt'
 };
 
@@ -217,10 +218,48 @@ exports.Prisma.SaleScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.IngredientScalarFieldEnum = {
+  id: 'id',
+  storeId: 'storeId',
+  name: 'name',
+  sku: 'sku',
+  barcode: 'barcode',
+  stock: 'stock',
+  lowStockThreshold: 'lowStockThreshold',
+  unitOfMeasure: 'unitOfMeasure',
+  status: 'status'
+};
+
+exports.Prisma.MenuCategoryScalarFieldEnum = {
+  id: 'id',
+  storeId: 'storeId',
+  name: 'name'
+};
+
+exports.Prisma.MenuItemScalarFieldEnum = {
+  id: 'id',
+  storeId: 'storeId',
+  menuCategoryId: 'menuCategoryId',
+  name: 'name',
+  price: 'price',
+  status: 'status',
+  image: 'image',
+  barcode: 'barcode'
+};
+
+exports.Prisma.RecipeLineScalarFieldEnum = {
+  id: 'id',
+  menuItemId: 'menuItemId',
+  ingredientId: 'ingredientId',
+  quantity: 'quantity',
+  wastagePercent: 'wastagePercent'
+};
+
 exports.Prisma.SaleItemScalarFieldEnum = {
   id: 'id',
   saleId: 'saleId',
   productId: 'productId',
+  menuItemId: 'menuItemId',
   variantId: 'variantId',
   productName: 'productName',
   variantName: 'variantName',
@@ -255,6 +294,10 @@ exports.Prisma.ModelName = {
   Product: 'Product',
   Variant: 'Variant',
   Sale: 'Sale',
+  Ingredient: 'Ingredient',
+  MenuCategory: 'MenuCategory',
+  MenuItem: 'MenuItem',
+  RecipeLine: 'RecipeLine',
   SaleItem: 'SaleItem'
 };
 

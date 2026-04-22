@@ -59,6 +59,26 @@ export type Variant = $Result.DefaultSelection<Prisma.$VariantPayload>
  */
 export type Sale = $Result.DefaultSelection<Prisma.$SalePayload>
 /**
+ * Model Ingredient
+ * 
+ */
+export type Ingredient = $Result.DefaultSelection<Prisma.$IngredientPayload>
+/**
+ * Model MenuCategory
+ * 
+ */
+export type MenuCategory = $Result.DefaultSelection<Prisma.$MenuCategoryPayload>
+/**
+ * Model MenuItem
+ * 
+ */
+export type MenuItem = $Result.DefaultSelection<Prisma.$MenuItemPayload>
+/**
+ * Model RecipeLine
+ * 
+ */
+export type RecipeLine = $Result.DefaultSelection<Prisma.$RecipeLinePayload>
+/**
  * Model SaleItem
  * 
  */
@@ -276,6 +296,46 @@ export class PrismaClient<
     * ```
     */
   get sale(): Prisma.SaleDelegate<ExtArgs>;
+
+  /**
+   * `prisma.ingredient`: Exposes CRUD operations for the **Ingredient** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Ingredients
+    * const ingredients = await prisma.ingredient.findMany()
+    * ```
+    */
+  get ingredient(): Prisma.IngredientDelegate<ExtArgs>;
+
+  /**
+   * `prisma.menuCategory`: Exposes CRUD operations for the **MenuCategory** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more MenuCategories
+    * const menuCategories = await prisma.menuCategory.findMany()
+    * ```
+    */
+  get menuCategory(): Prisma.MenuCategoryDelegate<ExtArgs>;
+
+  /**
+   * `prisma.menuItem`: Exposes CRUD operations for the **MenuItem** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more MenuItems
+    * const menuItems = await prisma.menuItem.findMany()
+    * ```
+    */
+  get menuItem(): Prisma.MenuItemDelegate<ExtArgs>;
+
+  /**
+   * `prisma.recipeLine`: Exposes CRUD operations for the **RecipeLine** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more RecipeLines
+    * const recipeLines = await prisma.recipeLine.findMany()
+    * ```
+    */
+  get recipeLine(): Prisma.RecipeLineDelegate<ExtArgs>;
 
   /**
    * `prisma.saleItem`: Exposes CRUD operations for the **SaleItem** model.
@@ -736,6 +796,10 @@ export namespace Prisma {
     Product: 'Product',
     Variant: 'Variant',
     Sale: 'Sale',
+    Ingredient: 'Ingredient',
+    MenuCategory: 'MenuCategory',
+    MenuItem: 'MenuItem',
+    RecipeLine: 'RecipeLine',
     SaleItem: 'SaleItem'
   };
 
@@ -752,7 +816,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "organization" | "organizationNotification" | "store" | "user" | "userStore" | "category" | "product" | "variant" | "sale" | "saleItem"
+      modelProps: "organization" | "organizationNotification" | "store" | "user" | "userStore" | "category" | "product" | "variant" | "sale" | "ingredient" | "menuCategory" | "menuItem" | "recipeLine" | "saleItem"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1386,6 +1450,286 @@ export namespace Prisma {
           }
         }
       }
+      Ingredient: {
+        payload: Prisma.$IngredientPayload<ExtArgs>
+        fields: Prisma.IngredientFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.IngredientFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IngredientPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.IngredientFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IngredientPayload>
+          }
+          findFirst: {
+            args: Prisma.IngredientFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IngredientPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.IngredientFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IngredientPayload>
+          }
+          findMany: {
+            args: Prisma.IngredientFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IngredientPayload>[]
+          }
+          create: {
+            args: Prisma.IngredientCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IngredientPayload>
+          }
+          createMany: {
+            args: Prisma.IngredientCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.IngredientCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IngredientPayload>[]
+          }
+          delete: {
+            args: Prisma.IngredientDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IngredientPayload>
+          }
+          update: {
+            args: Prisma.IngredientUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IngredientPayload>
+          }
+          deleteMany: {
+            args: Prisma.IngredientDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.IngredientUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.IngredientUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IngredientPayload>
+          }
+          aggregate: {
+            args: Prisma.IngredientAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateIngredient>
+          }
+          groupBy: {
+            args: Prisma.IngredientGroupByArgs<ExtArgs>
+            result: $Utils.Optional<IngredientGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.IngredientCountArgs<ExtArgs>
+            result: $Utils.Optional<IngredientCountAggregateOutputType> | number
+          }
+        }
+      }
+      MenuCategory: {
+        payload: Prisma.$MenuCategoryPayload<ExtArgs>
+        fields: Prisma.MenuCategoryFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.MenuCategoryFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MenuCategoryPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.MenuCategoryFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MenuCategoryPayload>
+          }
+          findFirst: {
+            args: Prisma.MenuCategoryFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MenuCategoryPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.MenuCategoryFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MenuCategoryPayload>
+          }
+          findMany: {
+            args: Prisma.MenuCategoryFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MenuCategoryPayload>[]
+          }
+          create: {
+            args: Prisma.MenuCategoryCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MenuCategoryPayload>
+          }
+          createMany: {
+            args: Prisma.MenuCategoryCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.MenuCategoryCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MenuCategoryPayload>[]
+          }
+          delete: {
+            args: Prisma.MenuCategoryDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MenuCategoryPayload>
+          }
+          update: {
+            args: Prisma.MenuCategoryUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MenuCategoryPayload>
+          }
+          deleteMany: {
+            args: Prisma.MenuCategoryDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.MenuCategoryUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.MenuCategoryUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MenuCategoryPayload>
+          }
+          aggregate: {
+            args: Prisma.MenuCategoryAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateMenuCategory>
+          }
+          groupBy: {
+            args: Prisma.MenuCategoryGroupByArgs<ExtArgs>
+            result: $Utils.Optional<MenuCategoryGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.MenuCategoryCountArgs<ExtArgs>
+            result: $Utils.Optional<MenuCategoryCountAggregateOutputType> | number
+          }
+        }
+      }
+      MenuItem: {
+        payload: Prisma.$MenuItemPayload<ExtArgs>
+        fields: Prisma.MenuItemFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.MenuItemFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MenuItemPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.MenuItemFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MenuItemPayload>
+          }
+          findFirst: {
+            args: Prisma.MenuItemFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MenuItemPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.MenuItemFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MenuItemPayload>
+          }
+          findMany: {
+            args: Prisma.MenuItemFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MenuItemPayload>[]
+          }
+          create: {
+            args: Prisma.MenuItemCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MenuItemPayload>
+          }
+          createMany: {
+            args: Prisma.MenuItemCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.MenuItemCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MenuItemPayload>[]
+          }
+          delete: {
+            args: Prisma.MenuItemDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MenuItemPayload>
+          }
+          update: {
+            args: Prisma.MenuItemUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MenuItemPayload>
+          }
+          deleteMany: {
+            args: Prisma.MenuItemDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.MenuItemUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.MenuItemUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MenuItemPayload>
+          }
+          aggregate: {
+            args: Prisma.MenuItemAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateMenuItem>
+          }
+          groupBy: {
+            args: Prisma.MenuItemGroupByArgs<ExtArgs>
+            result: $Utils.Optional<MenuItemGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.MenuItemCountArgs<ExtArgs>
+            result: $Utils.Optional<MenuItemCountAggregateOutputType> | number
+          }
+        }
+      }
+      RecipeLine: {
+        payload: Prisma.$RecipeLinePayload<ExtArgs>
+        fields: Prisma.RecipeLineFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.RecipeLineFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RecipeLinePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.RecipeLineFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RecipeLinePayload>
+          }
+          findFirst: {
+            args: Prisma.RecipeLineFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RecipeLinePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.RecipeLineFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RecipeLinePayload>
+          }
+          findMany: {
+            args: Prisma.RecipeLineFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RecipeLinePayload>[]
+          }
+          create: {
+            args: Prisma.RecipeLineCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RecipeLinePayload>
+          }
+          createMany: {
+            args: Prisma.RecipeLineCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.RecipeLineCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RecipeLinePayload>[]
+          }
+          delete: {
+            args: Prisma.RecipeLineDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RecipeLinePayload>
+          }
+          update: {
+            args: Prisma.RecipeLineUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RecipeLinePayload>
+          }
+          deleteMany: {
+            args: Prisma.RecipeLineDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.RecipeLineUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.RecipeLineUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RecipeLinePayload>
+          }
+          aggregate: {
+            args: Prisma.RecipeLineAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateRecipeLine>
+          }
+          groupBy: {
+            args: Prisma.RecipeLineGroupByArgs<ExtArgs>
+            result: $Utils.Optional<RecipeLineGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.RecipeLineCountArgs<ExtArgs>
+            result: $Utils.Optional<RecipeLineCountAggregateOutputType> | number
+          }
+        }
+      }
       SaleItem: {
         payload: Prisma.$SaleItemPayload<ExtArgs>
         fields: Prisma.SaleItemFieldRefs
@@ -1670,6 +2014,9 @@ export namespace Prisma {
     products: number
     sales: number
     userAccess: number
+    ingredients: number
+    menuCategories: number
+    menuItems: number
   }
 
   export type StoreCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -1677,6 +2024,9 @@ export namespace Prisma {
     products?: boolean | StoreCountOutputTypeCountProductsArgs
     sales?: boolean | StoreCountOutputTypeCountSalesArgs
     userAccess?: boolean | StoreCountOutputTypeCountUserAccessArgs
+    ingredients?: boolean | StoreCountOutputTypeCountIngredientsArgs
+    menuCategories?: boolean | StoreCountOutputTypeCountMenuCategoriesArgs
+    menuItems?: boolean | StoreCountOutputTypeCountMenuItemsArgs
   }
 
   // Custom InputTypes
@@ -1716,6 +2066,27 @@ export namespace Prisma {
    */
   export type StoreCountOutputTypeCountUserAccessArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: UserStoreWhereInput
+  }
+
+  /**
+   * StoreCountOutputType without action
+   */
+  export type StoreCountOutputTypeCountIngredientsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: IngredientWhereInput
+  }
+
+  /**
+   * StoreCountOutputType without action
+   */
+  export type StoreCountOutputTypeCountMenuCategoriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: MenuCategoryWhereInput
+  }
+
+  /**
+   * StoreCountOutputType without action
+   */
+  export type StoreCountOutputTypeCountMenuItemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: MenuItemWhereInput
   }
 
 
@@ -1888,6 +2259,108 @@ export namespace Prisma {
    * SaleCountOutputType without action
    */
   export type SaleCountOutputTypeCountItemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SaleItemWhereInput
+  }
+
+
+  /**
+   * Count Type IngredientCountOutputType
+   */
+
+  export type IngredientCountOutputType = {
+    recipeLines: number
+  }
+
+  export type IngredientCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    recipeLines?: boolean | IngredientCountOutputTypeCountRecipeLinesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * IngredientCountOutputType without action
+   */
+  export type IngredientCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IngredientCountOutputType
+     */
+    select?: IngredientCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * IngredientCountOutputType without action
+   */
+  export type IngredientCountOutputTypeCountRecipeLinesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RecipeLineWhereInput
+  }
+
+
+  /**
+   * Count Type MenuCategoryCountOutputType
+   */
+
+  export type MenuCategoryCountOutputType = {
+    menuItems: number
+  }
+
+  export type MenuCategoryCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    menuItems?: boolean | MenuCategoryCountOutputTypeCountMenuItemsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * MenuCategoryCountOutputType without action
+   */
+  export type MenuCategoryCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuCategoryCountOutputType
+     */
+    select?: MenuCategoryCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * MenuCategoryCountOutputType without action
+   */
+  export type MenuCategoryCountOutputTypeCountMenuItemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: MenuItemWhereInput
+  }
+
+
+  /**
+   * Count Type MenuItemCountOutputType
+   */
+
+  export type MenuItemCountOutputType = {
+    recipeLines: number
+    saleItems: number
+  }
+
+  export type MenuItemCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    recipeLines?: boolean | MenuItemCountOutputTypeCountRecipeLinesArgs
+    saleItems?: boolean | MenuItemCountOutputTypeCountSaleItemsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * MenuItemCountOutputType without action
+   */
+  export type MenuItemCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuItemCountOutputType
+     */
+    select?: MenuItemCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * MenuItemCountOutputType without action
+   */
+  export type MenuItemCountOutputTypeCountRecipeLinesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RecipeLineWhereInput
+  }
+
+  /**
+   * MenuItemCountOutputType without action
+   */
+  export type MenuItemCountOutputTypeCountSaleItemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: SaleItemWhereInput
   }
 
@@ -3913,6 +4386,7 @@ export namespace Prisma {
     name: string | null
     address: string | null
     receiptLogoUrl: string | null
+    businessMode: string | null
     createdAt: Date | null
   }
 
@@ -3922,6 +4396,7 @@ export namespace Prisma {
     name: string | null
     address: string | null
     receiptLogoUrl: string | null
+    businessMode: string | null
     createdAt: Date | null
   }
 
@@ -3931,6 +4406,7 @@ export namespace Prisma {
     name: number
     address: number
     receiptLogoUrl: number
+    businessMode: number
     createdAt: number
     _all: number
   }
@@ -3942,6 +4418,7 @@ export namespace Prisma {
     name?: true
     address?: true
     receiptLogoUrl?: true
+    businessMode?: true
     createdAt?: true
   }
 
@@ -3951,6 +4428,7 @@ export namespace Prisma {
     name?: true
     address?: true
     receiptLogoUrl?: true
+    businessMode?: true
     createdAt?: true
   }
 
@@ -3960,6 +4438,7 @@ export namespace Prisma {
     name?: true
     address?: true
     receiptLogoUrl?: true
+    businessMode?: true
     createdAt?: true
     _all?: true
   }
@@ -4042,6 +4521,7 @@ export namespace Prisma {
     name: string
     address: string | null
     receiptLogoUrl: string | null
+    businessMode: string
     createdAt: Date
     _count: StoreCountAggregateOutputType | null
     _min: StoreMinAggregateOutputType | null
@@ -4068,12 +4548,16 @@ export namespace Prisma {
     name?: boolean
     address?: boolean
     receiptLogoUrl?: boolean
+    businessMode?: boolean
     createdAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
     categories?: boolean | Store$categoriesArgs<ExtArgs>
     products?: boolean | Store$productsArgs<ExtArgs>
     sales?: boolean | Store$salesArgs<ExtArgs>
     userAccess?: boolean | Store$userAccessArgs<ExtArgs>
+    ingredients?: boolean | Store$ingredientsArgs<ExtArgs>
+    menuCategories?: boolean | Store$menuCategoriesArgs<ExtArgs>
+    menuItems?: boolean | Store$menuItemsArgs<ExtArgs>
     _count?: boolean | StoreCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["store"]>
 
@@ -4083,6 +4567,7 @@ export namespace Prisma {
     name?: boolean
     address?: boolean
     receiptLogoUrl?: boolean
+    businessMode?: boolean
     createdAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["store"]>
@@ -4093,6 +4578,7 @@ export namespace Prisma {
     name?: boolean
     address?: boolean
     receiptLogoUrl?: boolean
+    businessMode?: boolean
     createdAt?: boolean
   }
 
@@ -4102,6 +4588,9 @@ export namespace Prisma {
     products?: boolean | Store$productsArgs<ExtArgs>
     sales?: boolean | Store$salesArgs<ExtArgs>
     userAccess?: boolean | Store$userAccessArgs<ExtArgs>
+    ingredients?: boolean | Store$ingredientsArgs<ExtArgs>
+    menuCategories?: boolean | Store$menuCategoriesArgs<ExtArgs>
+    menuItems?: boolean | Store$menuItemsArgs<ExtArgs>
     _count?: boolean | StoreCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type StoreIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -4116,6 +4605,9 @@ export namespace Prisma {
       products: Prisma.$ProductPayload<ExtArgs>[]
       sales: Prisma.$SalePayload<ExtArgs>[]
       userAccess: Prisma.$UserStorePayload<ExtArgs>[]
+      ingredients: Prisma.$IngredientPayload<ExtArgs>[]
+      menuCategories: Prisma.$MenuCategoryPayload<ExtArgs>[]
+      menuItems: Prisma.$MenuItemPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -4123,6 +4615,7 @@ export namespace Prisma {
       name: string
       address: string | null
       receiptLogoUrl: string | null
+      businessMode: string
       createdAt: Date
     }, ExtArgs["result"]["store"]>
     composites: {}
@@ -4493,6 +4986,9 @@ export namespace Prisma {
     products<T extends Store$productsArgs<ExtArgs> = {}>(args?: Subset<T, Store$productsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProductPayload<ExtArgs>, T, "findMany"> | Null>
     sales<T extends Store$salesArgs<ExtArgs> = {}>(args?: Subset<T, Store$salesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SalePayload<ExtArgs>, T, "findMany"> | Null>
     userAccess<T extends Store$userAccessArgs<ExtArgs> = {}>(args?: Subset<T, Store$userAccessArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserStorePayload<ExtArgs>, T, "findMany"> | Null>
+    ingredients<T extends Store$ingredientsArgs<ExtArgs> = {}>(args?: Subset<T, Store$ingredientsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IngredientPayload<ExtArgs>, T, "findMany"> | Null>
+    menuCategories<T extends Store$menuCategoriesArgs<ExtArgs> = {}>(args?: Subset<T, Store$menuCategoriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MenuCategoryPayload<ExtArgs>, T, "findMany"> | Null>
+    menuItems<T extends Store$menuItemsArgs<ExtArgs> = {}>(args?: Subset<T, Store$menuItemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MenuItemPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4527,6 +5023,7 @@ export namespace Prisma {
     readonly name: FieldRef<"Store", 'String'>
     readonly address: FieldRef<"Store", 'String'>
     readonly receiptLogoUrl: FieldRef<"Store", 'String'>
+    readonly businessMode: FieldRef<"Store", 'String'>
     readonly createdAt: FieldRef<"Store", 'DateTime'>
   }
     
@@ -4923,6 +5420,66 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: UserStoreScalarFieldEnum | UserStoreScalarFieldEnum[]
+  }
+
+  /**
+   * Store.ingredients
+   */
+  export type Store$ingredientsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Ingredient
+     */
+    select?: IngredientSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IngredientInclude<ExtArgs> | null
+    where?: IngredientWhereInput
+    orderBy?: IngredientOrderByWithRelationInput | IngredientOrderByWithRelationInput[]
+    cursor?: IngredientWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: IngredientScalarFieldEnum | IngredientScalarFieldEnum[]
+  }
+
+  /**
+   * Store.menuCategories
+   */
+  export type Store$menuCategoriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuCategory
+     */
+    select?: MenuCategorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuCategoryInclude<ExtArgs> | null
+    where?: MenuCategoryWhereInput
+    orderBy?: MenuCategoryOrderByWithRelationInput | MenuCategoryOrderByWithRelationInput[]
+    cursor?: MenuCategoryWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: MenuCategoryScalarFieldEnum | MenuCategoryScalarFieldEnum[]
+  }
+
+  /**
+   * Store.menuItems
+   */
+  export type Store$menuItemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuItem
+     */
+    select?: MenuItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuItemInclude<ExtArgs> | null
+    where?: MenuItemWhereInput
+    orderBy?: MenuItemOrderByWithRelationInput | MenuItemOrderByWithRelationInput[]
+    cursor?: MenuItemWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: MenuItemScalarFieldEnum | MenuItemScalarFieldEnum[]
   }
 
   /**
@@ -11087,6 +11644,4022 @@ export namespace Prisma {
 
 
   /**
+   * Model Ingredient
+   */
+
+  export type AggregateIngredient = {
+    _count: IngredientCountAggregateOutputType | null
+    _avg: IngredientAvgAggregateOutputType | null
+    _sum: IngredientSumAggregateOutputType | null
+    _min: IngredientMinAggregateOutputType | null
+    _max: IngredientMaxAggregateOutputType | null
+  }
+
+  export type IngredientAvgAggregateOutputType = {
+    stock: number | null
+    lowStockThreshold: number | null
+  }
+
+  export type IngredientSumAggregateOutputType = {
+    stock: number | null
+    lowStockThreshold: number | null
+  }
+
+  export type IngredientMinAggregateOutputType = {
+    id: string | null
+    storeId: string | null
+    name: string | null
+    sku: string | null
+    barcode: string | null
+    stock: number | null
+    lowStockThreshold: number | null
+    unitOfMeasure: string | null
+    status: string | null
+  }
+
+  export type IngredientMaxAggregateOutputType = {
+    id: string | null
+    storeId: string | null
+    name: string | null
+    sku: string | null
+    barcode: string | null
+    stock: number | null
+    lowStockThreshold: number | null
+    unitOfMeasure: string | null
+    status: string | null
+  }
+
+  export type IngredientCountAggregateOutputType = {
+    id: number
+    storeId: number
+    name: number
+    sku: number
+    barcode: number
+    stock: number
+    lowStockThreshold: number
+    unitOfMeasure: number
+    status: number
+    _all: number
+  }
+
+
+  export type IngredientAvgAggregateInputType = {
+    stock?: true
+    lowStockThreshold?: true
+  }
+
+  export type IngredientSumAggregateInputType = {
+    stock?: true
+    lowStockThreshold?: true
+  }
+
+  export type IngredientMinAggregateInputType = {
+    id?: true
+    storeId?: true
+    name?: true
+    sku?: true
+    barcode?: true
+    stock?: true
+    lowStockThreshold?: true
+    unitOfMeasure?: true
+    status?: true
+  }
+
+  export type IngredientMaxAggregateInputType = {
+    id?: true
+    storeId?: true
+    name?: true
+    sku?: true
+    barcode?: true
+    stock?: true
+    lowStockThreshold?: true
+    unitOfMeasure?: true
+    status?: true
+  }
+
+  export type IngredientCountAggregateInputType = {
+    id?: true
+    storeId?: true
+    name?: true
+    sku?: true
+    barcode?: true
+    stock?: true
+    lowStockThreshold?: true
+    unitOfMeasure?: true
+    status?: true
+    _all?: true
+  }
+
+  export type IngredientAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Ingredient to aggregate.
+     */
+    where?: IngredientWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Ingredients to fetch.
+     */
+    orderBy?: IngredientOrderByWithRelationInput | IngredientOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: IngredientWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Ingredients from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Ingredients.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned Ingredients
+    **/
+    _count?: true | IngredientCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: IngredientAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: IngredientSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: IngredientMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: IngredientMaxAggregateInputType
+  }
+
+  export type GetIngredientAggregateType<T extends IngredientAggregateArgs> = {
+        [P in keyof T & keyof AggregateIngredient]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateIngredient[P]>
+      : GetScalarType<T[P], AggregateIngredient[P]>
+  }
+
+
+
+
+  export type IngredientGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: IngredientWhereInput
+    orderBy?: IngredientOrderByWithAggregationInput | IngredientOrderByWithAggregationInput[]
+    by: IngredientScalarFieldEnum[] | IngredientScalarFieldEnum
+    having?: IngredientScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: IngredientCountAggregateInputType | true
+    _avg?: IngredientAvgAggregateInputType
+    _sum?: IngredientSumAggregateInputType
+    _min?: IngredientMinAggregateInputType
+    _max?: IngredientMaxAggregateInputType
+  }
+
+  export type IngredientGroupByOutputType = {
+    id: string
+    storeId: string
+    name: string
+    sku: string | null
+    barcode: string | null
+    stock: number
+    lowStockThreshold: number
+    unitOfMeasure: string | null
+    status: string
+    _count: IngredientCountAggregateOutputType | null
+    _avg: IngredientAvgAggregateOutputType | null
+    _sum: IngredientSumAggregateOutputType | null
+    _min: IngredientMinAggregateOutputType | null
+    _max: IngredientMaxAggregateOutputType | null
+  }
+
+  type GetIngredientGroupByPayload<T extends IngredientGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<IngredientGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof IngredientGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], IngredientGroupByOutputType[P]>
+            : GetScalarType<T[P], IngredientGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type IngredientSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    storeId?: boolean
+    name?: boolean
+    sku?: boolean
+    barcode?: boolean
+    stock?: boolean
+    lowStockThreshold?: boolean
+    unitOfMeasure?: boolean
+    status?: boolean
+    store?: boolean | StoreDefaultArgs<ExtArgs>
+    recipeLines?: boolean | Ingredient$recipeLinesArgs<ExtArgs>
+    _count?: boolean | IngredientCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ingredient"]>
+
+  export type IngredientSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    storeId?: boolean
+    name?: boolean
+    sku?: boolean
+    barcode?: boolean
+    stock?: boolean
+    lowStockThreshold?: boolean
+    unitOfMeasure?: boolean
+    status?: boolean
+    store?: boolean | StoreDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["ingredient"]>
+
+  export type IngredientSelectScalar = {
+    id?: boolean
+    storeId?: boolean
+    name?: boolean
+    sku?: boolean
+    barcode?: boolean
+    stock?: boolean
+    lowStockThreshold?: boolean
+    unitOfMeasure?: boolean
+    status?: boolean
+  }
+
+  export type IngredientInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    store?: boolean | StoreDefaultArgs<ExtArgs>
+    recipeLines?: boolean | Ingredient$recipeLinesArgs<ExtArgs>
+    _count?: boolean | IngredientCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type IngredientIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    store?: boolean | StoreDefaultArgs<ExtArgs>
+  }
+
+  export type $IngredientPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "Ingredient"
+    objects: {
+      store: Prisma.$StorePayload<ExtArgs>
+      recipeLines: Prisma.$RecipeLinePayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      storeId: string
+      name: string
+      sku: string | null
+      barcode: string | null
+      stock: number
+      lowStockThreshold: number
+      unitOfMeasure: string | null
+      status: string
+    }, ExtArgs["result"]["ingredient"]>
+    composites: {}
+  }
+
+  type IngredientGetPayload<S extends boolean | null | undefined | IngredientDefaultArgs> = $Result.GetResult<Prisma.$IngredientPayload, S>
+
+  type IngredientCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<IngredientFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: IngredientCountAggregateInputType | true
+    }
+
+  export interface IngredientDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Ingredient'], meta: { name: 'Ingredient' } }
+    /**
+     * Find zero or one Ingredient that matches the filter.
+     * @param {IngredientFindUniqueArgs} args - Arguments to find a Ingredient
+     * @example
+     * // Get one Ingredient
+     * const ingredient = await prisma.ingredient.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends IngredientFindUniqueArgs>(args: SelectSubset<T, IngredientFindUniqueArgs<ExtArgs>>): Prisma__IngredientClient<$Result.GetResult<Prisma.$IngredientPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one Ingredient that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {IngredientFindUniqueOrThrowArgs} args - Arguments to find a Ingredient
+     * @example
+     * // Get one Ingredient
+     * const ingredient = await prisma.ingredient.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends IngredientFindUniqueOrThrowArgs>(args: SelectSubset<T, IngredientFindUniqueOrThrowArgs<ExtArgs>>): Prisma__IngredientClient<$Result.GetResult<Prisma.$IngredientPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first Ingredient that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IngredientFindFirstArgs} args - Arguments to find a Ingredient
+     * @example
+     * // Get one Ingredient
+     * const ingredient = await prisma.ingredient.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends IngredientFindFirstArgs>(args?: SelectSubset<T, IngredientFindFirstArgs<ExtArgs>>): Prisma__IngredientClient<$Result.GetResult<Prisma.$IngredientPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first Ingredient that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IngredientFindFirstOrThrowArgs} args - Arguments to find a Ingredient
+     * @example
+     * // Get one Ingredient
+     * const ingredient = await prisma.ingredient.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends IngredientFindFirstOrThrowArgs>(args?: SelectSubset<T, IngredientFindFirstOrThrowArgs<ExtArgs>>): Prisma__IngredientClient<$Result.GetResult<Prisma.$IngredientPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more Ingredients that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IngredientFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Ingredients
+     * const ingredients = await prisma.ingredient.findMany()
+     * 
+     * // Get first 10 Ingredients
+     * const ingredients = await prisma.ingredient.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const ingredientWithIdOnly = await prisma.ingredient.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends IngredientFindManyArgs>(args?: SelectSubset<T, IngredientFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IngredientPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a Ingredient.
+     * @param {IngredientCreateArgs} args - Arguments to create a Ingredient.
+     * @example
+     * // Create one Ingredient
+     * const Ingredient = await prisma.ingredient.create({
+     *   data: {
+     *     // ... data to create a Ingredient
+     *   }
+     * })
+     * 
+     */
+    create<T extends IngredientCreateArgs>(args: SelectSubset<T, IngredientCreateArgs<ExtArgs>>): Prisma__IngredientClient<$Result.GetResult<Prisma.$IngredientPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many Ingredients.
+     * @param {IngredientCreateManyArgs} args - Arguments to create many Ingredients.
+     * @example
+     * // Create many Ingredients
+     * const ingredient = await prisma.ingredient.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends IngredientCreateManyArgs>(args?: SelectSubset<T, IngredientCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Ingredients and returns the data saved in the database.
+     * @param {IngredientCreateManyAndReturnArgs} args - Arguments to create many Ingredients.
+     * @example
+     * // Create many Ingredients
+     * const ingredient = await prisma.ingredient.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Ingredients and only return the `id`
+     * const ingredientWithIdOnly = await prisma.ingredient.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends IngredientCreateManyAndReturnArgs>(args?: SelectSubset<T, IngredientCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IngredientPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a Ingredient.
+     * @param {IngredientDeleteArgs} args - Arguments to delete one Ingredient.
+     * @example
+     * // Delete one Ingredient
+     * const Ingredient = await prisma.ingredient.delete({
+     *   where: {
+     *     // ... filter to delete one Ingredient
+     *   }
+     * })
+     * 
+     */
+    delete<T extends IngredientDeleteArgs>(args: SelectSubset<T, IngredientDeleteArgs<ExtArgs>>): Prisma__IngredientClient<$Result.GetResult<Prisma.$IngredientPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one Ingredient.
+     * @param {IngredientUpdateArgs} args - Arguments to update one Ingredient.
+     * @example
+     * // Update one Ingredient
+     * const ingredient = await prisma.ingredient.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends IngredientUpdateArgs>(args: SelectSubset<T, IngredientUpdateArgs<ExtArgs>>): Prisma__IngredientClient<$Result.GetResult<Prisma.$IngredientPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more Ingredients.
+     * @param {IngredientDeleteManyArgs} args - Arguments to filter Ingredients to delete.
+     * @example
+     * // Delete a few Ingredients
+     * const { count } = await prisma.ingredient.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends IngredientDeleteManyArgs>(args?: SelectSubset<T, IngredientDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Ingredients.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IngredientUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Ingredients
+     * const ingredient = await prisma.ingredient.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends IngredientUpdateManyArgs>(args: SelectSubset<T, IngredientUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one Ingredient.
+     * @param {IngredientUpsertArgs} args - Arguments to update or create a Ingredient.
+     * @example
+     * // Update or create a Ingredient
+     * const ingredient = await prisma.ingredient.upsert({
+     *   create: {
+     *     // ... data to create a Ingredient
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Ingredient we want to update
+     *   }
+     * })
+     */
+    upsert<T extends IngredientUpsertArgs>(args: SelectSubset<T, IngredientUpsertArgs<ExtArgs>>): Prisma__IngredientClient<$Result.GetResult<Prisma.$IngredientPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of Ingredients.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IngredientCountArgs} args - Arguments to filter Ingredients to count.
+     * @example
+     * // Count the number of Ingredients
+     * const count = await prisma.ingredient.count({
+     *   where: {
+     *     // ... the filter for the Ingredients we want to count
+     *   }
+     * })
+    **/
+    count<T extends IngredientCountArgs>(
+      args?: Subset<T, IngredientCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], IngredientCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Ingredient.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IngredientAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends IngredientAggregateArgs>(args: Subset<T, IngredientAggregateArgs>): Prisma.PrismaPromise<GetIngredientAggregateType<T>>
+
+    /**
+     * Group by Ingredient.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IngredientGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends IngredientGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: IngredientGroupByArgs['orderBy'] }
+        : { orderBy?: IngredientGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, IngredientGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetIngredientGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the Ingredient model
+   */
+  readonly fields: IngredientFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for Ingredient.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__IngredientClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    store<T extends StoreDefaultArgs<ExtArgs> = {}>(args?: Subset<T, StoreDefaultArgs<ExtArgs>>): Prisma__StoreClient<$Result.GetResult<Prisma.$StorePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    recipeLines<T extends Ingredient$recipeLinesArgs<ExtArgs> = {}>(args?: Subset<T, Ingredient$recipeLinesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RecipeLinePayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the Ingredient model
+   */ 
+  interface IngredientFieldRefs {
+    readonly id: FieldRef<"Ingredient", 'String'>
+    readonly storeId: FieldRef<"Ingredient", 'String'>
+    readonly name: FieldRef<"Ingredient", 'String'>
+    readonly sku: FieldRef<"Ingredient", 'String'>
+    readonly barcode: FieldRef<"Ingredient", 'String'>
+    readonly stock: FieldRef<"Ingredient", 'Int'>
+    readonly lowStockThreshold: FieldRef<"Ingredient", 'Int'>
+    readonly unitOfMeasure: FieldRef<"Ingredient", 'String'>
+    readonly status: FieldRef<"Ingredient", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * Ingredient findUnique
+   */
+  export type IngredientFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Ingredient
+     */
+    select?: IngredientSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IngredientInclude<ExtArgs> | null
+    /**
+     * Filter, which Ingredient to fetch.
+     */
+    where: IngredientWhereUniqueInput
+  }
+
+  /**
+   * Ingredient findUniqueOrThrow
+   */
+  export type IngredientFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Ingredient
+     */
+    select?: IngredientSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IngredientInclude<ExtArgs> | null
+    /**
+     * Filter, which Ingredient to fetch.
+     */
+    where: IngredientWhereUniqueInput
+  }
+
+  /**
+   * Ingredient findFirst
+   */
+  export type IngredientFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Ingredient
+     */
+    select?: IngredientSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IngredientInclude<ExtArgs> | null
+    /**
+     * Filter, which Ingredient to fetch.
+     */
+    where?: IngredientWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Ingredients to fetch.
+     */
+    orderBy?: IngredientOrderByWithRelationInput | IngredientOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Ingredients.
+     */
+    cursor?: IngredientWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Ingredients from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Ingredients.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Ingredients.
+     */
+    distinct?: IngredientScalarFieldEnum | IngredientScalarFieldEnum[]
+  }
+
+  /**
+   * Ingredient findFirstOrThrow
+   */
+  export type IngredientFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Ingredient
+     */
+    select?: IngredientSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IngredientInclude<ExtArgs> | null
+    /**
+     * Filter, which Ingredient to fetch.
+     */
+    where?: IngredientWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Ingredients to fetch.
+     */
+    orderBy?: IngredientOrderByWithRelationInput | IngredientOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Ingredients.
+     */
+    cursor?: IngredientWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Ingredients from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Ingredients.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Ingredients.
+     */
+    distinct?: IngredientScalarFieldEnum | IngredientScalarFieldEnum[]
+  }
+
+  /**
+   * Ingredient findMany
+   */
+  export type IngredientFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Ingredient
+     */
+    select?: IngredientSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IngredientInclude<ExtArgs> | null
+    /**
+     * Filter, which Ingredients to fetch.
+     */
+    where?: IngredientWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Ingredients to fetch.
+     */
+    orderBy?: IngredientOrderByWithRelationInput | IngredientOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing Ingredients.
+     */
+    cursor?: IngredientWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Ingredients from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Ingredients.
+     */
+    skip?: number
+    distinct?: IngredientScalarFieldEnum | IngredientScalarFieldEnum[]
+  }
+
+  /**
+   * Ingredient create
+   */
+  export type IngredientCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Ingredient
+     */
+    select?: IngredientSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IngredientInclude<ExtArgs> | null
+    /**
+     * The data needed to create a Ingredient.
+     */
+    data: XOR<IngredientCreateInput, IngredientUncheckedCreateInput>
+  }
+
+  /**
+   * Ingredient createMany
+   */
+  export type IngredientCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many Ingredients.
+     */
+    data: IngredientCreateManyInput | IngredientCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Ingredient createManyAndReturn
+   */
+  export type IngredientCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Ingredient
+     */
+    select?: IngredientSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many Ingredients.
+     */
+    data: IngredientCreateManyInput | IngredientCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IngredientIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * Ingredient update
+   */
+  export type IngredientUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Ingredient
+     */
+    select?: IngredientSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IngredientInclude<ExtArgs> | null
+    /**
+     * The data needed to update a Ingredient.
+     */
+    data: XOR<IngredientUpdateInput, IngredientUncheckedUpdateInput>
+    /**
+     * Choose, which Ingredient to update.
+     */
+    where: IngredientWhereUniqueInput
+  }
+
+  /**
+   * Ingredient updateMany
+   */
+  export type IngredientUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Ingredients.
+     */
+    data: XOR<IngredientUpdateManyMutationInput, IngredientUncheckedUpdateManyInput>
+    /**
+     * Filter which Ingredients to update
+     */
+    where?: IngredientWhereInput
+  }
+
+  /**
+   * Ingredient upsert
+   */
+  export type IngredientUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Ingredient
+     */
+    select?: IngredientSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IngredientInclude<ExtArgs> | null
+    /**
+     * The filter to search for the Ingredient to update in case it exists.
+     */
+    where: IngredientWhereUniqueInput
+    /**
+     * In case the Ingredient found by the `where` argument doesn't exist, create a new Ingredient with this data.
+     */
+    create: XOR<IngredientCreateInput, IngredientUncheckedCreateInput>
+    /**
+     * In case the Ingredient was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<IngredientUpdateInput, IngredientUncheckedUpdateInput>
+  }
+
+  /**
+   * Ingredient delete
+   */
+  export type IngredientDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Ingredient
+     */
+    select?: IngredientSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IngredientInclude<ExtArgs> | null
+    /**
+     * Filter which Ingredient to delete.
+     */
+    where: IngredientWhereUniqueInput
+  }
+
+  /**
+   * Ingredient deleteMany
+   */
+  export type IngredientDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Ingredients to delete
+     */
+    where?: IngredientWhereInput
+  }
+
+  /**
+   * Ingredient.recipeLines
+   */
+  export type Ingredient$recipeLinesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecipeLine
+     */
+    select?: RecipeLineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RecipeLineInclude<ExtArgs> | null
+    where?: RecipeLineWhereInput
+    orderBy?: RecipeLineOrderByWithRelationInput | RecipeLineOrderByWithRelationInput[]
+    cursor?: RecipeLineWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: RecipeLineScalarFieldEnum | RecipeLineScalarFieldEnum[]
+  }
+
+  /**
+   * Ingredient without action
+   */
+  export type IngredientDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Ingredient
+     */
+    select?: IngredientSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IngredientInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model MenuCategory
+   */
+
+  export type AggregateMenuCategory = {
+    _count: MenuCategoryCountAggregateOutputType | null
+    _min: MenuCategoryMinAggregateOutputType | null
+    _max: MenuCategoryMaxAggregateOutputType | null
+  }
+
+  export type MenuCategoryMinAggregateOutputType = {
+    id: string | null
+    storeId: string | null
+    name: string | null
+  }
+
+  export type MenuCategoryMaxAggregateOutputType = {
+    id: string | null
+    storeId: string | null
+    name: string | null
+  }
+
+  export type MenuCategoryCountAggregateOutputType = {
+    id: number
+    storeId: number
+    name: number
+    _all: number
+  }
+
+
+  export type MenuCategoryMinAggregateInputType = {
+    id?: true
+    storeId?: true
+    name?: true
+  }
+
+  export type MenuCategoryMaxAggregateInputType = {
+    id?: true
+    storeId?: true
+    name?: true
+  }
+
+  export type MenuCategoryCountAggregateInputType = {
+    id?: true
+    storeId?: true
+    name?: true
+    _all?: true
+  }
+
+  export type MenuCategoryAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which MenuCategory to aggregate.
+     */
+    where?: MenuCategoryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of MenuCategories to fetch.
+     */
+    orderBy?: MenuCategoryOrderByWithRelationInput | MenuCategoryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: MenuCategoryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` MenuCategories from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` MenuCategories.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned MenuCategories
+    **/
+    _count?: true | MenuCategoryCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: MenuCategoryMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: MenuCategoryMaxAggregateInputType
+  }
+
+  export type GetMenuCategoryAggregateType<T extends MenuCategoryAggregateArgs> = {
+        [P in keyof T & keyof AggregateMenuCategory]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateMenuCategory[P]>
+      : GetScalarType<T[P], AggregateMenuCategory[P]>
+  }
+
+
+
+
+  export type MenuCategoryGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: MenuCategoryWhereInput
+    orderBy?: MenuCategoryOrderByWithAggregationInput | MenuCategoryOrderByWithAggregationInput[]
+    by: MenuCategoryScalarFieldEnum[] | MenuCategoryScalarFieldEnum
+    having?: MenuCategoryScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: MenuCategoryCountAggregateInputType | true
+    _min?: MenuCategoryMinAggregateInputType
+    _max?: MenuCategoryMaxAggregateInputType
+  }
+
+  export type MenuCategoryGroupByOutputType = {
+    id: string
+    storeId: string
+    name: string
+    _count: MenuCategoryCountAggregateOutputType | null
+    _min: MenuCategoryMinAggregateOutputType | null
+    _max: MenuCategoryMaxAggregateOutputType | null
+  }
+
+  type GetMenuCategoryGroupByPayload<T extends MenuCategoryGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<MenuCategoryGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof MenuCategoryGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], MenuCategoryGroupByOutputType[P]>
+            : GetScalarType<T[P], MenuCategoryGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type MenuCategorySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    storeId?: boolean
+    name?: boolean
+    store?: boolean | StoreDefaultArgs<ExtArgs>
+    menuItems?: boolean | MenuCategory$menuItemsArgs<ExtArgs>
+    _count?: boolean | MenuCategoryCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["menuCategory"]>
+
+  export type MenuCategorySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    storeId?: boolean
+    name?: boolean
+    store?: boolean | StoreDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["menuCategory"]>
+
+  export type MenuCategorySelectScalar = {
+    id?: boolean
+    storeId?: boolean
+    name?: boolean
+  }
+
+  export type MenuCategoryInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    store?: boolean | StoreDefaultArgs<ExtArgs>
+    menuItems?: boolean | MenuCategory$menuItemsArgs<ExtArgs>
+    _count?: boolean | MenuCategoryCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type MenuCategoryIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    store?: boolean | StoreDefaultArgs<ExtArgs>
+  }
+
+  export type $MenuCategoryPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "MenuCategory"
+    objects: {
+      store: Prisma.$StorePayload<ExtArgs>
+      menuItems: Prisma.$MenuItemPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      storeId: string
+      name: string
+    }, ExtArgs["result"]["menuCategory"]>
+    composites: {}
+  }
+
+  type MenuCategoryGetPayload<S extends boolean | null | undefined | MenuCategoryDefaultArgs> = $Result.GetResult<Prisma.$MenuCategoryPayload, S>
+
+  type MenuCategoryCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<MenuCategoryFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: MenuCategoryCountAggregateInputType | true
+    }
+
+  export interface MenuCategoryDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['MenuCategory'], meta: { name: 'MenuCategory' } }
+    /**
+     * Find zero or one MenuCategory that matches the filter.
+     * @param {MenuCategoryFindUniqueArgs} args - Arguments to find a MenuCategory
+     * @example
+     * // Get one MenuCategory
+     * const menuCategory = await prisma.menuCategory.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends MenuCategoryFindUniqueArgs>(args: SelectSubset<T, MenuCategoryFindUniqueArgs<ExtArgs>>): Prisma__MenuCategoryClient<$Result.GetResult<Prisma.$MenuCategoryPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one MenuCategory that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {MenuCategoryFindUniqueOrThrowArgs} args - Arguments to find a MenuCategory
+     * @example
+     * // Get one MenuCategory
+     * const menuCategory = await prisma.menuCategory.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends MenuCategoryFindUniqueOrThrowArgs>(args: SelectSubset<T, MenuCategoryFindUniqueOrThrowArgs<ExtArgs>>): Prisma__MenuCategoryClient<$Result.GetResult<Prisma.$MenuCategoryPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first MenuCategory that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MenuCategoryFindFirstArgs} args - Arguments to find a MenuCategory
+     * @example
+     * // Get one MenuCategory
+     * const menuCategory = await prisma.menuCategory.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends MenuCategoryFindFirstArgs>(args?: SelectSubset<T, MenuCategoryFindFirstArgs<ExtArgs>>): Prisma__MenuCategoryClient<$Result.GetResult<Prisma.$MenuCategoryPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first MenuCategory that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MenuCategoryFindFirstOrThrowArgs} args - Arguments to find a MenuCategory
+     * @example
+     * // Get one MenuCategory
+     * const menuCategory = await prisma.menuCategory.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends MenuCategoryFindFirstOrThrowArgs>(args?: SelectSubset<T, MenuCategoryFindFirstOrThrowArgs<ExtArgs>>): Prisma__MenuCategoryClient<$Result.GetResult<Prisma.$MenuCategoryPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more MenuCategories that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MenuCategoryFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all MenuCategories
+     * const menuCategories = await prisma.menuCategory.findMany()
+     * 
+     * // Get first 10 MenuCategories
+     * const menuCategories = await prisma.menuCategory.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const menuCategoryWithIdOnly = await prisma.menuCategory.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends MenuCategoryFindManyArgs>(args?: SelectSubset<T, MenuCategoryFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MenuCategoryPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a MenuCategory.
+     * @param {MenuCategoryCreateArgs} args - Arguments to create a MenuCategory.
+     * @example
+     * // Create one MenuCategory
+     * const MenuCategory = await prisma.menuCategory.create({
+     *   data: {
+     *     // ... data to create a MenuCategory
+     *   }
+     * })
+     * 
+     */
+    create<T extends MenuCategoryCreateArgs>(args: SelectSubset<T, MenuCategoryCreateArgs<ExtArgs>>): Prisma__MenuCategoryClient<$Result.GetResult<Prisma.$MenuCategoryPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many MenuCategories.
+     * @param {MenuCategoryCreateManyArgs} args - Arguments to create many MenuCategories.
+     * @example
+     * // Create many MenuCategories
+     * const menuCategory = await prisma.menuCategory.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends MenuCategoryCreateManyArgs>(args?: SelectSubset<T, MenuCategoryCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many MenuCategories and returns the data saved in the database.
+     * @param {MenuCategoryCreateManyAndReturnArgs} args - Arguments to create many MenuCategories.
+     * @example
+     * // Create many MenuCategories
+     * const menuCategory = await prisma.menuCategory.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many MenuCategories and only return the `id`
+     * const menuCategoryWithIdOnly = await prisma.menuCategory.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends MenuCategoryCreateManyAndReturnArgs>(args?: SelectSubset<T, MenuCategoryCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MenuCategoryPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a MenuCategory.
+     * @param {MenuCategoryDeleteArgs} args - Arguments to delete one MenuCategory.
+     * @example
+     * // Delete one MenuCategory
+     * const MenuCategory = await prisma.menuCategory.delete({
+     *   where: {
+     *     // ... filter to delete one MenuCategory
+     *   }
+     * })
+     * 
+     */
+    delete<T extends MenuCategoryDeleteArgs>(args: SelectSubset<T, MenuCategoryDeleteArgs<ExtArgs>>): Prisma__MenuCategoryClient<$Result.GetResult<Prisma.$MenuCategoryPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one MenuCategory.
+     * @param {MenuCategoryUpdateArgs} args - Arguments to update one MenuCategory.
+     * @example
+     * // Update one MenuCategory
+     * const menuCategory = await prisma.menuCategory.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends MenuCategoryUpdateArgs>(args: SelectSubset<T, MenuCategoryUpdateArgs<ExtArgs>>): Prisma__MenuCategoryClient<$Result.GetResult<Prisma.$MenuCategoryPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more MenuCategories.
+     * @param {MenuCategoryDeleteManyArgs} args - Arguments to filter MenuCategories to delete.
+     * @example
+     * // Delete a few MenuCategories
+     * const { count } = await prisma.menuCategory.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends MenuCategoryDeleteManyArgs>(args?: SelectSubset<T, MenuCategoryDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more MenuCategories.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MenuCategoryUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many MenuCategories
+     * const menuCategory = await prisma.menuCategory.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends MenuCategoryUpdateManyArgs>(args: SelectSubset<T, MenuCategoryUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one MenuCategory.
+     * @param {MenuCategoryUpsertArgs} args - Arguments to update or create a MenuCategory.
+     * @example
+     * // Update or create a MenuCategory
+     * const menuCategory = await prisma.menuCategory.upsert({
+     *   create: {
+     *     // ... data to create a MenuCategory
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the MenuCategory we want to update
+     *   }
+     * })
+     */
+    upsert<T extends MenuCategoryUpsertArgs>(args: SelectSubset<T, MenuCategoryUpsertArgs<ExtArgs>>): Prisma__MenuCategoryClient<$Result.GetResult<Prisma.$MenuCategoryPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of MenuCategories.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MenuCategoryCountArgs} args - Arguments to filter MenuCategories to count.
+     * @example
+     * // Count the number of MenuCategories
+     * const count = await prisma.menuCategory.count({
+     *   where: {
+     *     // ... the filter for the MenuCategories we want to count
+     *   }
+     * })
+    **/
+    count<T extends MenuCategoryCountArgs>(
+      args?: Subset<T, MenuCategoryCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], MenuCategoryCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a MenuCategory.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MenuCategoryAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends MenuCategoryAggregateArgs>(args: Subset<T, MenuCategoryAggregateArgs>): Prisma.PrismaPromise<GetMenuCategoryAggregateType<T>>
+
+    /**
+     * Group by MenuCategory.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MenuCategoryGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends MenuCategoryGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: MenuCategoryGroupByArgs['orderBy'] }
+        : { orderBy?: MenuCategoryGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, MenuCategoryGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetMenuCategoryGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the MenuCategory model
+   */
+  readonly fields: MenuCategoryFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for MenuCategory.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__MenuCategoryClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    store<T extends StoreDefaultArgs<ExtArgs> = {}>(args?: Subset<T, StoreDefaultArgs<ExtArgs>>): Prisma__StoreClient<$Result.GetResult<Prisma.$StorePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    menuItems<T extends MenuCategory$menuItemsArgs<ExtArgs> = {}>(args?: Subset<T, MenuCategory$menuItemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MenuItemPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the MenuCategory model
+   */ 
+  interface MenuCategoryFieldRefs {
+    readonly id: FieldRef<"MenuCategory", 'String'>
+    readonly storeId: FieldRef<"MenuCategory", 'String'>
+    readonly name: FieldRef<"MenuCategory", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * MenuCategory findUnique
+   */
+  export type MenuCategoryFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuCategory
+     */
+    select?: MenuCategorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuCategoryInclude<ExtArgs> | null
+    /**
+     * Filter, which MenuCategory to fetch.
+     */
+    where: MenuCategoryWhereUniqueInput
+  }
+
+  /**
+   * MenuCategory findUniqueOrThrow
+   */
+  export type MenuCategoryFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuCategory
+     */
+    select?: MenuCategorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuCategoryInclude<ExtArgs> | null
+    /**
+     * Filter, which MenuCategory to fetch.
+     */
+    where: MenuCategoryWhereUniqueInput
+  }
+
+  /**
+   * MenuCategory findFirst
+   */
+  export type MenuCategoryFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuCategory
+     */
+    select?: MenuCategorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuCategoryInclude<ExtArgs> | null
+    /**
+     * Filter, which MenuCategory to fetch.
+     */
+    where?: MenuCategoryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of MenuCategories to fetch.
+     */
+    orderBy?: MenuCategoryOrderByWithRelationInput | MenuCategoryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for MenuCategories.
+     */
+    cursor?: MenuCategoryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` MenuCategories from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` MenuCategories.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of MenuCategories.
+     */
+    distinct?: MenuCategoryScalarFieldEnum | MenuCategoryScalarFieldEnum[]
+  }
+
+  /**
+   * MenuCategory findFirstOrThrow
+   */
+  export type MenuCategoryFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuCategory
+     */
+    select?: MenuCategorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuCategoryInclude<ExtArgs> | null
+    /**
+     * Filter, which MenuCategory to fetch.
+     */
+    where?: MenuCategoryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of MenuCategories to fetch.
+     */
+    orderBy?: MenuCategoryOrderByWithRelationInput | MenuCategoryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for MenuCategories.
+     */
+    cursor?: MenuCategoryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` MenuCategories from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` MenuCategories.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of MenuCategories.
+     */
+    distinct?: MenuCategoryScalarFieldEnum | MenuCategoryScalarFieldEnum[]
+  }
+
+  /**
+   * MenuCategory findMany
+   */
+  export type MenuCategoryFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuCategory
+     */
+    select?: MenuCategorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuCategoryInclude<ExtArgs> | null
+    /**
+     * Filter, which MenuCategories to fetch.
+     */
+    where?: MenuCategoryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of MenuCategories to fetch.
+     */
+    orderBy?: MenuCategoryOrderByWithRelationInput | MenuCategoryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing MenuCategories.
+     */
+    cursor?: MenuCategoryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` MenuCategories from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` MenuCategories.
+     */
+    skip?: number
+    distinct?: MenuCategoryScalarFieldEnum | MenuCategoryScalarFieldEnum[]
+  }
+
+  /**
+   * MenuCategory create
+   */
+  export type MenuCategoryCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuCategory
+     */
+    select?: MenuCategorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuCategoryInclude<ExtArgs> | null
+    /**
+     * The data needed to create a MenuCategory.
+     */
+    data: XOR<MenuCategoryCreateInput, MenuCategoryUncheckedCreateInput>
+  }
+
+  /**
+   * MenuCategory createMany
+   */
+  export type MenuCategoryCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many MenuCategories.
+     */
+    data: MenuCategoryCreateManyInput | MenuCategoryCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * MenuCategory createManyAndReturn
+   */
+  export type MenuCategoryCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuCategory
+     */
+    select?: MenuCategorySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many MenuCategories.
+     */
+    data: MenuCategoryCreateManyInput | MenuCategoryCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuCategoryIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * MenuCategory update
+   */
+  export type MenuCategoryUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuCategory
+     */
+    select?: MenuCategorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuCategoryInclude<ExtArgs> | null
+    /**
+     * The data needed to update a MenuCategory.
+     */
+    data: XOR<MenuCategoryUpdateInput, MenuCategoryUncheckedUpdateInput>
+    /**
+     * Choose, which MenuCategory to update.
+     */
+    where: MenuCategoryWhereUniqueInput
+  }
+
+  /**
+   * MenuCategory updateMany
+   */
+  export type MenuCategoryUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update MenuCategories.
+     */
+    data: XOR<MenuCategoryUpdateManyMutationInput, MenuCategoryUncheckedUpdateManyInput>
+    /**
+     * Filter which MenuCategories to update
+     */
+    where?: MenuCategoryWhereInput
+  }
+
+  /**
+   * MenuCategory upsert
+   */
+  export type MenuCategoryUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuCategory
+     */
+    select?: MenuCategorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuCategoryInclude<ExtArgs> | null
+    /**
+     * The filter to search for the MenuCategory to update in case it exists.
+     */
+    where: MenuCategoryWhereUniqueInput
+    /**
+     * In case the MenuCategory found by the `where` argument doesn't exist, create a new MenuCategory with this data.
+     */
+    create: XOR<MenuCategoryCreateInput, MenuCategoryUncheckedCreateInput>
+    /**
+     * In case the MenuCategory was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<MenuCategoryUpdateInput, MenuCategoryUncheckedUpdateInput>
+  }
+
+  /**
+   * MenuCategory delete
+   */
+  export type MenuCategoryDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuCategory
+     */
+    select?: MenuCategorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuCategoryInclude<ExtArgs> | null
+    /**
+     * Filter which MenuCategory to delete.
+     */
+    where: MenuCategoryWhereUniqueInput
+  }
+
+  /**
+   * MenuCategory deleteMany
+   */
+  export type MenuCategoryDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which MenuCategories to delete
+     */
+    where?: MenuCategoryWhereInput
+  }
+
+  /**
+   * MenuCategory.menuItems
+   */
+  export type MenuCategory$menuItemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuItem
+     */
+    select?: MenuItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuItemInclude<ExtArgs> | null
+    where?: MenuItemWhereInput
+    orderBy?: MenuItemOrderByWithRelationInput | MenuItemOrderByWithRelationInput[]
+    cursor?: MenuItemWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: MenuItemScalarFieldEnum | MenuItemScalarFieldEnum[]
+  }
+
+  /**
+   * MenuCategory without action
+   */
+  export type MenuCategoryDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuCategory
+     */
+    select?: MenuCategorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuCategoryInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model MenuItem
+   */
+
+  export type AggregateMenuItem = {
+    _count: MenuItemCountAggregateOutputType | null
+    _avg: MenuItemAvgAggregateOutputType | null
+    _sum: MenuItemSumAggregateOutputType | null
+    _min: MenuItemMinAggregateOutputType | null
+    _max: MenuItemMaxAggregateOutputType | null
+  }
+
+  export type MenuItemAvgAggregateOutputType = {
+    price: number | null
+  }
+
+  export type MenuItemSumAggregateOutputType = {
+    price: number | null
+  }
+
+  export type MenuItemMinAggregateOutputType = {
+    id: string | null
+    storeId: string | null
+    menuCategoryId: string | null
+    name: string | null
+    price: number | null
+    status: string | null
+    image: string | null
+    barcode: string | null
+  }
+
+  export type MenuItemMaxAggregateOutputType = {
+    id: string | null
+    storeId: string | null
+    menuCategoryId: string | null
+    name: string | null
+    price: number | null
+    status: string | null
+    image: string | null
+    barcode: string | null
+  }
+
+  export type MenuItemCountAggregateOutputType = {
+    id: number
+    storeId: number
+    menuCategoryId: number
+    name: number
+    price: number
+    status: number
+    image: number
+    barcode: number
+    _all: number
+  }
+
+
+  export type MenuItemAvgAggregateInputType = {
+    price?: true
+  }
+
+  export type MenuItemSumAggregateInputType = {
+    price?: true
+  }
+
+  export type MenuItemMinAggregateInputType = {
+    id?: true
+    storeId?: true
+    menuCategoryId?: true
+    name?: true
+    price?: true
+    status?: true
+    image?: true
+    barcode?: true
+  }
+
+  export type MenuItemMaxAggregateInputType = {
+    id?: true
+    storeId?: true
+    menuCategoryId?: true
+    name?: true
+    price?: true
+    status?: true
+    image?: true
+    barcode?: true
+  }
+
+  export type MenuItemCountAggregateInputType = {
+    id?: true
+    storeId?: true
+    menuCategoryId?: true
+    name?: true
+    price?: true
+    status?: true
+    image?: true
+    barcode?: true
+    _all?: true
+  }
+
+  export type MenuItemAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which MenuItem to aggregate.
+     */
+    where?: MenuItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of MenuItems to fetch.
+     */
+    orderBy?: MenuItemOrderByWithRelationInput | MenuItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: MenuItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` MenuItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` MenuItems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned MenuItems
+    **/
+    _count?: true | MenuItemCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: MenuItemAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: MenuItemSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: MenuItemMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: MenuItemMaxAggregateInputType
+  }
+
+  export type GetMenuItemAggregateType<T extends MenuItemAggregateArgs> = {
+        [P in keyof T & keyof AggregateMenuItem]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateMenuItem[P]>
+      : GetScalarType<T[P], AggregateMenuItem[P]>
+  }
+
+
+
+
+  export type MenuItemGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: MenuItemWhereInput
+    orderBy?: MenuItemOrderByWithAggregationInput | MenuItemOrderByWithAggregationInput[]
+    by: MenuItemScalarFieldEnum[] | MenuItemScalarFieldEnum
+    having?: MenuItemScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: MenuItemCountAggregateInputType | true
+    _avg?: MenuItemAvgAggregateInputType
+    _sum?: MenuItemSumAggregateInputType
+    _min?: MenuItemMinAggregateInputType
+    _max?: MenuItemMaxAggregateInputType
+  }
+
+  export type MenuItemGroupByOutputType = {
+    id: string
+    storeId: string
+    menuCategoryId: string
+    name: string
+    price: number
+    status: string
+    image: string | null
+    barcode: string | null
+    _count: MenuItemCountAggregateOutputType | null
+    _avg: MenuItemAvgAggregateOutputType | null
+    _sum: MenuItemSumAggregateOutputType | null
+    _min: MenuItemMinAggregateOutputType | null
+    _max: MenuItemMaxAggregateOutputType | null
+  }
+
+  type GetMenuItemGroupByPayload<T extends MenuItemGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<MenuItemGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof MenuItemGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], MenuItemGroupByOutputType[P]>
+            : GetScalarType<T[P], MenuItemGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type MenuItemSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    storeId?: boolean
+    menuCategoryId?: boolean
+    name?: boolean
+    price?: boolean
+    status?: boolean
+    image?: boolean
+    barcode?: boolean
+    store?: boolean | StoreDefaultArgs<ExtArgs>
+    menuCategory?: boolean | MenuCategoryDefaultArgs<ExtArgs>
+    recipeLines?: boolean | MenuItem$recipeLinesArgs<ExtArgs>
+    saleItems?: boolean | MenuItem$saleItemsArgs<ExtArgs>
+    _count?: boolean | MenuItemCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["menuItem"]>
+
+  export type MenuItemSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    storeId?: boolean
+    menuCategoryId?: boolean
+    name?: boolean
+    price?: boolean
+    status?: boolean
+    image?: boolean
+    barcode?: boolean
+    store?: boolean | StoreDefaultArgs<ExtArgs>
+    menuCategory?: boolean | MenuCategoryDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["menuItem"]>
+
+  export type MenuItemSelectScalar = {
+    id?: boolean
+    storeId?: boolean
+    menuCategoryId?: boolean
+    name?: boolean
+    price?: boolean
+    status?: boolean
+    image?: boolean
+    barcode?: boolean
+  }
+
+  export type MenuItemInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    store?: boolean | StoreDefaultArgs<ExtArgs>
+    menuCategory?: boolean | MenuCategoryDefaultArgs<ExtArgs>
+    recipeLines?: boolean | MenuItem$recipeLinesArgs<ExtArgs>
+    saleItems?: boolean | MenuItem$saleItemsArgs<ExtArgs>
+    _count?: boolean | MenuItemCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type MenuItemIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    store?: boolean | StoreDefaultArgs<ExtArgs>
+    menuCategory?: boolean | MenuCategoryDefaultArgs<ExtArgs>
+  }
+
+  export type $MenuItemPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "MenuItem"
+    objects: {
+      store: Prisma.$StorePayload<ExtArgs>
+      menuCategory: Prisma.$MenuCategoryPayload<ExtArgs>
+      recipeLines: Prisma.$RecipeLinePayload<ExtArgs>[]
+      saleItems: Prisma.$SaleItemPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      storeId: string
+      menuCategoryId: string
+      name: string
+      price: number
+      status: string
+      image: string | null
+      barcode: string | null
+    }, ExtArgs["result"]["menuItem"]>
+    composites: {}
+  }
+
+  type MenuItemGetPayload<S extends boolean | null | undefined | MenuItemDefaultArgs> = $Result.GetResult<Prisma.$MenuItemPayload, S>
+
+  type MenuItemCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<MenuItemFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: MenuItemCountAggregateInputType | true
+    }
+
+  export interface MenuItemDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['MenuItem'], meta: { name: 'MenuItem' } }
+    /**
+     * Find zero or one MenuItem that matches the filter.
+     * @param {MenuItemFindUniqueArgs} args - Arguments to find a MenuItem
+     * @example
+     * // Get one MenuItem
+     * const menuItem = await prisma.menuItem.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends MenuItemFindUniqueArgs>(args: SelectSubset<T, MenuItemFindUniqueArgs<ExtArgs>>): Prisma__MenuItemClient<$Result.GetResult<Prisma.$MenuItemPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one MenuItem that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {MenuItemFindUniqueOrThrowArgs} args - Arguments to find a MenuItem
+     * @example
+     * // Get one MenuItem
+     * const menuItem = await prisma.menuItem.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends MenuItemFindUniqueOrThrowArgs>(args: SelectSubset<T, MenuItemFindUniqueOrThrowArgs<ExtArgs>>): Prisma__MenuItemClient<$Result.GetResult<Prisma.$MenuItemPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first MenuItem that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MenuItemFindFirstArgs} args - Arguments to find a MenuItem
+     * @example
+     * // Get one MenuItem
+     * const menuItem = await prisma.menuItem.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends MenuItemFindFirstArgs>(args?: SelectSubset<T, MenuItemFindFirstArgs<ExtArgs>>): Prisma__MenuItemClient<$Result.GetResult<Prisma.$MenuItemPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first MenuItem that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MenuItemFindFirstOrThrowArgs} args - Arguments to find a MenuItem
+     * @example
+     * // Get one MenuItem
+     * const menuItem = await prisma.menuItem.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends MenuItemFindFirstOrThrowArgs>(args?: SelectSubset<T, MenuItemFindFirstOrThrowArgs<ExtArgs>>): Prisma__MenuItemClient<$Result.GetResult<Prisma.$MenuItemPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more MenuItems that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MenuItemFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all MenuItems
+     * const menuItems = await prisma.menuItem.findMany()
+     * 
+     * // Get first 10 MenuItems
+     * const menuItems = await prisma.menuItem.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const menuItemWithIdOnly = await prisma.menuItem.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends MenuItemFindManyArgs>(args?: SelectSubset<T, MenuItemFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MenuItemPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a MenuItem.
+     * @param {MenuItemCreateArgs} args - Arguments to create a MenuItem.
+     * @example
+     * // Create one MenuItem
+     * const MenuItem = await prisma.menuItem.create({
+     *   data: {
+     *     // ... data to create a MenuItem
+     *   }
+     * })
+     * 
+     */
+    create<T extends MenuItemCreateArgs>(args: SelectSubset<T, MenuItemCreateArgs<ExtArgs>>): Prisma__MenuItemClient<$Result.GetResult<Prisma.$MenuItemPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many MenuItems.
+     * @param {MenuItemCreateManyArgs} args - Arguments to create many MenuItems.
+     * @example
+     * // Create many MenuItems
+     * const menuItem = await prisma.menuItem.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends MenuItemCreateManyArgs>(args?: SelectSubset<T, MenuItemCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many MenuItems and returns the data saved in the database.
+     * @param {MenuItemCreateManyAndReturnArgs} args - Arguments to create many MenuItems.
+     * @example
+     * // Create many MenuItems
+     * const menuItem = await prisma.menuItem.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many MenuItems and only return the `id`
+     * const menuItemWithIdOnly = await prisma.menuItem.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends MenuItemCreateManyAndReturnArgs>(args?: SelectSubset<T, MenuItemCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MenuItemPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a MenuItem.
+     * @param {MenuItemDeleteArgs} args - Arguments to delete one MenuItem.
+     * @example
+     * // Delete one MenuItem
+     * const MenuItem = await prisma.menuItem.delete({
+     *   where: {
+     *     // ... filter to delete one MenuItem
+     *   }
+     * })
+     * 
+     */
+    delete<T extends MenuItemDeleteArgs>(args: SelectSubset<T, MenuItemDeleteArgs<ExtArgs>>): Prisma__MenuItemClient<$Result.GetResult<Prisma.$MenuItemPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one MenuItem.
+     * @param {MenuItemUpdateArgs} args - Arguments to update one MenuItem.
+     * @example
+     * // Update one MenuItem
+     * const menuItem = await prisma.menuItem.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends MenuItemUpdateArgs>(args: SelectSubset<T, MenuItemUpdateArgs<ExtArgs>>): Prisma__MenuItemClient<$Result.GetResult<Prisma.$MenuItemPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more MenuItems.
+     * @param {MenuItemDeleteManyArgs} args - Arguments to filter MenuItems to delete.
+     * @example
+     * // Delete a few MenuItems
+     * const { count } = await prisma.menuItem.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends MenuItemDeleteManyArgs>(args?: SelectSubset<T, MenuItemDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more MenuItems.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MenuItemUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many MenuItems
+     * const menuItem = await prisma.menuItem.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends MenuItemUpdateManyArgs>(args: SelectSubset<T, MenuItemUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one MenuItem.
+     * @param {MenuItemUpsertArgs} args - Arguments to update or create a MenuItem.
+     * @example
+     * // Update or create a MenuItem
+     * const menuItem = await prisma.menuItem.upsert({
+     *   create: {
+     *     // ... data to create a MenuItem
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the MenuItem we want to update
+     *   }
+     * })
+     */
+    upsert<T extends MenuItemUpsertArgs>(args: SelectSubset<T, MenuItemUpsertArgs<ExtArgs>>): Prisma__MenuItemClient<$Result.GetResult<Prisma.$MenuItemPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of MenuItems.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MenuItemCountArgs} args - Arguments to filter MenuItems to count.
+     * @example
+     * // Count the number of MenuItems
+     * const count = await prisma.menuItem.count({
+     *   where: {
+     *     // ... the filter for the MenuItems we want to count
+     *   }
+     * })
+    **/
+    count<T extends MenuItemCountArgs>(
+      args?: Subset<T, MenuItemCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], MenuItemCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a MenuItem.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MenuItemAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends MenuItemAggregateArgs>(args: Subset<T, MenuItemAggregateArgs>): Prisma.PrismaPromise<GetMenuItemAggregateType<T>>
+
+    /**
+     * Group by MenuItem.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {MenuItemGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends MenuItemGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: MenuItemGroupByArgs['orderBy'] }
+        : { orderBy?: MenuItemGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, MenuItemGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetMenuItemGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the MenuItem model
+   */
+  readonly fields: MenuItemFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for MenuItem.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__MenuItemClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    store<T extends StoreDefaultArgs<ExtArgs> = {}>(args?: Subset<T, StoreDefaultArgs<ExtArgs>>): Prisma__StoreClient<$Result.GetResult<Prisma.$StorePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    menuCategory<T extends MenuCategoryDefaultArgs<ExtArgs> = {}>(args?: Subset<T, MenuCategoryDefaultArgs<ExtArgs>>): Prisma__MenuCategoryClient<$Result.GetResult<Prisma.$MenuCategoryPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    recipeLines<T extends MenuItem$recipeLinesArgs<ExtArgs> = {}>(args?: Subset<T, MenuItem$recipeLinesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RecipeLinePayload<ExtArgs>, T, "findMany"> | Null>
+    saleItems<T extends MenuItem$saleItemsArgs<ExtArgs> = {}>(args?: Subset<T, MenuItem$saleItemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SaleItemPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the MenuItem model
+   */ 
+  interface MenuItemFieldRefs {
+    readonly id: FieldRef<"MenuItem", 'String'>
+    readonly storeId: FieldRef<"MenuItem", 'String'>
+    readonly menuCategoryId: FieldRef<"MenuItem", 'String'>
+    readonly name: FieldRef<"MenuItem", 'String'>
+    readonly price: FieldRef<"MenuItem", 'Float'>
+    readonly status: FieldRef<"MenuItem", 'String'>
+    readonly image: FieldRef<"MenuItem", 'String'>
+    readonly barcode: FieldRef<"MenuItem", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * MenuItem findUnique
+   */
+  export type MenuItemFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuItem
+     */
+    select?: MenuItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuItemInclude<ExtArgs> | null
+    /**
+     * Filter, which MenuItem to fetch.
+     */
+    where: MenuItemWhereUniqueInput
+  }
+
+  /**
+   * MenuItem findUniqueOrThrow
+   */
+  export type MenuItemFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuItem
+     */
+    select?: MenuItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuItemInclude<ExtArgs> | null
+    /**
+     * Filter, which MenuItem to fetch.
+     */
+    where: MenuItemWhereUniqueInput
+  }
+
+  /**
+   * MenuItem findFirst
+   */
+  export type MenuItemFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuItem
+     */
+    select?: MenuItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuItemInclude<ExtArgs> | null
+    /**
+     * Filter, which MenuItem to fetch.
+     */
+    where?: MenuItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of MenuItems to fetch.
+     */
+    orderBy?: MenuItemOrderByWithRelationInput | MenuItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for MenuItems.
+     */
+    cursor?: MenuItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` MenuItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` MenuItems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of MenuItems.
+     */
+    distinct?: MenuItemScalarFieldEnum | MenuItemScalarFieldEnum[]
+  }
+
+  /**
+   * MenuItem findFirstOrThrow
+   */
+  export type MenuItemFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuItem
+     */
+    select?: MenuItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuItemInclude<ExtArgs> | null
+    /**
+     * Filter, which MenuItem to fetch.
+     */
+    where?: MenuItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of MenuItems to fetch.
+     */
+    orderBy?: MenuItemOrderByWithRelationInput | MenuItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for MenuItems.
+     */
+    cursor?: MenuItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` MenuItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` MenuItems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of MenuItems.
+     */
+    distinct?: MenuItemScalarFieldEnum | MenuItemScalarFieldEnum[]
+  }
+
+  /**
+   * MenuItem findMany
+   */
+  export type MenuItemFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuItem
+     */
+    select?: MenuItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuItemInclude<ExtArgs> | null
+    /**
+     * Filter, which MenuItems to fetch.
+     */
+    where?: MenuItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of MenuItems to fetch.
+     */
+    orderBy?: MenuItemOrderByWithRelationInput | MenuItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing MenuItems.
+     */
+    cursor?: MenuItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` MenuItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` MenuItems.
+     */
+    skip?: number
+    distinct?: MenuItemScalarFieldEnum | MenuItemScalarFieldEnum[]
+  }
+
+  /**
+   * MenuItem create
+   */
+  export type MenuItemCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuItem
+     */
+    select?: MenuItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuItemInclude<ExtArgs> | null
+    /**
+     * The data needed to create a MenuItem.
+     */
+    data: XOR<MenuItemCreateInput, MenuItemUncheckedCreateInput>
+  }
+
+  /**
+   * MenuItem createMany
+   */
+  export type MenuItemCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many MenuItems.
+     */
+    data: MenuItemCreateManyInput | MenuItemCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * MenuItem createManyAndReturn
+   */
+  export type MenuItemCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuItem
+     */
+    select?: MenuItemSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many MenuItems.
+     */
+    data: MenuItemCreateManyInput | MenuItemCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuItemIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * MenuItem update
+   */
+  export type MenuItemUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuItem
+     */
+    select?: MenuItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuItemInclude<ExtArgs> | null
+    /**
+     * The data needed to update a MenuItem.
+     */
+    data: XOR<MenuItemUpdateInput, MenuItemUncheckedUpdateInput>
+    /**
+     * Choose, which MenuItem to update.
+     */
+    where: MenuItemWhereUniqueInput
+  }
+
+  /**
+   * MenuItem updateMany
+   */
+  export type MenuItemUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update MenuItems.
+     */
+    data: XOR<MenuItemUpdateManyMutationInput, MenuItemUncheckedUpdateManyInput>
+    /**
+     * Filter which MenuItems to update
+     */
+    where?: MenuItemWhereInput
+  }
+
+  /**
+   * MenuItem upsert
+   */
+  export type MenuItemUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuItem
+     */
+    select?: MenuItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuItemInclude<ExtArgs> | null
+    /**
+     * The filter to search for the MenuItem to update in case it exists.
+     */
+    where: MenuItemWhereUniqueInput
+    /**
+     * In case the MenuItem found by the `where` argument doesn't exist, create a new MenuItem with this data.
+     */
+    create: XOR<MenuItemCreateInput, MenuItemUncheckedCreateInput>
+    /**
+     * In case the MenuItem was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<MenuItemUpdateInput, MenuItemUncheckedUpdateInput>
+  }
+
+  /**
+   * MenuItem delete
+   */
+  export type MenuItemDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuItem
+     */
+    select?: MenuItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuItemInclude<ExtArgs> | null
+    /**
+     * Filter which MenuItem to delete.
+     */
+    where: MenuItemWhereUniqueInput
+  }
+
+  /**
+   * MenuItem deleteMany
+   */
+  export type MenuItemDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which MenuItems to delete
+     */
+    where?: MenuItemWhereInput
+  }
+
+  /**
+   * MenuItem.recipeLines
+   */
+  export type MenuItem$recipeLinesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecipeLine
+     */
+    select?: RecipeLineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RecipeLineInclude<ExtArgs> | null
+    where?: RecipeLineWhereInput
+    orderBy?: RecipeLineOrderByWithRelationInput | RecipeLineOrderByWithRelationInput[]
+    cursor?: RecipeLineWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: RecipeLineScalarFieldEnum | RecipeLineScalarFieldEnum[]
+  }
+
+  /**
+   * MenuItem.saleItems
+   */
+  export type MenuItem$saleItemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SaleItem
+     */
+    select?: SaleItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SaleItemInclude<ExtArgs> | null
+    where?: SaleItemWhereInput
+    orderBy?: SaleItemOrderByWithRelationInput | SaleItemOrderByWithRelationInput[]
+    cursor?: SaleItemWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: SaleItemScalarFieldEnum | SaleItemScalarFieldEnum[]
+  }
+
+  /**
+   * MenuItem without action
+   */
+  export type MenuItemDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuItem
+     */
+    select?: MenuItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuItemInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model RecipeLine
+   */
+
+  export type AggregateRecipeLine = {
+    _count: RecipeLineCountAggregateOutputType | null
+    _avg: RecipeLineAvgAggregateOutputType | null
+    _sum: RecipeLineSumAggregateOutputType | null
+    _min: RecipeLineMinAggregateOutputType | null
+    _max: RecipeLineMaxAggregateOutputType | null
+  }
+
+  export type RecipeLineAvgAggregateOutputType = {
+    quantity: number | null
+    wastagePercent: number | null
+  }
+
+  export type RecipeLineSumAggregateOutputType = {
+    quantity: number | null
+    wastagePercent: number | null
+  }
+
+  export type RecipeLineMinAggregateOutputType = {
+    id: string | null
+    menuItemId: string | null
+    ingredientId: string | null
+    quantity: number | null
+    wastagePercent: number | null
+  }
+
+  export type RecipeLineMaxAggregateOutputType = {
+    id: string | null
+    menuItemId: string | null
+    ingredientId: string | null
+    quantity: number | null
+    wastagePercent: number | null
+  }
+
+  export type RecipeLineCountAggregateOutputType = {
+    id: number
+    menuItemId: number
+    ingredientId: number
+    quantity: number
+    wastagePercent: number
+    _all: number
+  }
+
+
+  export type RecipeLineAvgAggregateInputType = {
+    quantity?: true
+    wastagePercent?: true
+  }
+
+  export type RecipeLineSumAggregateInputType = {
+    quantity?: true
+    wastagePercent?: true
+  }
+
+  export type RecipeLineMinAggregateInputType = {
+    id?: true
+    menuItemId?: true
+    ingredientId?: true
+    quantity?: true
+    wastagePercent?: true
+  }
+
+  export type RecipeLineMaxAggregateInputType = {
+    id?: true
+    menuItemId?: true
+    ingredientId?: true
+    quantity?: true
+    wastagePercent?: true
+  }
+
+  export type RecipeLineCountAggregateInputType = {
+    id?: true
+    menuItemId?: true
+    ingredientId?: true
+    quantity?: true
+    wastagePercent?: true
+    _all?: true
+  }
+
+  export type RecipeLineAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which RecipeLine to aggregate.
+     */
+    where?: RecipeLineWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RecipeLines to fetch.
+     */
+    orderBy?: RecipeLineOrderByWithRelationInput | RecipeLineOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: RecipeLineWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RecipeLines from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RecipeLines.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned RecipeLines
+    **/
+    _count?: true | RecipeLineCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: RecipeLineAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: RecipeLineSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: RecipeLineMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: RecipeLineMaxAggregateInputType
+  }
+
+  export type GetRecipeLineAggregateType<T extends RecipeLineAggregateArgs> = {
+        [P in keyof T & keyof AggregateRecipeLine]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateRecipeLine[P]>
+      : GetScalarType<T[P], AggregateRecipeLine[P]>
+  }
+
+
+
+
+  export type RecipeLineGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RecipeLineWhereInput
+    orderBy?: RecipeLineOrderByWithAggregationInput | RecipeLineOrderByWithAggregationInput[]
+    by: RecipeLineScalarFieldEnum[] | RecipeLineScalarFieldEnum
+    having?: RecipeLineScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: RecipeLineCountAggregateInputType | true
+    _avg?: RecipeLineAvgAggregateInputType
+    _sum?: RecipeLineSumAggregateInputType
+    _min?: RecipeLineMinAggregateInputType
+    _max?: RecipeLineMaxAggregateInputType
+  }
+
+  export type RecipeLineGroupByOutputType = {
+    id: string
+    menuItemId: string
+    ingredientId: string
+    quantity: number
+    wastagePercent: number | null
+    _count: RecipeLineCountAggregateOutputType | null
+    _avg: RecipeLineAvgAggregateOutputType | null
+    _sum: RecipeLineSumAggregateOutputType | null
+    _min: RecipeLineMinAggregateOutputType | null
+    _max: RecipeLineMaxAggregateOutputType | null
+  }
+
+  type GetRecipeLineGroupByPayload<T extends RecipeLineGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<RecipeLineGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof RecipeLineGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], RecipeLineGroupByOutputType[P]>
+            : GetScalarType<T[P], RecipeLineGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type RecipeLineSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    menuItemId?: boolean
+    ingredientId?: boolean
+    quantity?: boolean
+    wastagePercent?: boolean
+    menuItem?: boolean | MenuItemDefaultArgs<ExtArgs>
+    ingredient?: boolean | IngredientDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["recipeLine"]>
+
+  export type RecipeLineSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    menuItemId?: boolean
+    ingredientId?: boolean
+    quantity?: boolean
+    wastagePercent?: boolean
+    menuItem?: boolean | MenuItemDefaultArgs<ExtArgs>
+    ingredient?: boolean | IngredientDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["recipeLine"]>
+
+  export type RecipeLineSelectScalar = {
+    id?: boolean
+    menuItemId?: boolean
+    ingredientId?: boolean
+    quantity?: boolean
+    wastagePercent?: boolean
+  }
+
+  export type RecipeLineInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    menuItem?: boolean | MenuItemDefaultArgs<ExtArgs>
+    ingredient?: boolean | IngredientDefaultArgs<ExtArgs>
+  }
+  export type RecipeLineIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    menuItem?: boolean | MenuItemDefaultArgs<ExtArgs>
+    ingredient?: boolean | IngredientDefaultArgs<ExtArgs>
+  }
+
+  export type $RecipeLinePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "RecipeLine"
+    objects: {
+      menuItem: Prisma.$MenuItemPayload<ExtArgs>
+      ingredient: Prisma.$IngredientPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      menuItemId: string
+      ingredientId: string
+      quantity: number
+      wastagePercent: number | null
+    }, ExtArgs["result"]["recipeLine"]>
+    composites: {}
+  }
+
+  type RecipeLineGetPayload<S extends boolean | null | undefined | RecipeLineDefaultArgs> = $Result.GetResult<Prisma.$RecipeLinePayload, S>
+
+  type RecipeLineCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<RecipeLineFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: RecipeLineCountAggregateInputType | true
+    }
+
+  export interface RecipeLineDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['RecipeLine'], meta: { name: 'RecipeLine' } }
+    /**
+     * Find zero or one RecipeLine that matches the filter.
+     * @param {RecipeLineFindUniqueArgs} args - Arguments to find a RecipeLine
+     * @example
+     * // Get one RecipeLine
+     * const recipeLine = await prisma.recipeLine.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends RecipeLineFindUniqueArgs>(args: SelectSubset<T, RecipeLineFindUniqueArgs<ExtArgs>>): Prisma__RecipeLineClient<$Result.GetResult<Prisma.$RecipeLinePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one RecipeLine that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {RecipeLineFindUniqueOrThrowArgs} args - Arguments to find a RecipeLine
+     * @example
+     * // Get one RecipeLine
+     * const recipeLine = await prisma.recipeLine.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends RecipeLineFindUniqueOrThrowArgs>(args: SelectSubset<T, RecipeLineFindUniqueOrThrowArgs<ExtArgs>>): Prisma__RecipeLineClient<$Result.GetResult<Prisma.$RecipeLinePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first RecipeLine that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RecipeLineFindFirstArgs} args - Arguments to find a RecipeLine
+     * @example
+     * // Get one RecipeLine
+     * const recipeLine = await prisma.recipeLine.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends RecipeLineFindFirstArgs>(args?: SelectSubset<T, RecipeLineFindFirstArgs<ExtArgs>>): Prisma__RecipeLineClient<$Result.GetResult<Prisma.$RecipeLinePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first RecipeLine that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RecipeLineFindFirstOrThrowArgs} args - Arguments to find a RecipeLine
+     * @example
+     * // Get one RecipeLine
+     * const recipeLine = await prisma.recipeLine.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends RecipeLineFindFirstOrThrowArgs>(args?: SelectSubset<T, RecipeLineFindFirstOrThrowArgs<ExtArgs>>): Prisma__RecipeLineClient<$Result.GetResult<Prisma.$RecipeLinePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more RecipeLines that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RecipeLineFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all RecipeLines
+     * const recipeLines = await prisma.recipeLine.findMany()
+     * 
+     * // Get first 10 RecipeLines
+     * const recipeLines = await prisma.recipeLine.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const recipeLineWithIdOnly = await prisma.recipeLine.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends RecipeLineFindManyArgs>(args?: SelectSubset<T, RecipeLineFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RecipeLinePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a RecipeLine.
+     * @param {RecipeLineCreateArgs} args - Arguments to create a RecipeLine.
+     * @example
+     * // Create one RecipeLine
+     * const RecipeLine = await prisma.recipeLine.create({
+     *   data: {
+     *     // ... data to create a RecipeLine
+     *   }
+     * })
+     * 
+     */
+    create<T extends RecipeLineCreateArgs>(args: SelectSubset<T, RecipeLineCreateArgs<ExtArgs>>): Prisma__RecipeLineClient<$Result.GetResult<Prisma.$RecipeLinePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many RecipeLines.
+     * @param {RecipeLineCreateManyArgs} args - Arguments to create many RecipeLines.
+     * @example
+     * // Create many RecipeLines
+     * const recipeLine = await prisma.recipeLine.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends RecipeLineCreateManyArgs>(args?: SelectSubset<T, RecipeLineCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many RecipeLines and returns the data saved in the database.
+     * @param {RecipeLineCreateManyAndReturnArgs} args - Arguments to create many RecipeLines.
+     * @example
+     * // Create many RecipeLines
+     * const recipeLine = await prisma.recipeLine.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many RecipeLines and only return the `id`
+     * const recipeLineWithIdOnly = await prisma.recipeLine.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends RecipeLineCreateManyAndReturnArgs>(args?: SelectSubset<T, RecipeLineCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RecipeLinePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a RecipeLine.
+     * @param {RecipeLineDeleteArgs} args - Arguments to delete one RecipeLine.
+     * @example
+     * // Delete one RecipeLine
+     * const RecipeLine = await prisma.recipeLine.delete({
+     *   where: {
+     *     // ... filter to delete one RecipeLine
+     *   }
+     * })
+     * 
+     */
+    delete<T extends RecipeLineDeleteArgs>(args: SelectSubset<T, RecipeLineDeleteArgs<ExtArgs>>): Prisma__RecipeLineClient<$Result.GetResult<Prisma.$RecipeLinePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one RecipeLine.
+     * @param {RecipeLineUpdateArgs} args - Arguments to update one RecipeLine.
+     * @example
+     * // Update one RecipeLine
+     * const recipeLine = await prisma.recipeLine.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends RecipeLineUpdateArgs>(args: SelectSubset<T, RecipeLineUpdateArgs<ExtArgs>>): Prisma__RecipeLineClient<$Result.GetResult<Prisma.$RecipeLinePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more RecipeLines.
+     * @param {RecipeLineDeleteManyArgs} args - Arguments to filter RecipeLines to delete.
+     * @example
+     * // Delete a few RecipeLines
+     * const { count } = await prisma.recipeLine.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends RecipeLineDeleteManyArgs>(args?: SelectSubset<T, RecipeLineDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more RecipeLines.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RecipeLineUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many RecipeLines
+     * const recipeLine = await prisma.recipeLine.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends RecipeLineUpdateManyArgs>(args: SelectSubset<T, RecipeLineUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one RecipeLine.
+     * @param {RecipeLineUpsertArgs} args - Arguments to update or create a RecipeLine.
+     * @example
+     * // Update or create a RecipeLine
+     * const recipeLine = await prisma.recipeLine.upsert({
+     *   create: {
+     *     // ... data to create a RecipeLine
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the RecipeLine we want to update
+     *   }
+     * })
+     */
+    upsert<T extends RecipeLineUpsertArgs>(args: SelectSubset<T, RecipeLineUpsertArgs<ExtArgs>>): Prisma__RecipeLineClient<$Result.GetResult<Prisma.$RecipeLinePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of RecipeLines.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RecipeLineCountArgs} args - Arguments to filter RecipeLines to count.
+     * @example
+     * // Count the number of RecipeLines
+     * const count = await prisma.recipeLine.count({
+     *   where: {
+     *     // ... the filter for the RecipeLines we want to count
+     *   }
+     * })
+    **/
+    count<T extends RecipeLineCountArgs>(
+      args?: Subset<T, RecipeLineCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], RecipeLineCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a RecipeLine.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RecipeLineAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends RecipeLineAggregateArgs>(args: Subset<T, RecipeLineAggregateArgs>): Prisma.PrismaPromise<GetRecipeLineAggregateType<T>>
+
+    /**
+     * Group by RecipeLine.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RecipeLineGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends RecipeLineGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: RecipeLineGroupByArgs['orderBy'] }
+        : { orderBy?: RecipeLineGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, RecipeLineGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetRecipeLineGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the RecipeLine model
+   */
+  readonly fields: RecipeLineFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for RecipeLine.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__RecipeLineClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    menuItem<T extends MenuItemDefaultArgs<ExtArgs> = {}>(args?: Subset<T, MenuItemDefaultArgs<ExtArgs>>): Prisma__MenuItemClient<$Result.GetResult<Prisma.$MenuItemPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    ingredient<T extends IngredientDefaultArgs<ExtArgs> = {}>(args?: Subset<T, IngredientDefaultArgs<ExtArgs>>): Prisma__IngredientClient<$Result.GetResult<Prisma.$IngredientPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the RecipeLine model
+   */ 
+  interface RecipeLineFieldRefs {
+    readonly id: FieldRef<"RecipeLine", 'String'>
+    readonly menuItemId: FieldRef<"RecipeLine", 'String'>
+    readonly ingredientId: FieldRef<"RecipeLine", 'String'>
+    readonly quantity: FieldRef<"RecipeLine", 'Float'>
+    readonly wastagePercent: FieldRef<"RecipeLine", 'Float'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * RecipeLine findUnique
+   */
+  export type RecipeLineFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecipeLine
+     */
+    select?: RecipeLineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RecipeLineInclude<ExtArgs> | null
+    /**
+     * Filter, which RecipeLine to fetch.
+     */
+    where: RecipeLineWhereUniqueInput
+  }
+
+  /**
+   * RecipeLine findUniqueOrThrow
+   */
+  export type RecipeLineFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecipeLine
+     */
+    select?: RecipeLineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RecipeLineInclude<ExtArgs> | null
+    /**
+     * Filter, which RecipeLine to fetch.
+     */
+    where: RecipeLineWhereUniqueInput
+  }
+
+  /**
+   * RecipeLine findFirst
+   */
+  export type RecipeLineFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecipeLine
+     */
+    select?: RecipeLineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RecipeLineInclude<ExtArgs> | null
+    /**
+     * Filter, which RecipeLine to fetch.
+     */
+    where?: RecipeLineWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RecipeLines to fetch.
+     */
+    orderBy?: RecipeLineOrderByWithRelationInput | RecipeLineOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for RecipeLines.
+     */
+    cursor?: RecipeLineWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RecipeLines from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RecipeLines.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RecipeLines.
+     */
+    distinct?: RecipeLineScalarFieldEnum | RecipeLineScalarFieldEnum[]
+  }
+
+  /**
+   * RecipeLine findFirstOrThrow
+   */
+  export type RecipeLineFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecipeLine
+     */
+    select?: RecipeLineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RecipeLineInclude<ExtArgs> | null
+    /**
+     * Filter, which RecipeLine to fetch.
+     */
+    where?: RecipeLineWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RecipeLines to fetch.
+     */
+    orderBy?: RecipeLineOrderByWithRelationInput | RecipeLineOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for RecipeLines.
+     */
+    cursor?: RecipeLineWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RecipeLines from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RecipeLines.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RecipeLines.
+     */
+    distinct?: RecipeLineScalarFieldEnum | RecipeLineScalarFieldEnum[]
+  }
+
+  /**
+   * RecipeLine findMany
+   */
+  export type RecipeLineFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecipeLine
+     */
+    select?: RecipeLineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RecipeLineInclude<ExtArgs> | null
+    /**
+     * Filter, which RecipeLines to fetch.
+     */
+    where?: RecipeLineWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RecipeLines to fetch.
+     */
+    orderBy?: RecipeLineOrderByWithRelationInput | RecipeLineOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing RecipeLines.
+     */
+    cursor?: RecipeLineWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RecipeLines from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RecipeLines.
+     */
+    skip?: number
+    distinct?: RecipeLineScalarFieldEnum | RecipeLineScalarFieldEnum[]
+  }
+
+  /**
+   * RecipeLine create
+   */
+  export type RecipeLineCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecipeLine
+     */
+    select?: RecipeLineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RecipeLineInclude<ExtArgs> | null
+    /**
+     * The data needed to create a RecipeLine.
+     */
+    data: XOR<RecipeLineCreateInput, RecipeLineUncheckedCreateInput>
+  }
+
+  /**
+   * RecipeLine createMany
+   */
+  export type RecipeLineCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many RecipeLines.
+     */
+    data: RecipeLineCreateManyInput | RecipeLineCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * RecipeLine createManyAndReturn
+   */
+  export type RecipeLineCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecipeLine
+     */
+    select?: RecipeLineSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many RecipeLines.
+     */
+    data: RecipeLineCreateManyInput | RecipeLineCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RecipeLineIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * RecipeLine update
+   */
+  export type RecipeLineUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecipeLine
+     */
+    select?: RecipeLineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RecipeLineInclude<ExtArgs> | null
+    /**
+     * The data needed to update a RecipeLine.
+     */
+    data: XOR<RecipeLineUpdateInput, RecipeLineUncheckedUpdateInput>
+    /**
+     * Choose, which RecipeLine to update.
+     */
+    where: RecipeLineWhereUniqueInput
+  }
+
+  /**
+   * RecipeLine updateMany
+   */
+  export type RecipeLineUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update RecipeLines.
+     */
+    data: XOR<RecipeLineUpdateManyMutationInput, RecipeLineUncheckedUpdateManyInput>
+    /**
+     * Filter which RecipeLines to update
+     */
+    where?: RecipeLineWhereInput
+  }
+
+  /**
+   * RecipeLine upsert
+   */
+  export type RecipeLineUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecipeLine
+     */
+    select?: RecipeLineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RecipeLineInclude<ExtArgs> | null
+    /**
+     * The filter to search for the RecipeLine to update in case it exists.
+     */
+    where: RecipeLineWhereUniqueInput
+    /**
+     * In case the RecipeLine found by the `where` argument doesn't exist, create a new RecipeLine with this data.
+     */
+    create: XOR<RecipeLineCreateInput, RecipeLineUncheckedCreateInput>
+    /**
+     * In case the RecipeLine was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<RecipeLineUpdateInput, RecipeLineUncheckedUpdateInput>
+  }
+
+  /**
+   * RecipeLine delete
+   */
+  export type RecipeLineDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecipeLine
+     */
+    select?: RecipeLineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RecipeLineInclude<ExtArgs> | null
+    /**
+     * Filter which RecipeLine to delete.
+     */
+    where: RecipeLineWhereUniqueInput
+  }
+
+  /**
+   * RecipeLine deleteMany
+   */
+  export type RecipeLineDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which RecipeLines to delete
+     */
+    where?: RecipeLineWhereInput
+  }
+
+  /**
+   * RecipeLine without action
+   */
+  export type RecipeLineDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecipeLine
+     */
+    select?: RecipeLineSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RecipeLineInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model SaleItem
    */
 
@@ -11114,6 +15687,7 @@ export namespace Prisma {
     id: string | null
     saleId: string | null
     productId: string | null
+    menuItemId: string | null
     variantId: string | null
     productName: string | null
     variantName: string | null
@@ -11126,6 +15700,7 @@ export namespace Prisma {
     id: string | null
     saleId: string | null
     productId: string | null
+    menuItemId: string | null
     variantId: string | null
     productName: string | null
     variantName: string | null
@@ -11138,6 +15713,7 @@ export namespace Prisma {
     id: number
     saleId: number
     productId: number
+    menuItemId: number
     variantId: number
     productName: number
     variantName: number
@@ -11164,6 +15740,7 @@ export namespace Prisma {
     id?: true
     saleId?: true
     productId?: true
+    menuItemId?: true
     variantId?: true
     productName?: true
     variantName?: true
@@ -11176,6 +15753,7 @@ export namespace Prisma {
     id?: true
     saleId?: true
     productId?: true
+    menuItemId?: true
     variantId?: true
     productName?: true
     variantName?: true
@@ -11188,6 +15766,7 @@ export namespace Prisma {
     id?: true
     saleId?: true
     productId?: true
+    menuItemId?: true
     variantId?: true
     productName?: true
     variantName?: true
@@ -11286,7 +15865,8 @@ export namespace Prisma {
   export type SaleItemGroupByOutputType = {
     id: string
     saleId: string
-    productId: string
+    productId: string | null
+    menuItemId: string | null
     variantId: string | null
     productName: string
     variantName: string | null
@@ -11318,6 +15898,7 @@ export namespace Prisma {
     id?: boolean
     saleId?: boolean
     productId?: boolean
+    menuItemId?: boolean
     variantId?: boolean
     productName?: boolean
     variantName?: boolean
@@ -11325,7 +15906,8 @@ export namespace Prisma {
     price?: boolean
     subtotal?: boolean
     sale?: boolean | SaleDefaultArgs<ExtArgs>
-    product?: boolean | ProductDefaultArgs<ExtArgs>
+    product?: boolean | SaleItem$productArgs<ExtArgs>
+    menuItem?: boolean | SaleItem$menuItemArgs<ExtArgs>
     variant?: boolean | SaleItem$variantArgs<ExtArgs>
   }, ExtArgs["result"]["saleItem"]>
 
@@ -11333,6 +15915,7 @@ export namespace Prisma {
     id?: boolean
     saleId?: boolean
     productId?: boolean
+    menuItemId?: boolean
     variantId?: boolean
     productName?: boolean
     variantName?: boolean
@@ -11340,7 +15923,8 @@ export namespace Prisma {
     price?: boolean
     subtotal?: boolean
     sale?: boolean | SaleDefaultArgs<ExtArgs>
-    product?: boolean | ProductDefaultArgs<ExtArgs>
+    product?: boolean | SaleItem$productArgs<ExtArgs>
+    menuItem?: boolean | SaleItem$menuItemArgs<ExtArgs>
     variant?: boolean | SaleItem$variantArgs<ExtArgs>
   }, ExtArgs["result"]["saleItem"]>
 
@@ -11348,6 +15932,7 @@ export namespace Prisma {
     id?: boolean
     saleId?: boolean
     productId?: boolean
+    menuItemId?: boolean
     variantId?: boolean
     productName?: boolean
     variantName?: boolean
@@ -11358,12 +15943,14 @@ export namespace Prisma {
 
   export type SaleItemInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     sale?: boolean | SaleDefaultArgs<ExtArgs>
-    product?: boolean | ProductDefaultArgs<ExtArgs>
+    product?: boolean | SaleItem$productArgs<ExtArgs>
+    menuItem?: boolean | SaleItem$menuItemArgs<ExtArgs>
     variant?: boolean | SaleItem$variantArgs<ExtArgs>
   }
   export type SaleItemIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     sale?: boolean | SaleDefaultArgs<ExtArgs>
-    product?: boolean | ProductDefaultArgs<ExtArgs>
+    product?: boolean | SaleItem$productArgs<ExtArgs>
+    menuItem?: boolean | SaleItem$menuItemArgs<ExtArgs>
     variant?: boolean | SaleItem$variantArgs<ExtArgs>
   }
 
@@ -11371,13 +15958,15 @@ export namespace Prisma {
     name: "SaleItem"
     objects: {
       sale: Prisma.$SalePayload<ExtArgs>
-      product: Prisma.$ProductPayload<ExtArgs>
+      product: Prisma.$ProductPayload<ExtArgs> | null
+      menuItem: Prisma.$MenuItemPayload<ExtArgs> | null
       variant: Prisma.$VariantPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       saleId: string
-      productId: string
+      productId: string | null
+      menuItemId: string | null
       variantId: string | null
       productName: string
       variantName: string | null
@@ -11749,7 +16338,8 @@ export namespace Prisma {
   export interface Prisma__SaleItemClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     sale<T extends SaleDefaultArgs<ExtArgs> = {}>(args?: Subset<T, SaleDefaultArgs<ExtArgs>>): Prisma__SaleClient<$Result.GetResult<Prisma.$SalePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
-    product<T extends ProductDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProductDefaultArgs<ExtArgs>>): Prisma__ProductClient<$Result.GetResult<Prisma.$ProductPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    product<T extends SaleItem$productArgs<ExtArgs> = {}>(args?: Subset<T, SaleItem$productArgs<ExtArgs>>): Prisma__ProductClient<$Result.GetResult<Prisma.$ProductPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    menuItem<T extends SaleItem$menuItemArgs<ExtArgs> = {}>(args?: Subset<T, SaleItem$menuItemArgs<ExtArgs>>): Prisma__MenuItemClient<$Result.GetResult<Prisma.$MenuItemPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     variant<T extends SaleItem$variantArgs<ExtArgs> = {}>(args?: Subset<T, SaleItem$variantArgs<ExtArgs>>): Prisma__VariantClient<$Result.GetResult<Prisma.$VariantPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -11783,6 +16373,7 @@ export namespace Prisma {
     readonly id: FieldRef<"SaleItem", 'String'>
     readonly saleId: FieldRef<"SaleItem", 'String'>
     readonly productId: FieldRef<"SaleItem", 'String'>
+    readonly menuItemId: FieldRef<"SaleItem", 'String'>
     readonly variantId: FieldRef<"SaleItem", 'String'>
     readonly productName: FieldRef<"SaleItem", 'String'>
     readonly variantName: FieldRef<"SaleItem", 'String'>
@@ -12107,6 +16698,36 @@ export namespace Prisma {
   }
 
   /**
+   * SaleItem.product
+   */
+  export type SaleItem$productArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Product
+     */
+    select?: ProductSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProductInclude<ExtArgs> | null
+    where?: ProductWhereInput
+  }
+
+  /**
+   * SaleItem.menuItem
+   */
+  export type SaleItem$menuItemArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MenuItem
+     */
+    select?: MenuItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MenuItemInclude<ExtArgs> | null
+    where?: MenuItemWhereInput
+  }
+
+  /**
    * SaleItem.variant
    */
   export type SaleItem$variantArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -12184,6 +16805,7 @@ export namespace Prisma {
     name: 'name',
     address: 'address',
     receiptLogoUrl: 'receiptLogoUrl',
+    businessMode: 'businessMode',
     createdAt: 'createdAt'
   };
 
@@ -12272,10 +16894,60 @@ export namespace Prisma {
   export type SaleScalarFieldEnum = (typeof SaleScalarFieldEnum)[keyof typeof SaleScalarFieldEnum]
 
 
+  export const IngredientScalarFieldEnum: {
+    id: 'id',
+    storeId: 'storeId',
+    name: 'name',
+    sku: 'sku',
+    barcode: 'barcode',
+    stock: 'stock',
+    lowStockThreshold: 'lowStockThreshold',
+    unitOfMeasure: 'unitOfMeasure',
+    status: 'status'
+  };
+
+  export type IngredientScalarFieldEnum = (typeof IngredientScalarFieldEnum)[keyof typeof IngredientScalarFieldEnum]
+
+
+  export const MenuCategoryScalarFieldEnum: {
+    id: 'id',
+    storeId: 'storeId',
+    name: 'name'
+  };
+
+  export type MenuCategoryScalarFieldEnum = (typeof MenuCategoryScalarFieldEnum)[keyof typeof MenuCategoryScalarFieldEnum]
+
+
+  export const MenuItemScalarFieldEnum: {
+    id: 'id',
+    storeId: 'storeId',
+    menuCategoryId: 'menuCategoryId',
+    name: 'name',
+    price: 'price',
+    status: 'status',
+    image: 'image',
+    barcode: 'barcode'
+  };
+
+  export type MenuItemScalarFieldEnum = (typeof MenuItemScalarFieldEnum)[keyof typeof MenuItemScalarFieldEnum]
+
+
+  export const RecipeLineScalarFieldEnum: {
+    id: 'id',
+    menuItemId: 'menuItemId',
+    ingredientId: 'ingredientId',
+    quantity: 'quantity',
+    wastagePercent: 'wastagePercent'
+  };
+
+  export type RecipeLineScalarFieldEnum = (typeof RecipeLineScalarFieldEnum)[keyof typeof RecipeLineScalarFieldEnum]
+
+
   export const SaleItemScalarFieldEnum: {
     id: 'id',
     saleId: 'saleId',
     productId: 'productId',
+    menuItemId: 'menuItemId',
     variantId: 'variantId',
     productName: 'productName',
     variantName: 'variantName',
@@ -12537,12 +17209,16 @@ export namespace Prisma {
     name?: StringFilter<"Store"> | string
     address?: StringNullableFilter<"Store"> | string | null
     receiptLogoUrl?: StringNullableFilter<"Store"> | string | null
+    businessMode?: StringFilter<"Store"> | string
     createdAt?: DateTimeFilter<"Store"> | Date | string
     organization?: XOR<OrganizationRelationFilter, OrganizationWhereInput>
     categories?: CategoryListRelationFilter
     products?: ProductListRelationFilter
     sales?: SaleListRelationFilter
     userAccess?: UserStoreListRelationFilter
+    ingredients?: IngredientListRelationFilter
+    menuCategories?: MenuCategoryListRelationFilter
+    menuItems?: MenuItemListRelationFilter
   }
 
   export type StoreOrderByWithRelationInput = {
@@ -12551,12 +17227,16 @@ export namespace Prisma {
     name?: SortOrder
     address?: SortOrderInput | SortOrder
     receiptLogoUrl?: SortOrderInput | SortOrder
+    businessMode?: SortOrder
     createdAt?: SortOrder
     organization?: OrganizationOrderByWithRelationInput
     categories?: CategoryOrderByRelationAggregateInput
     products?: ProductOrderByRelationAggregateInput
     sales?: SaleOrderByRelationAggregateInput
     userAccess?: UserStoreOrderByRelationAggregateInput
+    ingredients?: IngredientOrderByRelationAggregateInput
+    menuCategories?: MenuCategoryOrderByRelationAggregateInput
+    menuItems?: MenuItemOrderByRelationAggregateInput
   }
 
   export type StoreWhereUniqueInput = Prisma.AtLeast<{
@@ -12568,12 +17248,16 @@ export namespace Prisma {
     name?: StringFilter<"Store"> | string
     address?: StringNullableFilter<"Store"> | string | null
     receiptLogoUrl?: StringNullableFilter<"Store"> | string | null
+    businessMode?: StringFilter<"Store"> | string
     createdAt?: DateTimeFilter<"Store"> | Date | string
     organization?: XOR<OrganizationRelationFilter, OrganizationWhereInput>
     categories?: CategoryListRelationFilter
     products?: ProductListRelationFilter
     sales?: SaleListRelationFilter
     userAccess?: UserStoreListRelationFilter
+    ingredients?: IngredientListRelationFilter
+    menuCategories?: MenuCategoryListRelationFilter
+    menuItems?: MenuItemListRelationFilter
   }, "id">
 
   export type StoreOrderByWithAggregationInput = {
@@ -12582,6 +17266,7 @@ export namespace Prisma {
     name?: SortOrder
     address?: SortOrderInput | SortOrder
     receiptLogoUrl?: SortOrderInput | SortOrder
+    businessMode?: SortOrder
     createdAt?: SortOrder
     _count?: StoreCountOrderByAggregateInput
     _max?: StoreMaxOrderByAggregateInput
@@ -12597,6 +17282,7 @@ export namespace Prisma {
     name?: StringWithAggregatesFilter<"Store"> | string
     address?: StringNullableWithAggregatesFilter<"Store"> | string | null
     receiptLogoUrl?: StringNullableWithAggregatesFilter<"Store"> | string | null
+    businessMode?: StringWithAggregatesFilter<"Store"> | string
     createdAt?: DateTimeWithAggregatesFilter<"Store"> | Date | string
   }
 
@@ -13047,13 +17733,284 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"Sale"> | Date | string
   }
 
+  export type IngredientWhereInput = {
+    AND?: IngredientWhereInput | IngredientWhereInput[]
+    OR?: IngredientWhereInput[]
+    NOT?: IngredientWhereInput | IngredientWhereInput[]
+    id?: StringFilter<"Ingredient"> | string
+    storeId?: StringFilter<"Ingredient"> | string
+    name?: StringFilter<"Ingredient"> | string
+    sku?: StringNullableFilter<"Ingredient"> | string | null
+    barcode?: StringNullableFilter<"Ingredient"> | string | null
+    stock?: IntFilter<"Ingredient"> | number
+    lowStockThreshold?: IntFilter<"Ingredient"> | number
+    unitOfMeasure?: StringNullableFilter<"Ingredient"> | string | null
+    status?: StringFilter<"Ingredient"> | string
+    store?: XOR<StoreRelationFilter, StoreWhereInput>
+    recipeLines?: RecipeLineListRelationFilter
+  }
+
+  export type IngredientOrderByWithRelationInput = {
+    id?: SortOrder
+    storeId?: SortOrder
+    name?: SortOrder
+    sku?: SortOrderInput | SortOrder
+    barcode?: SortOrderInput | SortOrder
+    stock?: SortOrder
+    lowStockThreshold?: SortOrder
+    unitOfMeasure?: SortOrderInput | SortOrder
+    status?: SortOrder
+    store?: StoreOrderByWithRelationInput
+    recipeLines?: RecipeLineOrderByRelationAggregateInput
+  }
+
+  export type IngredientWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: IngredientWhereInput | IngredientWhereInput[]
+    OR?: IngredientWhereInput[]
+    NOT?: IngredientWhereInput | IngredientWhereInput[]
+    storeId?: StringFilter<"Ingredient"> | string
+    name?: StringFilter<"Ingredient"> | string
+    sku?: StringNullableFilter<"Ingredient"> | string | null
+    barcode?: StringNullableFilter<"Ingredient"> | string | null
+    stock?: IntFilter<"Ingredient"> | number
+    lowStockThreshold?: IntFilter<"Ingredient"> | number
+    unitOfMeasure?: StringNullableFilter<"Ingredient"> | string | null
+    status?: StringFilter<"Ingredient"> | string
+    store?: XOR<StoreRelationFilter, StoreWhereInput>
+    recipeLines?: RecipeLineListRelationFilter
+  }, "id">
+
+  export type IngredientOrderByWithAggregationInput = {
+    id?: SortOrder
+    storeId?: SortOrder
+    name?: SortOrder
+    sku?: SortOrderInput | SortOrder
+    barcode?: SortOrderInput | SortOrder
+    stock?: SortOrder
+    lowStockThreshold?: SortOrder
+    unitOfMeasure?: SortOrderInput | SortOrder
+    status?: SortOrder
+    _count?: IngredientCountOrderByAggregateInput
+    _avg?: IngredientAvgOrderByAggregateInput
+    _max?: IngredientMaxOrderByAggregateInput
+    _min?: IngredientMinOrderByAggregateInput
+    _sum?: IngredientSumOrderByAggregateInput
+  }
+
+  export type IngredientScalarWhereWithAggregatesInput = {
+    AND?: IngredientScalarWhereWithAggregatesInput | IngredientScalarWhereWithAggregatesInput[]
+    OR?: IngredientScalarWhereWithAggregatesInput[]
+    NOT?: IngredientScalarWhereWithAggregatesInput | IngredientScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"Ingredient"> | string
+    storeId?: StringWithAggregatesFilter<"Ingredient"> | string
+    name?: StringWithAggregatesFilter<"Ingredient"> | string
+    sku?: StringNullableWithAggregatesFilter<"Ingredient"> | string | null
+    barcode?: StringNullableWithAggregatesFilter<"Ingredient"> | string | null
+    stock?: IntWithAggregatesFilter<"Ingredient"> | number
+    lowStockThreshold?: IntWithAggregatesFilter<"Ingredient"> | number
+    unitOfMeasure?: StringNullableWithAggregatesFilter<"Ingredient"> | string | null
+    status?: StringWithAggregatesFilter<"Ingredient"> | string
+  }
+
+  export type MenuCategoryWhereInput = {
+    AND?: MenuCategoryWhereInput | MenuCategoryWhereInput[]
+    OR?: MenuCategoryWhereInput[]
+    NOT?: MenuCategoryWhereInput | MenuCategoryWhereInput[]
+    id?: StringFilter<"MenuCategory"> | string
+    storeId?: StringFilter<"MenuCategory"> | string
+    name?: StringFilter<"MenuCategory"> | string
+    store?: XOR<StoreRelationFilter, StoreWhereInput>
+    menuItems?: MenuItemListRelationFilter
+  }
+
+  export type MenuCategoryOrderByWithRelationInput = {
+    id?: SortOrder
+    storeId?: SortOrder
+    name?: SortOrder
+    store?: StoreOrderByWithRelationInput
+    menuItems?: MenuItemOrderByRelationAggregateInput
+  }
+
+  export type MenuCategoryWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: MenuCategoryWhereInput | MenuCategoryWhereInput[]
+    OR?: MenuCategoryWhereInput[]
+    NOT?: MenuCategoryWhereInput | MenuCategoryWhereInput[]
+    storeId?: StringFilter<"MenuCategory"> | string
+    name?: StringFilter<"MenuCategory"> | string
+    store?: XOR<StoreRelationFilter, StoreWhereInput>
+    menuItems?: MenuItemListRelationFilter
+  }, "id">
+
+  export type MenuCategoryOrderByWithAggregationInput = {
+    id?: SortOrder
+    storeId?: SortOrder
+    name?: SortOrder
+    _count?: MenuCategoryCountOrderByAggregateInput
+    _max?: MenuCategoryMaxOrderByAggregateInput
+    _min?: MenuCategoryMinOrderByAggregateInput
+  }
+
+  export type MenuCategoryScalarWhereWithAggregatesInput = {
+    AND?: MenuCategoryScalarWhereWithAggregatesInput | MenuCategoryScalarWhereWithAggregatesInput[]
+    OR?: MenuCategoryScalarWhereWithAggregatesInput[]
+    NOT?: MenuCategoryScalarWhereWithAggregatesInput | MenuCategoryScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"MenuCategory"> | string
+    storeId?: StringWithAggregatesFilter<"MenuCategory"> | string
+    name?: StringWithAggregatesFilter<"MenuCategory"> | string
+  }
+
+  export type MenuItemWhereInput = {
+    AND?: MenuItemWhereInput | MenuItemWhereInput[]
+    OR?: MenuItemWhereInput[]
+    NOT?: MenuItemWhereInput | MenuItemWhereInput[]
+    id?: StringFilter<"MenuItem"> | string
+    storeId?: StringFilter<"MenuItem"> | string
+    menuCategoryId?: StringFilter<"MenuItem"> | string
+    name?: StringFilter<"MenuItem"> | string
+    price?: FloatFilter<"MenuItem"> | number
+    status?: StringFilter<"MenuItem"> | string
+    image?: StringNullableFilter<"MenuItem"> | string | null
+    barcode?: StringNullableFilter<"MenuItem"> | string | null
+    store?: XOR<StoreRelationFilter, StoreWhereInput>
+    menuCategory?: XOR<MenuCategoryRelationFilter, MenuCategoryWhereInput>
+    recipeLines?: RecipeLineListRelationFilter
+    saleItems?: SaleItemListRelationFilter
+  }
+
+  export type MenuItemOrderByWithRelationInput = {
+    id?: SortOrder
+    storeId?: SortOrder
+    menuCategoryId?: SortOrder
+    name?: SortOrder
+    price?: SortOrder
+    status?: SortOrder
+    image?: SortOrderInput | SortOrder
+    barcode?: SortOrderInput | SortOrder
+    store?: StoreOrderByWithRelationInput
+    menuCategory?: MenuCategoryOrderByWithRelationInput
+    recipeLines?: RecipeLineOrderByRelationAggregateInput
+    saleItems?: SaleItemOrderByRelationAggregateInput
+  }
+
+  export type MenuItemWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: MenuItemWhereInput | MenuItemWhereInput[]
+    OR?: MenuItemWhereInput[]
+    NOT?: MenuItemWhereInput | MenuItemWhereInput[]
+    storeId?: StringFilter<"MenuItem"> | string
+    menuCategoryId?: StringFilter<"MenuItem"> | string
+    name?: StringFilter<"MenuItem"> | string
+    price?: FloatFilter<"MenuItem"> | number
+    status?: StringFilter<"MenuItem"> | string
+    image?: StringNullableFilter<"MenuItem"> | string | null
+    barcode?: StringNullableFilter<"MenuItem"> | string | null
+    store?: XOR<StoreRelationFilter, StoreWhereInput>
+    menuCategory?: XOR<MenuCategoryRelationFilter, MenuCategoryWhereInput>
+    recipeLines?: RecipeLineListRelationFilter
+    saleItems?: SaleItemListRelationFilter
+  }, "id">
+
+  export type MenuItemOrderByWithAggregationInput = {
+    id?: SortOrder
+    storeId?: SortOrder
+    menuCategoryId?: SortOrder
+    name?: SortOrder
+    price?: SortOrder
+    status?: SortOrder
+    image?: SortOrderInput | SortOrder
+    barcode?: SortOrderInput | SortOrder
+    _count?: MenuItemCountOrderByAggregateInput
+    _avg?: MenuItemAvgOrderByAggregateInput
+    _max?: MenuItemMaxOrderByAggregateInput
+    _min?: MenuItemMinOrderByAggregateInput
+    _sum?: MenuItemSumOrderByAggregateInput
+  }
+
+  export type MenuItemScalarWhereWithAggregatesInput = {
+    AND?: MenuItemScalarWhereWithAggregatesInput | MenuItemScalarWhereWithAggregatesInput[]
+    OR?: MenuItemScalarWhereWithAggregatesInput[]
+    NOT?: MenuItemScalarWhereWithAggregatesInput | MenuItemScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"MenuItem"> | string
+    storeId?: StringWithAggregatesFilter<"MenuItem"> | string
+    menuCategoryId?: StringWithAggregatesFilter<"MenuItem"> | string
+    name?: StringWithAggregatesFilter<"MenuItem"> | string
+    price?: FloatWithAggregatesFilter<"MenuItem"> | number
+    status?: StringWithAggregatesFilter<"MenuItem"> | string
+    image?: StringNullableWithAggregatesFilter<"MenuItem"> | string | null
+    barcode?: StringNullableWithAggregatesFilter<"MenuItem"> | string | null
+  }
+
+  export type RecipeLineWhereInput = {
+    AND?: RecipeLineWhereInput | RecipeLineWhereInput[]
+    OR?: RecipeLineWhereInput[]
+    NOT?: RecipeLineWhereInput | RecipeLineWhereInput[]
+    id?: StringFilter<"RecipeLine"> | string
+    menuItemId?: StringFilter<"RecipeLine"> | string
+    ingredientId?: StringFilter<"RecipeLine"> | string
+    quantity?: FloatFilter<"RecipeLine"> | number
+    wastagePercent?: FloatNullableFilter<"RecipeLine"> | number | null
+    menuItem?: XOR<MenuItemRelationFilter, MenuItemWhereInput>
+    ingredient?: XOR<IngredientRelationFilter, IngredientWhereInput>
+  }
+
+  export type RecipeLineOrderByWithRelationInput = {
+    id?: SortOrder
+    menuItemId?: SortOrder
+    ingredientId?: SortOrder
+    quantity?: SortOrder
+    wastagePercent?: SortOrderInput | SortOrder
+    menuItem?: MenuItemOrderByWithRelationInput
+    ingredient?: IngredientOrderByWithRelationInput
+  }
+
+  export type RecipeLineWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    menuItemId_ingredientId?: RecipeLineMenuItemIdIngredientIdCompoundUniqueInput
+    AND?: RecipeLineWhereInput | RecipeLineWhereInput[]
+    OR?: RecipeLineWhereInput[]
+    NOT?: RecipeLineWhereInput | RecipeLineWhereInput[]
+    menuItemId?: StringFilter<"RecipeLine"> | string
+    ingredientId?: StringFilter<"RecipeLine"> | string
+    quantity?: FloatFilter<"RecipeLine"> | number
+    wastagePercent?: FloatNullableFilter<"RecipeLine"> | number | null
+    menuItem?: XOR<MenuItemRelationFilter, MenuItemWhereInput>
+    ingredient?: XOR<IngredientRelationFilter, IngredientWhereInput>
+  }, "id" | "menuItemId_ingredientId">
+
+  export type RecipeLineOrderByWithAggregationInput = {
+    id?: SortOrder
+    menuItemId?: SortOrder
+    ingredientId?: SortOrder
+    quantity?: SortOrder
+    wastagePercent?: SortOrderInput | SortOrder
+    _count?: RecipeLineCountOrderByAggregateInput
+    _avg?: RecipeLineAvgOrderByAggregateInput
+    _max?: RecipeLineMaxOrderByAggregateInput
+    _min?: RecipeLineMinOrderByAggregateInput
+    _sum?: RecipeLineSumOrderByAggregateInput
+  }
+
+  export type RecipeLineScalarWhereWithAggregatesInput = {
+    AND?: RecipeLineScalarWhereWithAggregatesInput | RecipeLineScalarWhereWithAggregatesInput[]
+    OR?: RecipeLineScalarWhereWithAggregatesInput[]
+    NOT?: RecipeLineScalarWhereWithAggregatesInput | RecipeLineScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"RecipeLine"> | string
+    menuItemId?: StringWithAggregatesFilter<"RecipeLine"> | string
+    ingredientId?: StringWithAggregatesFilter<"RecipeLine"> | string
+    quantity?: FloatWithAggregatesFilter<"RecipeLine"> | number
+    wastagePercent?: FloatNullableWithAggregatesFilter<"RecipeLine"> | number | null
+  }
+
   export type SaleItemWhereInput = {
     AND?: SaleItemWhereInput | SaleItemWhereInput[]
     OR?: SaleItemWhereInput[]
     NOT?: SaleItemWhereInput | SaleItemWhereInput[]
     id?: StringFilter<"SaleItem"> | string
     saleId?: StringFilter<"SaleItem"> | string
-    productId?: StringFilter<"SaleItem"> | string
+    productId?: StringNullableFilter<"SaleItem"> | string | null
+    menuItemId?: StringNullableFilter<"SaleItem"> | string | null
     variantId?: StringNullableFilter<"SaleItem"> | string | null
     productName?: StringFilter<"SaleItem"> | string
     variantName?: StringNullableFilter<"SaleItem"> | string | null
@@ -13061,14 +18018,16 @@ export namespace Prisma {
     price?: FloatFilter<"SaleItem"> | number
     subtotal?: FloatFilter<"SaleItem"> | number
     sale?: XOR<SaleRelationFilter, SaleWhereInput>
-    product?: XOR<ProductRelationFilter, ProductWhereInput>
+    product?: XOR<ProductNullableRelationFilter, ProductWhereInput> | null
+    menuItem?: XOR<MenuItemNullableRelationFilter, MenuItemWhereInput> | null
     variant?: XOR<VariantNullableRelationFilter, VariantWhereInput> | null
   }
 
   export type SaleItemOrderByWithRelationInput = {
     id?: SortOrder
     saleId?: SortOrder
-    productId?: SortOrder
+    productId?: SortOrderInput | SortOrder
+    menuItemId?: SortOrderInput | SortOrder
     variantId?: SortOrderInput | SortOrder
     productName?: SortOrder
     variantName?: SortOrderInput | SortOrder
@@ -13077,6 +18036,7 @@ export namespace Prisma {
     subtotal?: SortOrder
     sale?: SaleOrderByWithRelationInput
     product?: ProductOrderByWithRelationInput
+    menuItem?: MenuItemOrderByWithRelationInput
     variant?: VariantOrderByWithRelationInput
   }
 
@@ -13086,7 +18046,8 @@ export namespace Prisma {
     OR?: SaleItemWhereInput[]
     NOT?: SaleItemWhereInput | SaleItemWhereInput[]
     saleId?: StringFilter<"SaleItem"> | string
-    productId?: StringFilter<"SaleItem"> | string
+    productId?: StringNullableFilter<"SaleItem"> | string | null
+    menuItemId?: StringNullableFilter<"SaleItem"> | string | null
     variantId?: StringNullableFilter<"SaleItem"> | string | null
     productName?: StringFilter<"SaleItem"> | string
     variantName?: StringNullableFilter<"SaleItem"> | string | null
@@ -13094,14 +18055,16 @@ export namespace Prisma {
     price?: FloatFilter<"SaleItem"> | number
     subtotal?: FloatFilter<"SaleItem"> | number
     sale?: XOR<SaleRelationFilter, SaleWhereInput>
-    product?: XOR<ProductRelationFilter, ProductWhereInput>
+    product?: XOR<ProductNullableRelationFilter, ProductWhereInput> | null
+    menuItem?: XOR<MenuItemNullableRelationFilter, MenuItemWhereInput> | null
     variant?: XOR<VariantNullableRelationFilter, VariantWhereInput> | null
   }, "id">
 
   export type SaleItemOrderByWithAggregationInput = {
     id?: SortOrder
     saleId?: SortOrder
-    productId?: SortOrder
+    productId?: SortOrderInput | SortOrder
+    menuItemId?: SortOrderInput | SortOrder
     variantId?: SortOrderInput | SortOrder
     productName?: SortOrder
     variantName?: SortOrderInput | SortOrder
@@ -13121,7 +18084,8 @@ export namespace Prisma {
     NOT?: SaleItemScalarWhereWithAggregatesInput | SaleItemScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"SaleItem"> | string
     saleId?: StringWithAggregatesFilter<"SaleItem"> | string
-    productId?: StringWithAggregatesFilter<"SaleItem"> | string
+    productId?: StringNullableWithAggregatesFilter<"SaleItem"> | string | null
+    menuItemId?: StringNullableWithAggregatesFilter<"SaleItem"> | string | null
     variantId?: StringNullableWithAggregatesFilter<"SaleItem"> | string | null
     productName?: StringWithAggregatesFilter<"SaleItem"> | string
     variantName?: StringNullableWithAggregatesFilter<"SaleItem"> | string | null
@@ -13300,12 +18264,16 @@ export namespace Prisma {
     name: string
     address?: string | null
     receiptLogoUrl?: string | null
+    businessMode?: string
     createdAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutStoresInput
     categories?: CategoryCreateNestedManyWithoutStoreInput
     products?: ProductCreateNestedManyWithoutStoreInput
     sales?: SaleCreateNestedManyWithoutStoreInput
     userAccess?: UserStoreCreateNestedManyWithoutStoreInput
+    ingredients?: IngredientCreateNestedManyWithoutStoreInput
+    menuCategories?: MenuCategoryCreateNestedManyWithoutStoreInput
+    menuItems?: MenuItemCreateNestedManyWithoutStoreInput
   }
 
   export type StoreUncheckedCreateInput = {
@@ -13314,11 +18282,15 @@ export namespace Prisma {
     name: string
     address?: string | null
     receiptLogoUrl?: string | null
+    businessMode?: string
     createdAt?: Date | string
     categories?: CategoryUncheckedCreateNestedManyWithoutStoreInput
     products?: ProductUncheckedCreateNestedManyWithoutStoreInput
     sales?: SaleUncheckedCreateNestedManyWithoutStoreInput
     userAccess?: UserStoreUncheckedCreateNestedManyWithoutStoreInput
+    ingredients?: IngredientUncheckedCreateNestedManyWithoutStoreInput
+    menuCategories?: MenuCategoryUncheckedCreateNestedManyWithoutStoreInput
+    menuItems?: MenuItemUncheckedCreateNestedManyWithoutStoreInput
   }
 
   export type StoreUpdateInput = {
@@ -13326,12 +18298,16 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutStoresNestedInput
     categories?: CategoryUpdateManyWithoutStoreNestedInput
     products?: ProductUpdateManyWithoutStoreNestedInput
     sales?: SaleUpdateManyWithoutStoreNestedInput
     userAccess?: UserStoreUpdateManyWithoutStoreNestedInput
+    ingredients?: IngredientUpdateManyWithoutStoreNestedInput
+    menuCategories?: MenuCategoryUpdateManyWithoutStoreNestedInput
+    menuItems?: MenuItemUpdateManyWithoutStoreNestedInput
   }
 
   export type StoreUncheckedUpdateInput = {
@@ -13340,11 +18316,15 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     categories?: CategoryUncheckedUpdateManyWithoutStoreNestedInput
     products?: ProductUncheckedUpdateManyWithoutStoreNestedInput
     sales?: SaleUncheckedUpdateManyWithoutStoreNestedInput
     userAccess?: UserStoreUncheckedUpdateManyWithoutStoreNestedInput
+    ingredients?: IngredientUncheckedUpdateManyWithoutStoreNestedInput
+    menuCategories?: MenuCategoryUncheckedUpdateManyWithoutStoreNestedInput
+    menuItems?: MenuItemUncheckedUpdateManyWithoutStoreNestedInput
   }
 
   export type StoreCreateManyInput = {
@@ -13353,6 +18333,7 @@ export namespace Prisma {
     name: string
     address?: string | null
     receiptLogoUrl?: string | null
+    businessMode?: string
     createdAt?: Date | string
   }
 
@@ -13361,6 +18342,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -13370,6 +18352,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -13841,6 +18824,275 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type IngredientCreateInput = {
+    id?: string
+    name: string
+    sku?: string | null
+    barcode?: string | null
+    stock?: number
+    lowStockThreshold?: number
+    unitOfMeasure?: string | null
+    status?: string
+    store: StoreCreateNestedOneWithoutIngredientsInput
+    recipeLines?: RecipeLineCreateNestedManyWithoutIngredientInput
+  }
+
+  export type IngredientUncheckedCreateInput = {
+    id?: string
+    storeId: string
+    name: string
+    sku?: string | null
+    barcode?: string | null
+    stock?: number
+    lowStockThreshold?: number
+    unitOfMeasure?: string | null
+    status?: string
+    recipeLines?: RecipeLineUncheckedCreateNestedManyWithoutIngredientInput
+  }
+
+  export type IngredientUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    sku?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+    stock?: IntFieldUpdateOperationsInput | number
+    lowStockThreshold?: IntFieldUpdateOperationsInput | number
+    unitOfMeasure?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    store?: StoreUpdateOneRequiredWithoutIngredientsNestedInput
+    recipeLines?: RecipeLineUpdateManyWithoutIngredientNestedInput
+  }
+
+  export type IngredientUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    storeId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    sku?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+    stock?: IntFieldUpdateOperationsInput | number
+    lowStockThreshold?: IntFieldUpdateOperationsInput | number
+    unitOfMeasure?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    recipeLines?: RecipeLineUncheckedUpdateManyWithoutIngredientNestedInput
+  }
+
+  export type IngredientCreateManyInput = {
+    id?: string
+    storeId: string
+    name: string
+    sku?: string | null
+    barcode?: string | null
+    stock?: number
+    lowStockThreshold?: number
+    unitOfMeasure?: string | null
+    status?: string
+  }
+
+  export type IngredientUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    sku?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+    stock?: IntFieldUpdateOperationsInput | number
+    lowStockThreshold?: IntFieldUpdateOperationsInput | number
+    unitOfMeasure?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type IngredientUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    storeId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    sku?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+    stock?: IntFieldUpdateOperationsInput | number
+    lowStockThreshold?: IntFieldUpdateOperationsInput | number
+    unitOfMeasure?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type MenuCategoryCreateInput = {
+    id?: string
+    name: string
+    store: StoreCreateNestedOneWithoutMenuCategoriesInput
+    menuItems?: MenuItemCreateNestedManyWithoutMenuCategoryInput
+  }
+
+  export type MenuCategoryUncheckedCreateInput = {
+    id?: string
+    storeId: string
+    name: string
+    menuItems?: MenuItemUncheckedCreateNestedManyWithoutMenuCategoryInput
+  }
+
+  export type MenuCategoryUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    store?: StoreUpdateOneRequiredWithoutMenuCategoriesNestedInput
+    menuItems?: MenuItemUpdateManyWithoutMenuCategoryNestedInput
+  }
+
+  export type MenuCategoryUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    storeId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    menuItems?: MenuItemUncheckedUpdateManyWithoutMenuCategoryNestedInput
+  }
+
+  export type MenuCategoryCreateManyInput = {
+    id?: string
+    storeId: string
+    name: string
+  }
+
+  export type MenuCategoryUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type MenuCategoryUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    storeId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type MenuItemCreateInput = {
+    id?: string
+    name: string
+    price: number
+    status?: string
+    image?: string | null
+    barcode?: string | null
+    store: StoreCreateNestedOneWithoutMenuItemsInput
+    menuCategory: MenuCategoryCreateNestedOneWithoutMenuItemsInput
+    recipeLines?: RecipeLineCreateNestedManyWithoutMenuItemInput
+    saleItems?: SaleItemCreateNestedManyWithoutMenuItemInput
+  }
+
+  export type MenuItemUncheckedCreateInput = {
+    id?: string
+    storeId: string
+    menuCategoryId: string
+    name: string
+    price: number
+    status?: string
+    image?: string | null
+    barcode?: string | null
+    recipeLines?: RecipeLineUncheckedCreateNestedManyWithoutMenuItemInput
+    saleItems?: SaleItemUncheckedCreateNestedManyWithoutMenuItemInput
+  }
+
+  export type MenuItemUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    price?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+    store?: StoreUpdateOneRequiredWithoutMenuItemsNestedInput
+    menuCategory?: MenuCategoryUpdateOneRequiredWithoutMenuItemsNestedInput
+    recipeLines?: RecipeLineUpdateManyWithoutMenuItemNestedInput
+    saleItems?: SaleItemUpdateManyWithoutMenuItemNestedInput
+  }
+
+  export type MenuItemUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    storeId?: StringFieldUpdateOperationsInput | string
+    menuCategoryId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    price?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+    recipeLines?: RecipeLineUncheckedUpdateManyWithoutMenuItemNestedInput
+    saleItems?: SaleItemUncheckedUpdateManyWithoutMenuItemNestedInput
+  }
+
+  export type MenuItemCreateManyInput = {
+    id?: string
+    storeId: string
+    menuCategoryId: string
+    name: string
+    price: number
+    status?: string
+    image?: string | null
+    barcode?: string | null
+  }
+
+  export type MenuItemUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    price?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type MenuItemUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    storeId?: StringFieldUpdateOperationsInput | string
+    menuCategoryId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    price?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type RecipeLineCreateInput = {
+    id?: string
+    quantity: number
+    wastagePercent?: number | null
+    menuItem: MenuItemCreateNestedOneWithoutRecipeLinesInput
+    ingredient: IngredientCreateNestedOneWithoutRecipeLinesInput
+  }
+
+  export type RecipeLineUncheckedCreateInput = {
+    id?: string
+    menuItemId: string
+    ingredientId: string
+    quantity: number
+    wastagePercent?: number | null
+  }
+
+  export type RecipeLineUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    quantity?: FloatFieldUpdateOperationsInput | number
+    wastagePercent?: NullableFloatFieldUpdateOperationsInput | number | null
+    menuItem?: MenuItemUpdateOneRequiredWithoutRecipeLinesNestedInput
+    ingredient?: IngredientUpdateOneRequiredWithoutRecipeLinesNestedInput
+  }
+
+  export type RecipeLineUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    menuItemId?: StringFieldUpdateOperationsInput | string
+    ingredientId?: StringFieldUpdateOperationsInput | string
+    quantity?: FloatFieldUpdateOperationsInput | number
+    wastagePercent?: NullableFloatFieldUpdateOperationsInput | number | null
+  }
+
+  export type RecipeLineCreateManyInput = {
+    id?: string
+    menuItemId: string
+    ingredientId: string
+    quantity: number
+    wastagePercent?: number | null
+  }
+
+  export type RecipeLineUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    quantity?: FloatFieldUpdateOperationsInput | number
+    wastagePercent?: NullableFloatFieldUpdateOperationsInput | number | null
+  }
+
+  export type RecipeLineUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    menuItemId?: StringFieldUpdateOperationsInput | string
+    ingredientId?: StringFieldUpdateOperationsInput | string
+    quantity?: FloatFieldUpdateOperationsInput | number
+    wastagePercent?: NullableFloatFieldUpdateOperationsInput | number | null
+  }
+
   export type SaleItemCreateInput = {
     id?: string
     productName: string
@@ -13849,14 +19101,16 @@ export namespace Prisma {
     price: number
     subtotal: number
     sale: SaleCreateNestedOneWithoutItemsInput
-    product: ProductCreateNestedOneWithoutSaleItemsInput
+    product?: ProductCreateNestedOneWithoutSaleItemsInput
+    menuItem?: MenuItemCreateNestedOneWithoutSaleItemsInput
     variant?: VariantCreateNestedOneWithoutSaleItemsInput
   }
 
   export type SaleItemUncheckedCreateInput = {
     id?: string
     saleId: string
-    productId: string
+    productId?: string | null
+    menuItemId?: string | null
     variantId?: string | null
     productName: string
     variantName?: string | null
@@ -13873,14 +19127,16 @@ export namespace Prisma {
     price?: FloatFieldUpdateOperationsInput | number
     subtotal?: FloatFieldUpdateOperationsInput | number
     sale?: SaleUpdateOneRequiredWithoutItemsNestedInput
-    product?: ProductUpdateOneRequiredWithoutSaleItemsNestedInput
+    product?: ProductUpdateOneWithoutSaleItemsNestedInput
+    menuItem?: MenuItemUpdateOneWithoutSaleItemsNestedInput
     variant?: VariantUpdateOneWithoutSaleItemsNestedInput
   }
 
   export type SaleItemUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     saleId?: StringFieldUpdateOperationsInput | string
-    productId?: StringFieldUpdateOperationsInput | string
+    productId?: NullableStringFieldUpdateOperationsInput | string | null
+    menuItemId?: NullableStringFieldUpdateOperationsInput | string | null
     variantId?: NullableStringFieldUpdateOperationsInput | string | null
     productName?: StringFieldUpdateOperationsInput | string
     variantName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -13892,7 +19148,8 @@ export namespace Prisma {
   export type SaleItemCreateManyInput = {
     id?: string
     saleId: string
-    productId: string
+    productId?: string | null
+    menuItemId?: string | null
     variantId?: string | null
     productName: string
     variantName?: string | null
@@ -13913,7 +19170,8 @@ export namespace Prisma {
   export type SaleItemUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     saleId?: StringFieldUpdateOperationsInput | string
-    productId?: StringFieldUpdateOperationsInput | string
+    productId?: NullableStringFieldUpdateOperationsInput | string | null
+    menuItemId?: NullableStringFieldUpdateOperationsInput | string | null
     variantId?: NullableStringFieldUpdateOperationsInput | string | null
     productName?: StringFieldUpdateOperationsInput | string
     variantName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -14168,6 +19426,24 @@ export namespace Prisma {
     none?: UserStoreWhereInput
   }
 
+  export type IngredientListRelationFilter = {
+    every?: IngredientWhereInput
+    some?: IngredientWhereInput
+    none?: IngredientWhereInput
+  }
+
+  export type MenuCategoryListRelationFilter = {
+    every?: MenuCategoryWhereInput
+    some?: MenuCategoryWhereInput
+    none?: MenuCategoryWhereInput
+  }
+
+  export type MenuItemListRelationFilter = {
+    every?: MenuItemWhereInput
+    some?: MenuItemWhereInput
+    none?: MenuItemWhereInput
+  }
+
   export type CategoryOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -14184,12 +19460,25 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
+  export type IngredientOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type MenuCategoryOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type MenuItemOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type StoreCountOrderByAggregateInput = {
     id?: SortOrder
     organizationId?: SortOrder
     name?: SortOrder
     address?: SortOrder
     receiptLogoUrl?: SortOrder
+    businessMode?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -14199,6 +19488,7 @@ export namespace Prisma {
     name?: SortOrder
     address?: SortOrder
     receiptLogoUrl?: SortOrder
+    businessMode?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -14208,6 +19498,7 @@ export namespace Prisma {
     name?: SortOrder
     address?: SortOrder
     receiptLogoUrl?: SortOrder
+    businessMode?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -14617,9 +19908,188 @@ export namespace Prisma {
     change?: SortOrder
   }
 
+  export type RecipeLineListRelationFilter = {
+    every?: RecipeLineWhereInput
+    some?: RecipeLineWhereInput
+    none?: RecipeLineWhereInput
+  }
+
+  export type RecipeLineOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type IngredientCountOrderByAggregateInput = {
+    id?: SortOrder
+    storeId?: SortOrder
+    name?: SortOrder
+    sku?: SortOrder
+    barcode?: SortOrder
+    stock?: SortOrder
+    lowStockThreshold?: SortOrder
+    unitOfMeasure?: SortOrder
+    status?: SortOrder
+  }
+
+  export type IngredientAvgOrderByAggregateInput = {
+    stock?: SortOrder
+    lowStockThreshold?: SortOrder
+  }
+
+  export type IngredientMaxOrderByAggregateInput = {
+    id?: SortOrder
+    storeId?: SortOrder
+    name?: SortOrder
+    sku?: SortOrder
+    barcode?: SortOrder
+    stock?: SortOrder
+    lowStockThreshold?: SortOrder
+    unitOfMeasure?: SortOrder
+    status?: SortOrder
+  }
+
+  export type IngredientMinOrderByAggregateInput = {
+    id?: SortOrder
+    storeId?: SortOrder
+    name?: SortOrder
+    sku?: SortOrder
+    barcode?: SortOrder
+    stock?: SortOrder
+    lowStockThreshold?: SortOrder
+    unitOfMeasure?: SortOrder
+    status?: SortOrder
+  }
+
+  export type IngredientSumOrderByAggregateInput = {
+    stock?: SortOrder
+    lowStockThreshold?: SortOrder
+  }
+
+  export type MenuCategoryCountOrderByAggregateInput = {
+    id?: SortOrder
+    storeId?: SortOrder
+    name?: SortOrder
+  }
+
+  export type MenuCategoryMaxOrderByAggregateInput = {
+    id?: SortOrder
+    storeId?: SortOrder
+    name?: SortOrder
+  }
+
+  export type MenuCategoryMinOrderByAggregateInput = {
+    id?: SortOrder
+    storeId?: SortOrder
+    name?: SortOrder
+  }
+
+  export type MenuCategoryRelationFilter = {
+    is?: MenuCategoryWhereInput
+    isNot?: MenuCategoryWhereInput
+  }
+
+  export type MenuItemCountOrderByAggregateInput = {
+    id?: SortOrder
+    storeId?: SortOrder
+    menuCategoryId?: SortOrder
+    name?: SortOrder
+    price?: SortOrder
+    status?: SortOrder
+    image?: SortOrder
+    barcode?: SortOrder
+  }
+
+  export type MenuItemAvgOrderByAggregateInput = {
+    price?: SortOrder
+  }
+
+  export type MenuItemMaxOrderByAggregateInput = {
+    id?: SortOrder
+    storeId?: SortOrder
+    menuCategoryId?: SortOrder
+    name?: SortOrder
+    price?: SortOrder
+    status?: SortOrder
+    image?: SortOrder
+    barcode?: SortOrder
+  }
+
+  export type MenuItemMinOrderByAggregateInput = {
+    id?: SortOrder
+    storeId?: SortOrder
+    menuCategoryId?: SortOrder
+    name?: SortOrder
+    price?: SortOrder
+    status?: SortOrder
+    image?: SortOrder
+    barcode?: SortOrder
+  }
+
+  export type MenuItemSumOrderByAggregateInput = {
+    price?: SortOrder
+  }
+
+  export type MenuItemRelationFilter = {
+    is?: MenuItemWhereInput
+    isNot?: MenuItemWhereInput
+  }
+
+  export type IngredientRelationFilter = {
+    is?: IngredientWhereInput
+    isNot?: IngredientWhereInput
+  }
+
+  export type RecipeLineMenuItemIdIngredientIdCompoundUniqueInput = {
+    menuItemId: string
+    ingredientId: string
+  }
+
+  export type RecipeLineCountOrderByAggregateInput = {
+    id?: SortOrder
+    menuItemId?: SortOrder
+    ingredientId?: SortOrder
+    quantity?: SortOrder
+    wastagePercent?: SortOrder
+  }
+
+  export type RecipeLineAvgOrderByAggregateInput = {
+    quantity?: SortOrder
+    wastagePercent?: SortOrder
+  }
+
+  export type RecipeLineMaxOrderByAggregateInput = {
+    id?: SortOrder
+    menuItemId?: SortOrder
+    ingredientId?: SortOrder
+    quantity?: SortOrder
+    wastagePercent?: SortOrder
+  }
+
+  export type RecipeLineMinOrderByAggregateInput = {
+    id?: SortOrder
+    menuItemId?: SortOrder
+    ingredientId?: SortOrder
+    quantity?: SortOrder
+    wastagePercent?: SortOrder
+  }
+
+  export type RecipeLineSumOrderByAggregateInput = {
+    quantity?: SortOrder
+    wastagePercent?: SortOrder
+  }
+
   export type SaleRelationFilter = {
     is?: SaleWhereInput
     isNot?: SaleWhereInput
+  }
+
+  export type ProductNullableRelationFilter = {
+    is?: ProductWhereInput | null
+    isNot?: ProductWhereInput | null
+  }
+
+  export type MenuItemNullableRelationFilter = {
+    is?: MenuItemWhereInput | null
+    isNot?: MenuItemWhereInput | null
   }
 
   export type VariantNullableRelationFilter = {
@@ -14631,6 +20101,7 @@ export namespace Prisma {
     id?: SortOrder
     saleId?: SortOrder
     productId?: SortOrder
+    menuItemId?: SortOrder
     variantId?: SortOrder
     productName?: SortOrder
     variantName?: SortOrder
@@ -14649,6 +20120,7 @@ export namespace Prisma {
     id?: SortOrder
     saleId?: SortOrder
     productId?: SortOrder
+    menuItemId?: SortOrder
     variantId?: SortOrder
     productName?: SortOrder
     variantName?: SortOrder
@@ -14661,6 +20133,7 @@ export namespace Prisma {
     id?: SortOrder
     saleId?: SortOrder
     productId?: SortOrder
+    menuItemId?: SortOrder
     variantId?: SortOrder
     productName?: SortOrder
     variantName?: SortOrder
@@ -14865,6 +20338,27 @@ export namespace Prisma {
     connect?: UserStoreWhereUniqueInput | UserStoreWhereUniqueInput[]
   }
 
+  export type IngredientCreateNestedManyWithoutStoreInput = {
+    create?: XOR<IngredientCreateWithoutStoreInput, IngredientUncheckedCreateWithoutStoreInput> | IngredientCreateWithoutStoreInput[] | IngredientUncheckedCreateWithoutStoreInput[]
+    connectOrCreate?: IngredientCreateOrConnectWithoutStoreInput | IngredientCreateOrConnectWithoutStoreInput[]
+    createMany?: IngredientCreateManyStoreInputEnvelope
+    connect?: IngredientWhereUniqueInput | IngredientWhereUniqueInput[]
+  }
+
+  export type MenuCategoryCreateNestedManyWithoutStoreInput = {
+    create?: XOR<MenuCategoryCreateWithoutStoreInput, MenuCategoryUncheckedCreateWithoutStoreInput> | MenuCategoryCreateWithoutStoreInput[] | MenuCategoryUncheckedCreateWithoutStoreInput[]
+    connectOrCreate?: MenuCategoryCreateOrConnectWithoutStoreInput | MenuCategoryCreateOrConnectWithoutStoreInput[]
+    createMany?: MenuCategoryCreateManyStoreInputEnvelope
+    connect?: MenuCategoryWhereUniqueInput | MenuCategoryWhereUniqueInput[]
+  }
+
+  export type MenuItemCreateNestedManyWithoutStoreInput = {
+    create?: XOR<MenuItemCreateWithoutStoreInput, MenuItemUncheckedCreateWithoutStoreInput> | MenuItemCreateWithoutStoreInput[] | MenuItemUncheckedCreateWithoutStoreInput[]
+    connectOrCreate?: MenuItemCreateOrConnectWithoutStoreInput | MenuItemCreateOrConnectWithoutStoreInput[]
+    createMany?: MenuItemCreateManyStoreInputEnvelope
+    connect?: MenuItemWhereUniqueInput | MenuItemWhereUniqueInput[]
+  }
+
   export type CategoryUncheckedCreateNestedManyWithoutStoreInput = {
     create?: XOR<CategoryCreateWithoutStoreInput, CategoryUncheckedCreateWithoutStoreInput> | CategoryCreateWithoutStoreInput[] | CategoryUncheckedCreateWithoutStoreInput[]
     connectOrCreate?: CategoryCreateOrConnectWithoutStoreInput | CategoryCreateOrConnectWithoutStoreInput[]
@@ -14891,6 +20385,27 @@ export namespace Prisma {
     connectOrCreate?: UserStoreCreateOrConnectWithoutStoreInput | UserStoreCreateOrConnectWithoutStoreInput[]
     createMany?: UserStoreCreateManyStoreInputEnvelope
     connect?: UserStoreWhereUniqueInput | UserStoreWhereUniqueInput[]
+  }
+
+  export type IngredientUncheckedCreateNestedManyWithoutStoreInput = {
+    create?: XOR<IngredientCreateWithoutStoreInput, IngredientUncheckedCreateWithoutStoreInput> | IngredientCreateWithoutStoreInput[] | IngredientUncheckedCreateWithoutStoreInput[]
+    connectOrCreate?: IngredientCreateOrConnectWithoutStoreInput | IngredientCreateOrConnectWithoutStoreInput[]
+    createMany?: IngredientCreateManyStoreInputEnvelope
+    connect?: IngredientWhereUniqueInput | IngredientWhereUniqueInput[]
+  }
+
+  export type MenuCategoryUncheckedCreateNestedManyWithoutStoreInput = {
+    create?: XOR<MenuCategoryCreateWithoutStoreInput, MenuCategoryUncheckedCreateWithoutStoreInput> | MenuCategoryCreateWithoutStoreInput[] | MenuCategoryUncheckedCreateWithoutStoreInput[]
+    connectOrCreate?: MenuCategoryCreateOrConnectWithoutStoreInput | MenuCategoryCreateOrConnectWithoutStoreInput[]
+    createMany?: MenuCategoryCreateManyStoreInputEnvelope
+    connect?: MenuCategoryWhereUniqueInput | MenuCategoryWhereUniqueInput[]
+  }
+
+  export type MenuItemUncheckedCreateNestedManyWithoutStoreInput = {
+    create?: XOR<MenuItemCreateWithoutStoreInput, MenuItemUncheckedCreateWithoutStoreInput> | MenuItemCreateWithoutStoreInput[] | MenuItemUncheckedCreateWithoutStoreInput[]
+    connectOrCreate?: MenuItemCreateOrConnectWithoutStoreInput | MenuItemCreateOrConnectWithoutStoreInput[]
+    createMany?: MenuItemCreateManyStoreInputEnvelope
+    connect?: MenuItemWhereUniqueInput | MenuItemWhereUniqueInput[]
   }
 
   export type OrganizationUpdateOneRequiredWithoutStoresNestedInput = {
@@ -14957,6 +20472,48 @@ export namespace Prisma {
     deleteMany?: UserStoreScalarWhereInput | UserStoreScalarWhereInput[]
   }
 
+  export type IngredientUpdateManyWithoutStoreNestedInput = {
+    create?: XOR<IngredientCreateWithoutStoreInput, IngredientUncheckedCreateWithoutStoreInput> | IngredientCreateWithoutStoreInput[] | IngredientUncheckedCreateWithoutStoreInput[]
+    connectOrCreate?: IngredientCreateOrConnectWithoutStoreInput | IngredientCreateOrConnectWithoutStoreInput[]
+    upsert?: IngredientUpsertWithWhereUniqueWithoutStoreInput | IngredientUpsertWithWhereUniqueWithoutStoreInput[]
+    createMany?: IngredientCreateManyStoreInputEnvelope
+    set?: IngredientWhereUniqueInput | IngredientWhereUniqueInput[]
+    disconnect?: IngredientWhereUniqueInput | IngredientWhereUniqueInput[]
+    delete?: IngredientWhereUniqueInput | IngredientWhereUniqueInput[]
+    connect?: IngredientWhereUniqueInput | IngredientWhereUniqueInput[]
+    update?: IngredientUpdateWithWhereUniqueWithoutStoreInput | IngredientUpdateWithWhereUniqueWithoutStoreInput[]
+    updateMany?: IngredientUpdateManyWithWhereWithoutStoreInput | IngredientUpdateManyWithWhereWithoutStoreInput[]
+    deleteMany?: IngredientScalarWhereInput | IngredientScalarWhereInput[]
+  }
+
+  export type MenuCategoryUpdateManyWithoutStoreNestedInput = {
+    create?: XOR<MenuCategoryCreateWithoutStoreInput, MenuCategoryUncheckedCreateWithoutStoreInput> | MenuCategoryCreateWithoutStoreInput[] | MenuCategoryUncheckedCreateWithoutStoreInput[]
+    connectOrCreate?: MenuCategoryCreateOrConnectWithoutStoreInput | MenuCategoryCreateOrConnectWithoutStoreInput[]
+    upsert?: MenuCategoryUpsertWithWhereUniqueWithoutStoreInput | MenuCategoryUpsertWithWhereUniqueWithoutStoreInput[]
+    createMany?: MenuCategoryCreateManyStoreInputEnvelope
+    set?: MenuCategoryWhereUniqueInput | MenuCategoryWhereUniqueInput[]
+    disconnect?: MenuCategoryWhereUniqueInput | MenuCategoryWhereUniqueInput[]
+    delete?: MenuCategoryWhereUniqueInput | MenuCategoryWhereUniqueInput[]
+    connect?: MenuCategoryWhereUniqueInput | MenuCategoryWhereUniqueInput[]
+    update?: MenuCategoryUpdateWithWhereUniqueWithoutStoreInput | MenuCategoryUpdateWithWhereUniqueWithoutStoreInput[]
+    updateMany?: MenuCategoryUpdateManyWithWhereWithoutStoreInput | MenuCategoryUpdateManyWithWhereWithoutStoreInput[]
+    deleteMany?: MenuCategoryScalarWhereInput | MenuCategoryScalarWhereInput[]
+  }
+
+  export type MenuItemUpdateManyWithoutStoreNestedInput = {
+    create?: XOR<MenuItemCreateWithoutStoreInput, MenuItemUncheckedCreateWithoutStoreInput> | MenuItemCreateWithoutStoreInput[] | MenuItemUncheckedCreateWithoutStoreInput[]
+    connectOrCreate?: MenuItemCreateOrConnectWithoutStoreInput | MenuItemCreateOrConnectWithoutStoreInput[]
+    upsert?: MenuItemUpsertWithWhereUniqueWithoutStoreInput | MenuItemUpsertWithWhereUniqueWithoutStoreInput[]
+    createMany?: MenuItemCreateManyStoreInputEnvelope
+    set?: MenuItemWhereUniqueInput | MenuItemWhereUniqueInput[]
+    disconnect?: MenuItemWhereUniqueInput | MenuItemWhereUniqueInput[]
+    delete?: MenuItemWhereUniqueInput | MenuItemWhereUniqueInput[]
+    connect?: MenuItemWhereUniqueInput | MenuItemWhereUniqueInput[]
+    update?: MenuItemUpdateWithWhereUniqueWithoutStoreInput | MenuItemUpdateWithWhereUniqueWithoutStoreInput[]
+    updateMany?: MenuItemUpdateManyWithWhereWithoutStoreInput | MenuItemUpdateManyWithWhereWithoutStoreInput[]
+    deleteMany?: MenuItemScalarWhereInput | MenuItemScalarWhereInput[]
+  }
+
   export type CategoryUncheckedUpdateManyWithoutStoreNestedInput = {
     create?: XOR<CategoryCreateWithoutStoreInput, CategoryUncheckedCreateWithoutStoreInput> | CategoryCreateWithoutStoreInput[] | CategoryUncheckedCreateWithoutStoreInput[]
     connectOrCreate?: CategoryCreateOrConnectWithoutStoreInput | CategoryCreateOrConnectWithoutStoreInput[]
@@ -15011,6 +20568,48 @@ export namespace Prisma {
     update?: UserStoreUpdateWithWhereUniqueWithoutStoreInput | UserStoreUpdateWithWhereUniqueWithoutStoreInput[]
     updateMany?: UserStoreUpdateManyWithWhereWithoutStoreInput | UserStoreUpdateManyWithWhereWithoutStoreInput[]
     deleteMany?: UserStoreScalarWhereInput | UserStoreScalarWhereInput[]
+  }
+
+  export type IngredientUncheckedUpdateManyWithoutStoreNestedInput = {
+    create?: XOR<IngredientCreateWithoutStoreInput, IngredientUncheckedCreateWithoutStoreInput> | IngredientCreateWithoutStoreInput[] | IngredientUncheckedCreateWithoutStoreInput[]
+    connectOrCreate?: IngredientCreateOrConnectWithoutStoreInput | IngredientCreateOrConnectWithoutStoreInput[]
+    upsert?: IngredientUpsertWithWhereUniqueWithoutStoreInput | IngredientUpsertWithWhereUniqueWithoutStoreInput[]
+    createMany?: IngredientCreateManyStoreInputEnvelope
+    set?: IngredientWhereUniqueInput | IngredientWhereUniqueInput[]
+    disconnect?: IngredientWhereUniqueInput | IngredientWhereUniqueInput[]
+    delete?: IngredientWhereUniqueInput | IngredientWhereUniqueInput[]
+    connect?: IngredientWhereUniqueInput | IngredientWhereUniqueInput[]
+    update?: IngredientUpdateWithWhereUniqueWithoutStoreInput | IngredientUpdateWithWhereUniqueWithoutStoreInput[]
+    updateMany?: IngredientUpdateManyWithWhereWithoutStoreInput | IngredientUpdateManyWithWhereWithoutStoreInput[]
+    deleteMany?: IngredientScalarWhereInput | IngredientScalarWhereInput[]
+  }
+
+  export type MenuCategoryUncheckedUpdateManyWithoutStoreNestedInput = {
+    create?: XOR<MenuCategoryCreateWithoutStoreInput, MenuCategoryUncheckedCreateWithoutStoreInput> | MenuCategoryCreateWithoutStoreInput[] | MenuCategoryUncheckedCreateWithoutStoreInput[]
+    connectOrCreate?: MenuCategoryCreateOrConnectWithoutStoreInput | MenuCategoryCreateOrConnectWithoutStoreInput[]
+    upsert?: MenuCategoryUpsertWithWhereUniqueWithoutStoreInput | MenuCategoryUpsertWithWhereUniqueWithoutStoreInput[]
+    createMany?: MenuCategoryCreateManyStoreInputEnvelope
+    set?: MenuCategoryWhereUniqueInput | MenuCategoryWhereUniqueInput[]
+    disconnect?: MenuCategoryWhereUniqueInput | MenuCategoryWhereUniqueInput[]
+    delete?: MenuCategoryWhereUniqueInput | MenuCategoryWhereUniqueInput[]
+    connect?: MenuCategoryWhereUniqueInput | MenuCategoryWhereUniqueInput[]
+    update?: MenuCategoryUpdateWithWhereUniqueWithoutStoreInput | MenuCategoryUpdateWithWhereUniqueWithoutStoreInput[]
+    updateMany?: MenuCategoryUpdateManyWithWhereWithoutStoreInput | MenuCategoryUpdateManyWithWhereWithoutStoreInput[]
+    deleteMany?: MenuCategoryScalarWhereInput | MenuCategoryScalarWhereInput[]
+  }
+
+  export type MenuItemUncheckedUpdateManyWithoutStoreNestedInput = {
+    create?: XOR<MenuItemCreateWithoutStoreInput, MenuItemUncheckedCreateWithoutStoreInput> | MenuItemCreateWithoutStoreInput[] | MenuItemUncheckedCreateWithoutStoreInput[]
+    connectOrCreate?: MenuItemCreateOrConnectWithoutStoreInput | MenuItemCreateOrConnectWithoutStoreInput[]
+    upsert?: MenuItemUpsertWithWhereUniqueWithoutStoreInput | MenuItemUpsertWithWhereUniqueWithoutStoreInput[]
+    createMany?: MenuItemCreateManyStoreInputEnvelope
+    set?: MenuItemWhereUniqueInput | MenuItemWhereUniqueInput[]
+    disconnect?: MenuItemWhereUniqueInput | MenuItemWhereUniqueInput[]
+    delete?: MenuItemWhereUniqueInput | MenuItemWhereUniqueInput[]
+    connect?: MenuItemWhereUniqueInput | MenuItemWhereUniqueInput[]
+    update?: MenuItemUpdateWithWhereUniqueWithoutStoreInput | MenuItemUpdateWithWhereUniqueWithoutStoreInput[]
+    updateMany?: MenuItemUpdateManyWithWhereWithoutStoreInput | MenuItemUpdateManyWithWhereWithoutStoreInput[]
+    deleteMany?: MenuItemScalarWhereInput | MenuItemScalarWhereInput[]
   }
 
   export type OrganizationCreateNestedOneWithoutUsersInput = {
@@ -15473,6 +21072,258 @@ export namespace Prisma {
     deleteMany?: SaleItemScalarWhereInput | SaleItemScalarWhereInput[]
   }
 
+  export type StoreCreateNestedOneWithoutIngredientsInput = {
+    create?: XOR<StoreCreateWithoutIngredientsInput, StoreUncheckedCreateWithoutIngredientsInput>
+    connectOrCreate?: StoreCreateOrConnectWithoutIngredientsInput
+    connect?: StoreWhereUniqueInput
+  }
+
+  export type RecipeLineCreateNestedManyWithoutIngredientInput = {
+    create?: XOR<RecipeLineCreateWithoutIngredientInput, RecipeLineUncheckedCreateWithoutIngredientInput> | RecipeLineCreateWithoutIngredientInput[] | RecipeLineUncheckedCreateWithoutIngredientInput[]
+    connectOrCreate?: RecipeLineCreateOrConnectWithoutIngredientInput | RecipeLineCreateOrConnectWithoutIngredientInput[]
+    createMany?: RecipeLineCreateManyIngredientInputEnvelope
+    connect?: RecipeLineWhereUniqueInput | RecipeLineWhereUniqueInput[]
+  }
+
+  export type RecipeLineUncheckedCreateNestedManyWithoutIngredientInput = {
+    create?: XOR<RecipeLineCreateWithoutIngredientInput, RecipeLineUncheckedCreateWithoutIngredientInput> | RecipeLineCreateWithoutIngredientInput[] | RecipeLineUncheckedCreateWithoutIngredientInput[]
+    connectOrCreate?: RecipeLineCreateOrConnectWithoutIngredientInput | RecipeLineCreateOrConnectWithoutIngredientInput[]
+    createMany?: RecipeLineCreateManyIngredientInputEnvelope
+    connect?: RecipeLineWhereUniqueInput | RecipeLineWhereUniqueInput[]
+  }
+
+  export type StoreUpdateOneRequiredWithoutIngredientsNestedInput = {
+    create?: XOR<StoreCreateWithoutIngredientsInput, StoreUncheckedCreateWithoutIngredientsInput>
+    connectOrCreate?: StoreCreateOrConnectWithoutIngredientsInput
+    upsert?: StoreUpsertWithoutIngredientsInput
+    connect?: StoreWhereUniqueInput
+    update?: XOR<XOR<StoreUpdateToOneWithWhereWithoutIngredientsInput, StoreUpdateWithoutIngredientsInput>, StoreUncheckedUpdateWithoutIngredientsInput>
+  }
+
+  export type RecipeLineUpdateManyWithoutIngredientNestedInput = {
+    create?: XOR<RecipeLineCreateWithoutIngredientInput, RecipeLineUncheckedCreateWithoutIngredientInput> | RecipeLineCreateWithoutIngredientInput[] | RecipeLineUncheckedCreateWithoutIngredientInput[]
+    connectOrCreate?: RecipeLineCreateOrConnectWithoutIngredientInput | RecipeLineCreateOrConnectWithoutIngredientInput[]
+    upsert?: RecipeLineUpsertWithWhereUniqueWithoutIngredientInput | RecipeLineUpsertWithWhereUniqueWithoutIngredientInput[]
+    createMany?: RecipeLineCreateManyIngredientInputEnvelope
+    set?: RecipeLineWhereUniqueInput | RecipeLineWhereUniqueInput[]
+    disconnect?: RecipeLineWhereUniqueInput | RecipeLineWhereUniqueInput[]
+    delete?: RecipeLineWhereUniqueInput | RecipeLineWhereUniqueInput[]
+    connect?: RecipeLineWhereUniqueInput | RecipeLineWhereUniqueInput[]
+    update?: RecipeLineUpdateWithWhereUniqueWithoutIngredientInput | RecipeLineUpdateWithWhereUniqueWithoutIngredientInput[]
+    updateMany?: RecipeLineUpdateManyWithWhereWithoutIngredientInput | RecipeLineUpdateManyWithWhereWithoutIngredientInput[]
+    deleteMany?: RecipeLineScalarWhereInput | RecipeLineScalarWhereInput[]
+  }
+
+  export type RecipeLineUncheckedUpdateManyWithoutIngredientNestedInput = {
+    create?: XOR<RecipeLineCreateWithoutIngredientInput, RecipeLineUncheckedCreateWithoutIngredientInput> | RecipeLineCreateWithoutIngredientInput[] | RecipeLineUncheckedCreateWithoutIngredientInput[]
+    connectOrCreate?: RecipeLineCreateOrConnectWithoutIngredientInput | RecipeLineCreateOrConnectWithoutIngredientInput[]
+    upsert?: RecipeLineUpsertWithWhereUniqueWithoutIngredientInput | RecipeLineUpsertWithWhereUniqueWithoutIngredientInput[]
+    createMany?: RecipeLineCreateManyIngredientInputEnvelope
+    set?: RecipeLineWhereUniqueInput | RecipeLineWhereUniqueInput[]
+    disconnect?: RecipeLineWhereUniqueInput | RecipeLineWhereUniqueInput[]
+    delete?: RecipeLineWhereUniqueInput | RecipeLineWhereUniqueInput[]
+    connect?: RecipeLineWhereUniqueInput | RecipeLineWhereUniqueInput[]
+    update?: RecipeLineUpdateWithWhereUniqueWithoutIngredientInput | RecipeLineUpdateWithWhereUniqueWithoutIngredientInput[]
+    updateMany?: RecipeLineUpdateManyWithWhereWithoutIngredientInput | RecipeLineUpdateManyWithWhereWithoutIngredientInput[]
+    deleteMany?: RecipeLineScalarWhereInput | RecipeLineScalarWhereInput[]
+  }
+
+  export type StoreCreateNestedOneWithoutMenuCategoriesInput = {
+    create?: XOR<StoreCreateWithoutMenuCategoriesInput, StoreUncheckedCreateWithoutMenuCategoriesInput>
+    connectOrCreate?: StoreCreateOrConnectWithoutMenuCategoriesInput
+    connect?: StoreWhereUniqueInput
+  }
+
+  export type MenuItemCreateNestedManyWithoutMenuCategoryInput = {
+    create?: XOR<MenuItemCreateWithoutMenuCategoryInput, MenuItemUncheckedCreateWithoutMenuCategoryInput> | MenuItemCreateWithoutMenuCategoryInput[] | MenuItemUncheckedCreateWithoutMenuCategoryInput[]
+    connectOrCreate?: MenuItemCreateOrConnectWithoutMenuCategoryInput | MenuItemCreateOrConnectWithoutMenuCategoryInput[]
+    createMany?: MenuItemCreateManyMenuCategoryInputEnvelope
+    connect?: MenuItemWhereUniqueInput | MenuItemWhereUniqueInput[]
+  }
+
+  export type MenuItemUncheckedCreateNestedManyWithoutMenuCategoryInput = {
+    create?: XOR<MenuItemCreateWithoutMenuCategoryInput, MenuItemUncheckedCreateWithoutMenuCategoryInput> | MenuItemCreateWithoutMenuCategoryInput[] | MenuItemUncheckedCreateWithoutMenuCategoryInput[]
+    connectOrCreate?: MenuItemCreateOrConnectWithoutMenuCategoryInput | MenuItemCreateOrConnectWithoutMenuCategoryInput[]
+    createMany?: MenuItemCreateManyMenuCategoryInputEnvelope
+    connect?: MenuItemWhereUniqueInput | MenuItemWhereUniqueInput[]
+  }
+
+  export type StoreUpdateOneRequiredWithoutMenuCategoriesNestedInput = {
+    create?: XOR<StoreCreateWithoutMenuCategoriesInput, StoreUncheckedCreateWithoutMenuCategoriesInput>
+    connectOrCreate?: StoreCreateOrConnectWithoutMenuCategoriesInput
+    upsert?: StoreUpsertWithoutMenuCategoriesInput
+    connect?: StoreWhereUniqueInput
+    update?: XOR<XOR<StoreUpdateToOneWithWhereWithoutMenuCategoriesInput, StoreUpdateWithoutMenuCategoriesInput>, StoreUncheckedUpdateWithoutMenuCategoriesInput>
+  }
+
+  export type MenuItemUpdateManyWithoutMenuCategoryNestedInput = {
+    create?: XOR<MenuItemCreateWithoutMenuCategoryInput, MenuItemUncheckedCreateWithoutMenuCategoryInput> | MenuItemCreateWithoutMenuCategoryInput[] | MenuItemUncheckedCreateWithoutMenuCategoryInput[]
+    connectOrCreate?: MenuItemCreateOrConnectWithoutMenuCategoryInput | MenuItemCreateOrConnectWithoutMenuCategoryInput[]
+    upsert?: MenuItemUpsertWithWhereUniqueWithoutMenuCategoryInput | MenuItemUpsertWithWhereUniqueWithoutMenuCategoryInput[]
+    createMany?: MenuItemCreateManyMenuCategoryInputEnvelope
+    set?: MenuItemWhereUniqueInput | MenuItemWhereUniqueInput[]
+    disconnect?: MenuItemWhereUniqueInput | MenuItemWhereUniqueInput[]
+    delete?: MenuItemWhereUniqueInput | MenuItemWhereUniqueInput[]
+    connect?: MenuItemWhereUniqueInput | MenuItemWhereUniqueInput[]
+    update?: MenuItemUpdateWithWhereUniqueWithoutMenuCategoryInput | MenuItemUpdateWithWhereUniqueWithoutMenuCategoryInput[]
+    updateMany?: MenuItemUpdateManyWithWhereWithoutMenuCategoryInput | MenuItemUpdateManyWithWhereWithoutMenuCategoryInput[]
+    deleteMany?: MenuItemScalarWhereInput | MenuItemScalarWhereInput[]
+  }
+
+  export type MenuItemUncheckedUpdateManyWithoutMenuCategoryNestedInput = {
+    create?: XOR<MenuItemCreateWithoutMenuCategoryInput, MenuItemUncheckedCreateWithoutMenuCategoryInput> | MenuItemCreateWithoutMenuCategoryInput[] | MenuItemUncheckedCreateWithoutMenuCategoryInput[]
+    connectOrCreate?: MenuItemCreateOrConnectWithoutMenuCategoryInput | MenuItemCreateOrConnectWithoutMenuCategoryInput[]
+    upsert?: MenuItemUpsertWithWhereUniqueWithoutMenuCategoryInput | MenuItemUpsertWithWhereUniqueWithoutMenuCategoryInput[]
+    createMany?: MenuItemCreateManyMenuCategoryInputEnvelope
+    set?: MenuItemWhereUniqueInput | MenuItemWhereUniqueInput[]
+    disconnect?: MenuItemWhereUniqueInput | MenuItemWhereUniqueInput[]
+    delete?: MenuItemWhereUniqueInput | MenuItemWhereUniqueInput[]
+    connect?: MenuItemWhereUniqueInput | MenuItemWhereUniqueInput[]
+    update?: MenuItemUpdateWithWhereUniqueWithoutMenuCategoryInput | MenuItemUpdateWithWhereUniqueWithoutMenuCategoryInput[]
+    updateMany?: MenuItemUpdateManyWithWhereWithoutMenuCategoryInput | MenuItemUpdateManyWithWhereWithoutMenuCategoryInput[]
+    deleteMany?: MenuItemScalarWhereInput | MenuItemScalarWhereInput[]
+  }
+
+  export type StoreCreateNestedOneWithoutMenuItemsInput = {
+    create?: XOR<StoreCreateWithoutMenuItemsInput, StoreUncheckedCreateWithoutMenuItemsInput>
+    connectOrCreate?: StoreCreateOrConnectWithoutMenuItemsInput
+    connect?: StoreWhereUniqueInput
+  }
+
+  export type MenuCategoryCreateNestedOneWithoutMenuItemsInput = {
+    create?: XOR<MenuCategoryCreateWithoutMenuItemsInput, MenuCategoryUncheckedCreateWithoutMenuItemsInput>
+    connectOrCreate?: MenuCategoryCreateOrConnectWithoutMenuItemsInput
+    connect?: MenuCategoryWhereUniqueInput
+  }
+
+  export type RecipeLineCreateNestedManyWithoutMenuItemInput = {
+    create?: XOR<RecipeLineCreateWithoutMenuItemInput, RecipeLineUncheckedCreateWithoutMenuItemInput> | RecipeLineCreateWithoutMenuItemInput[] | RecipeLineUncheckedCreateWithoutMenuItemInput[]
+    connectOrCreate?: RecipeLineCreateOrConnectWithoutMenuItemInput | RecipeLineCreateOrConnectWithoutMenuItemInput[]
+    createMany?: RecipeLineCreateManyMenuItemInputEnvelope
+    connect?: RecipeLineWhereUniqueInput | RecipeLineWhereUniqueInput[]
+  }
+
+  export type SaleItemCreateNestedManyWithoutMenuItemInput = {
+    create?: XOR<SaleItemCreateWithoutMenuItemInput, SaleItemUncheckedCreateWithoutMenuItemInput> | SaleItemCreateWithoutMenuItemInput[] | SaleItemUncheckedCreateWithoutMenuItemInput[]
+    connectOrCreate?: SaleItemCreateOrConnectWithoutMenuItemInput | SaleItemCreateOrConnectWithoutMenuItemInput[]
+    createMany?: SaleItemCreateManyMenuItemInputEnvelope
+    connect?: SaleItemWhereUniqueInput | SaleItemWhereUniqueInput[]
+  }
+
+  export type RecipeLineUncheckedCreateNestedManyWithoutMenuItemInput = {
+    create?: XOR<RecipeLineCreateWithoutMenuItemInput, RecipeLineUncheckedCreateWithoutMenuItemInput> | RecipeLineCreateWithoutMenuItemInput[] | RecipeLineUncheckedCreateWithoutMenuItemInput[]
+    connectOrCreate?: RecipeLineCreateOrConnectWithoutMenuItemInput | RecipeLineCreateOrConnectWithoutMenuItemInput[]
+    createMany?: RecipeLineCreateManyMenuItemInputEnvelope
+    connect?: RecipeLineWhereUniqueInput | RecipeLineWhereUniqueInput[]
+  }
+
+  export type SaleItemUncheckedCreateNestedManyWithoutMenuItemInput = {
+    create?: XOR<SaleItemCreateWithoutMenuItemInput, SaleItemUncheckedCreateWithoutMenuItemInput> | SaleItemCreateWithoutMenuItemInput[] | SaleItemUncheckedCreateWithoutMenuItemInput[]
+    connectOrCreate?: SaleItemCreateOrConnectWithoutMenuItemInput | SaleItemCreateOrConnectWithoutMenuItemInput[]
+    createMany?: SaleItemCreateManyMenuItemInputEnvelope
+    connect?: SaleItemWhereUniqueInput | SaleItemWhereUniqueInput[]
+  }
+
+  export type StoreUpdateOneRequiredWithoutMenuItemsNestedInput = {
+    create?: XOR<StoreCreateWithoutMenuItemsInput, StoreUncheckedCreateWithoutMenuItemsInput>
+    connectOrCreate?: StoreCreateOrConnectWithoutMenuItemsInput
+    upsert?: StoreUpsertWithoutMenuItemsInput
+    connect?: StoreWhereUniqueInput
+    update?: XOR<XOR<StoreUpdateToOneWithWhereWithoutMenuItemsInput, StoreUpdateWithoutMenuItemsInput>, StoreUncheckedUpdateWithoutMenuItemsInput>
+  }
+
+  export type MenuCategoryUpdateOneRequiredWithoutMenuItemsNestedInput = {
+    create?: XOR<MenuCategoryCreateWithoutMenuItemsInput, MenuCategoryUncheckedCreateWithoutMenuItemsInput>
+    connectOrCreate?: MenuCategoryCreateOrConnectWithoutMenuItemsInput
+    upsert?: MenuCategoryUpsertWithoutMenuItemsInput
+    connect?: MenuCategoryWhereUniqueInput
+    update?: XOR<XOR<MenuCategoryUpdateToOneWithWhereWithoutMenuItemsInput, MenuCategoryUpdateWithoutMenuItemsInput>, MenuCategoryUncheckedUpdateWithoutMenuItemsInput>
+  }
+
+  export type RecipeLineUpdateManyWithoutMenuItemNestedInput = {
+    create?: XOR<RecipeLineCreateWithoutMenuItemInput, RecipeLineUncheckedCreateWithoutMenuItemInput> | RecipeLineCreateWithoutMenuItemInput[] | RecipeLineUncheckedCreateWithoutMenuItemInput[]
+    connectOrCreate?: RecipeLineCreateOrConnectWithoutMenuItemInput | RecipeLineCreateOrConnectWithoutMenuItemInput[]
+    upsert?: RecipeLineUpsertWithWhereUniqueWithoutMenuItemInput | RecipeLineUpsertWithWhereUniqueWithoutMenuItemInput[]
+    createMany?: RecipeLineCreateManyMenuItemInputEnvelope
+    set?: RecipeLineWhereUniqueInput | RecipeLineWhereUniqueInput[]
+    disconnect?: RecipeLineWhereUniqueInput | RecipeLineWhereUniqueInput[]
+    delete?: RecipeLineWhereUniqueInput | RecipeLineWhereUniqueInput[]
+    connect?: RecipeLineWhereUniqueInput | RecipeLineWhereUniqueInput[]
+    update?: RecipeLineUpdateWithWhereUniqueWithoutMenuItemInput | RecipeLineUpdateWithWhereUniqueWithoutMenuItemInput[]
+    updateMany?: RecipeLineUpdateManyWithWhereWithoutMenuItemInput | RecipeLineUpdateManyWithWhereWithoutMenuItemInput[]
+    deleteMany?: RecipeLineScalarWhereInput | RecipeLineScalarWhereInput[]
+  }
+
+  export type SaleItemUpdateManyWithoutMenuItemNestedInput = {
+    create?: XOR<SaleItemCreateWithoutMenuItemInput, SaleItemUncheckedCreateWithoutMenuItemInput> | SaleItemCreateWithoutMenuItemInput[] | SaleItemUncheckedCreateWithoutMenuItemInput[]
+    connectOrCreate?: SaleItemCreateOrConnectWithoutMenuItemInput | SaleItemCreateOrConnectWithoutMenuItemInput[]
+    upsert?: SaleItemUpsertWithWhereUniqueWithoutMenuItemInput | SaleItemUpsertWithWhereUniqueWithoutMenuItemInput[]
+    createMany?: SaleItemCreateManyMenuItemInputEnvelope
+    set?: SaleItemWhereUniqueInput | SaleItemWhereUniqueInput[]
+    disconnect?: SaleItemWhereUniqueInput | SaleItemWhereUniqueInput[]
+    delete?: SaleItemWhereUniqueInput | SaleItemWhereUniqueInput[]
+    connect?: SaleItemWhereUniqueInput | SaleItemWhereUniqueInput[]
+    update?: SaleItemUpdateWithWhereUniqueWithoutMenuItemInput | SaleItemUpdateWithWhereUniqueWithoutMenuItemInput[]
+    updateMany?: SaleItemUpdateManyWithWhereWithoutMenuItemInput | SaleItemUpdateManyWithWhereWithoutMenuItemInput[]
+    deleteMany?: SaleItemScalarWhereInput | SaleItemScalarWhereInput[]
+  }
+
+  export type RecipeLineUncheckedUpdateManyWithoutMenuItemNestedInput = {
+    create?: XOR<RecipeLineCreateWithoutMenuItemInput, RecipeLineUncheckedCreateWithoutMenuItemInput> | RecipeLineCreateWithoutMenuItemInput[] | RecipeLineUncheckedCreateWithoutMenuItemInput[]
+    connectOrCreate?: RecipeLineCreateOrConnectWithoutMenuItemInput | RecipeLineCreateOrConnectWithoutMenuItemInput[]
+    upsert?: RecipeLineUpsertWithWhereUniqueWithoutMenuItemInput | RecipeLineUpsertWithWhereUniqueWithoutMenuItemInput[]
+    createMany?: RecipeLineCreateManyMenuItemInputEnvelope
+    set?: RecipeLineWhereUniqueInput | RecipeLineWhereUniqueInput[]
+    disconnect?: RecipeLineWhereUniqueInput | RecipeLineWhereUniqueInput[]
+    delete?: RecipeLineWhereUniqueInput | RecipeLineWhereUniqueInput[]
+    connect?: RecipeLineWhereUniqueInput | RecipeLineWhereUniqueInput[]
+    update?: RecipeLineUpdateWithWhereUniqueWithoutMenuItemInput | RecipeLineUpdateWithWhereUniqueWithoutMenuItemInput[]
+    updateMany?: RecipeLineUpdateManyWithWhereWithoutMenuItemInput | RecipeLineUpdateManyWithWhereWithoutMenuItemInput[]
+    deleteMany?: RecipeLineScalarWhereInput | RecipeLineScalarWhereInput[]
+  }
+
+  export type SaleItemUncheckedUpdateManyWithoutMenuItemNestedInput = {
+    create?: XOR<SaleItemCreateWithoutMenuItemInput, SaleItemUncheckedCreateWithoutMenuItemInput> | SaleItemCreateWithoutMenuItemInput[] | SaleItemUncheckedCreateWithoutMenuItemInput[]
+    connectOrCreate?: SaleItemCreateOrConnectWithoutMenuItemInput | SaleItemCreateOrConnectWithoutMenuItemInput[]
+    upsert?: SaleItemUpsertWithWhereUniqueWithoutMenuItemInput | SaleItemUpsertWithWhereUniqueWithoutMenuItemInput[]
+    createMany?: SaleItemCreateManyMenuItemInputEnvelope
+    set?: SaleItemWhereUniqueInput | SaleItemWhereUniqueInput[]
+    disconnect?: SaleItemWhereUniqueInput | SaleItemWhereUniqueInput[]
+    delete?: SaleItemWhereUniqueInput | SaleItemWhereUniqueInput[]
+    connect?: SaleItemWhereUniqueInput | SaleItemWhereUniqueInput[]
+    update?: SaleItemUpdateWithWhereUniqueWithoutMenuItemInput | SaleItemUpdateWithWhereUniqueWithoutMenuItemInput[]
+    updateMany?: SaleItemUpdateManyWithWhereWithoutMenuItemInput | SaleItemUpdateManyWithWhereWithoutMenuItemInput[]
+    deleteMany?: SaleItemScalarWhereInput | SaleItemScalarWhereInput[]
+  }
+
+  export type MenuItemCreateNestedOneWithoutRecipeLinesInput = {
+    create?: XOR<MenuItemCreateWithoutRecipeLinesInput, MenuItemUncheckedCreateWithoutRecipeLinesInput>
+    connectOrCreate?: MenuItemCreateOrConnectWithoutRecipeLinesInput
+    connect?: MenuItemWhereUniqueInput
+  }
+
+  export type IngredientCreateNestedOneWithoutRecipeLinesInput = {
+    create?: XOR<IngredientCreateWithoutRecipeLinesInput, IngredientUncheckedCreateWithoutRecipeLinesInput>
+    connectOrCreate?: IngredientCreateOrConnectWithoutRecipeLinesInput
+    connect?: IngredientWhereUniqueInput
+  }
+
+  export type MenuItemUpdateOneRequiredWithoutRecipeLinesNestedInput = {
+    create?: XOR<MenuItemCreateWithoutRecipeLinesInput, MenuItemUncheckedCreateWithoutRecipeLinesInput>
+    connectOrCreate?: MenuItemCreateOrConnectWithoutRecipeLinesInput
+    upsert?: MenuItemUpsertWithoutRecipeLinesInput
+    connect?: MenuItemWhereUniqueInput
+    update?: XOR<XOR<MenuItemUpdateToOneWithWhereWithoutRecipeLinesInput, MenuItemUpdateWithoutRecipeLinesInput>, MenuItemUncheckedUpdateWithoutRecipeLinesInput>
+  }
+
+  export type IngredientUpdateOneRequiredWithoutRecipeLinesNestedInput = {
+    create?: XOR<IngredientCreateWithoutRecipeLinesInput, IngredientUncheckedCreateWithoutRecipeLinesInput>
+    connectOrCreate?: IngredientCreateOrConnectWithoutRecipeLinesInput
+    upsert?: IngredientUpsertWithoutRecipeLinesInput
+    connect?: IngredientWhereUniqueInput
+    update?: XOR<XOR<IngredientUpdateToOneWithWhereWithoutRecipeLinesInput, IngredientUpdateWithoutRecipeLinesInput>, IngredientUncheckedUpdateWithoutRecipeLinesInput>
+  }
+
   export type SaleCreateNestedOneWithoutItemsInput = {
     create?: XOR<SaleCreateWithoutItemsInput, SaleUncheckedCreateWithoutItemsInput>
     connectOrCreate?: SaleCreateOrConnectWithoutItemsInput
@@ -15483,6 +21334,12 @@ export namespace Prisma {
     create?: XOR<ProductCreateWithoutSaleItemsInput, ProductUncheckedCreateWithoutSaleItemsInput>
     connectOrCreate?: ProductCreateOrConnectWithoutSaleItemsInput
     connect?: ProductWhereUniqueInput
+  }
+
+  export type MenuItemCreateNestedOneWithoutSaleItemsInput = {
+    create?: XOR<MenuItemCreateWithoutSaleItemsInput, MenuItemUncheckedCreateWithoutSaleItemsInput>
+    connectOrCreate?: MenuItemCreateOrConnectWithoutSaleItemsInput
+    connect?: MenuItemWhereUniqueInput
   }
 
   export type VariantCreateNestedOneWithoutSaleItemsInput = {
@@ -15499,12 +21356,24 @@ export namespace Prisma {
     update?: XOR<XOR<SaleUpdateToOneWithWhereWithoutItemsInput, SaleUpdateWithoutItemsInput>, SaleUncheckedUpdateWithoutItemsInput>
   }
 
-  export type ProductUpdateOneRequiredWithoutSaleItemsNestedInput = {
+  export type ProductUpdateOneWithoutSaleItemsNestedInput = {
     create?: XOR<ProductCreateWithoutSaleItemsInput, ProductUncheckedCreateWithoutSaleItemsInput>
     connectOrCreate?: ProductCreateOrConnectWithoutSaleItemsInput
     upsert?: ProductUpsertWithoutSaleItemsInput
+    disconnect?: ProductWhereInput | boolean
+    delete?: ProductWhereInput | boolean
     connect?: ProductWhereUniqueInput
     update?: XOR<XOR<ProductUpdateToOneWithWhereWithoutSaleItemsInput, ProductUpdateWithoutSaleItemsInput>, ProductUncheckedUpdateWithoutSaleItemsInput>
+  }
+
+  export type MenuItemUpdateOneWithoutSaleItemsNestedInput = {
+    create?: XOR<MenuItemCreateWithoutSaleItemsInput, MenuItemUncheckedCreateWithoutSaleItemsInput>
+    connectOrCreate?: MenuItemCreateOrConnectWithoutSaleItemsInput
+    upsert?: MenuItemUpsertWithoutSaleItemsInput
+    disconnect?: MenuItemWhereInput | boolean
+    delete?: MenuItemWhereInput | boolean
+    connect?: MenuItemWhereUniqueInput
+    update?: XOR<XOR<MenuItemUpdateToOneWithWhereWithoutSaleItemsInput, MenuItemUpdateWithoutSaleItemsInput>, MenuItemUncheckedUpdateWithoutSaleItemsInput>
   }
 
   export type VariantUpdateOneWithoutSaleItemsNestedInput = {
@@ -15787,11 +21656,15 @@ export namespace Prisma {
     name: string
     address?: string | null
     receiptLogoUrl?: string | null
+    businessMode?: string
     createdAt?: Date | string
     categories?: CategoryCreateNestedManyWithoutStoreInput
     products?: ProductCreateNestedManyWithoutStoreInput
     sales?: SaleCreateNestedManyWithoutStoreInput
     userAccess?: UserStoreCreateNestedManyWithoutStoreInput
+    ingredients?: IngredientCreateNestedManyWithoutStoreInput
+    menuCategories?: MenuCategoryCreateNestedManyWithoutStoreInput
+    menuItems?: MenuItemCreateNestedManyWithoutStoreInput
   }
 
   export type StoreUncheckedCreateWithoutOrganizationInput = {
@@ -15799,11 +21672,15 @@ export namespace Prisma {
     name: string
     address?: string | null
     receiptLogoUrl?: string | null
+    businessMode?: string
     createdAt?: Date | string
     categories?: CategoryUncheckedCreateNestedManyWithoutStoreInput
     products?: ProductUncheckedCreateNestedManyWithoutStoreInput
     sales?: SaleUncheckedCreateNestedManyWithoutStoreInput
     userAccess?: UserStoreUncheckedCreateNestedManyWithoutStoreInput
+    ingredients?: IngredientUncheckedCreateNestedManyWithoutStoreInput
+    menuCategories?: MenuCategoryUncheckedCreateNestedManyWithoutStoreInput
+    menuItems?: MenuItemUncheckedCreateNestedManyWithoutStoreInput
   }
 
   export type StoreCreateOrConnectWithoutOrganizationInput = {
@@ -15896,6 +21773,7 @@ export namespace Prisma {
     name?: StringFilter<"Store"> | string
     address?: StringNullableFilter<"Store"> | string | null
     receiptLogoUrl?: StringNullableFilter<"Store"> | string | null
+    businessMode?: StringFilter<"Store"> | string
     createdAt?: DateTimeFilter<"Store"> | Date | string
   }
 
@@ -16170,6 +22048,96 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type IngredientCreateWithoutStoreInput = {
+    id?: string
+    name: string
+    sku?: string | null
+    barcode?: string | null
+    stock?: number
+    lowStockThreshold?: number
+    unitOfMeasure?: string | null
+    status?: string
+    recipeLines?: RecipeLineCreateNestedManyWithoutIngredientInput
+  }
+
+  export type IngredientUncheckedCreateWithoutStoreInput = {
+    id?: string
+    name: string
+    sku?: string | null
+    barcode?: string | null
+    stock?: number
+    lowStockThreshold?: number
+    unitOfMeasure?: string | null
+    status?: string
+    recipeLines?: RecipeLineUncheckedCreateNestedManyWithoutIngredientInput
+  }
+
+  export type IngredientCreateOrConnectWithoutStoreInput = {
+    where: IngredientWhereUniqueInput
+    create: XOR<IngredientCreateWithoutStoreInput, IngredientUncheckedCreateWithoutStoreInput>
+  }
+
+  export type IngredientCreateManyStoreInputEnvelope = {
+    data: IngredientCreateManyStoreInput | IngredientCreateManyStoreInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type MenuCategoryCreateWithoutStoreInput = {
+    id?: string
+    name: string
+    menuItems?: MenuItemCreateNestedManyWithoutMenuCategoryInput
+  }
+
+  export type MenuCategoryUncheckedCreateWithoutStoreInput = {
+    id?: string
+    name: string
+    menuItems?: MenuItemUncheckedCreateNestedManyWithoutMenuCategoryInput
+  }
+
+  export type MenuCategoryCreateOrConnectWithoutStoreInput = {
+    where: MenuCategoryWhereUniqueInput
+    create: XOR<MenuCategoryCreateWithoutStoreInput, MenuCategoryUncheckedCreateWithoutStoreInput>
+  }
+
+  export type MenuCategoryCreateManyStoreInputEnvelope = {
+    data: MenuCategoryCreateManyStoreInput | MenuCategoryCreateManyStoreInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type MenuItemCreateWithoutStoreInput = {
+    id?: string
+    name: string
+    price: number
+    status?: string
+    image?: string | null
+    barcode?: string | null
+    menuCategory: MenuCategoryCreateNestedOneWithoutMenuItemsInput
+    recipeLines?: RecipeLineCreateNestedManyWithoutMenuItemInput
+    saleItems?: SaleItemCreateNestedManyWithoutMenuItemInput
+  }
+
+  export type MenuItemUncheckedCreateWithoutStoreInput = {
+    id?: string
+    menuCategoryId: string
+    name: string
+    price: number
+    status?: string
+    image?: string | null
+    barcode?: string | null
+    recipeLines?: RecipeLineUncheckedCreateNestedManyWithoutMenuItemInput
+    saleItems?: SaleItemUncheckedCreateNestedManyWithoutMenuItemInput
+  }
+
+  export type MenuItemCreateOrConnectWithoutStoreInput = {
+    where: MenuItemWhereUniqueInput
+    create: XOR<MenuItemCreateWithoutStoreInput, MenuItemUncheckedCreateWithoutStoreInput>
+  }
+
+  export type MenuItemCreateManyStoreInputEnvelope = {
+    data: MenuItemCreateManyStoreInput | MenuItemCreateManyStoreInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OrganizationUpsertWithoutStoresInput = {
     update: XOR<OrganizationUpdateWithoutStoresInput, OrganizationUncheckedUpdateWithoutStoresInput>
     create: XOR<OrganizationCreateWithoutStoresInput, OrganizationUncheckedCreateWithoutStoresInput>
@@ -16331,6 +22299,92 @@ export namespace Prisma {
     NOT?: UserStoreScalarWhereInput | UserStoreScalarWhereInput[]
     userId?: StringFilter<"UserStore"> | string
     storeId?: StringFilter<"UserStore"> | string
+  }
+
+  export type IngredientUpsertWithWhereUniqueWithoutStoreInput = {
+    where: IngredientWhereUniqueInput
+    update: XOR<IngredientUpdateWithoutStoreInput, IngredientUncheckedUpdateWithoutStoreInput>
+    create: XOR<IngredientCreateWithoutStoreInput, IngredientUncheckedCreateWithoutStoreInput>
+  }
+
+  export type IngredientUpdateWithWhereUniqueWithoutStoreInput = {
+    where: IngredientWhereUniqueInput
+    data: XOR<IngredientUpdateWithoutStoreInput, IngredientUncheckedUpdateWithoutStoreInput>
+  }
+
+  export type IngredientUpdateManyWithWhereWithoutStoreInput = {
+    where: IngredientScalarWhereInput
+    data: XOR<IngredientUpdateManyMutationInput, IngredientUncheckedUpdateManyWithoutStoreInput>
+  }
+
+  export type IngredientScalarWhereInput = {
+    AND?: IngredientScalarWhereInput | IngredientScalarWhereInput[]
+    OR?: IngredientScalarWhereInput[]
+    NOT?: IngredientScalarWhereInput | IngredientScalarWhereInput[]
+    id?: StringFilter<"Ingredient"> | string
+    storeId?: StringFilter<"Ingredient"> | string
+    name?: StringFilter<"Ingredient"> | string
+    sku?: StringNullableFilter<"Ingredient"> | string | null
+    barcode?: StringNullableFilter<"Ingredient"> | string | null
+    stock?: IntFilter<"Ingredient"> | number
+    lowStockThreshold?: IntFilter<"Ingredient"> | number
+    unitOfMeasure?: StringNullableFilter<"Ingredient"> | string | null
+    status?: StringFilter<"Ingredient"> | string
+  }
+
+  export type MenuCategoryUpsertWithWhereUniqueWithoutStoreInput = {
+    where: MenuCategoryWhereUniqueInput
+    update: XOR<MenuCategoryUpdateWithoutStoreInput, MenuCategoryUncheckedUpdateWithoutStoreInput>
+    create: XOR<MenuCategoryCreateWithoutStoreInput, MenuCategoryUncheckedCreateWithoutStoreInput>
+  }
+
+  export type MenuCategoryUpdateWithWhereUniqueWithoutStoreInput = {
+    where: MenuCategoryWhereUniqueInput
+    data: XOR<MenuCategoryUpdateWithoutStoreInput, MenuCategoryUncheckedUpdateWithoutStoreInput>
+  }
+
+  export type MenuCategoryUpdateManyWithWhereWithoutStoreInput = {
+    where: MenuCategoryScalarWhereInput
+    data: XOR<MenuCategoryUpdateManyMutationInput, MenuCategoryUncheckedUpdateManyWithoutStoreInput>
+  }
+
+  export type MenuCategoryScalarWhereInput = {
+    AND?: MenuCategoryScalarWhereInput | MenuCategoryScalarWhereInput[]
+    OR?: MenuCategoryScalarWhereInput[]
+    NOT?: MenuCategoryScalarWhereInput | MenuCategoryScalarWhereInput[]
+    id?: StringFilter<"MenuCategory"> | string
+    storeId?: StringFilter<"MenuCategory"> | string
+    name?: StringFilter<"MenuCategory"> | string
+  }
+
+  export type MenuItemUpsertWithWhereUniqueWithoutStoreInput = {
+    where: MenuItemWhereUniqueInput
+    update: XOR<MenuItemUpdateWithoutStoreInput, MenuItemUncheckedUpdateWithoutStoreInput>
+    create: XOR<MenuItemCreateWithoutStoreInput, MenuItemUncheckedCreateWithoutStoreInput>
+  }
+
+  export type MenuItemUpdateWithWhereUniqueWithoutStoreInput = {
+    where: MenuItemWhereUniqueInput
+    data: XOR<MenuItemUpdateWithoutStoreInput, MenuItemUncheckedUpdateWithoutStoreInput>
+  }
+
+  export type MenuItemUpdateManyWithWhereWithoutStoreInput = {
+    where: MenuItemScalarWhereInput
+    data: XOR<MenuItemUpdateManyMutationInput, MenuItemUncheckedUpdateManyWithoutStoreInput>
+  }
+
+  export type MenuItemScalarWhereInput = {
+    AND?: MenuItemScalarWhereInput | MenuItemScalarWhereInput[]
+    OR?: MenuItemScalarWhereInput[]
+    NOT?: MenuItemScalarWhereInput | MenuItemScalarWhereInput[]
+    id?: StringFilter<"MenuItem"> | string
+    storeId?: StringFilter<"MenuItem"> | string
+    menuCategoryId?: StringFilter<"MenuItem"> | string
+    name?: StringFilter<"MenuItem"> | string
+    price?: FloatFilter<"MenuItem"> | number
+    status?: StringFilter<"MenuItem"> | string
+    image?: StringNullableFilter<"MenuItem"> | string | null
+    barcode?: StringNullableFilter<"MenuItem"> | string | null
   }
 
   export type OrganizationCreateWithoutUsersInput = {
@@ -16531,11 +22585,15 @@ export namespace Prisma {
     name: string
     address?: string | null
     receiptLogoUrl?: string | null
+    businessMode?: string
     createdAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutStoresInput
     categories?: CategoryCreateNestedManyWithoutStoreInput
     products?: ProductCreateNestedManyWithoutStoreInput
     sales?: SaleCreateNestedManyWithoutStoreInput
+    ingredients?: IngredientCreateNestedManyWithoutStoreInput
+    menuCategories?: MenuCategoryCreateNestedManyWithoutStoreInput
+    menuItems?: MenuItemCreateNestedManyWithoutStoreInput
   }
 
   export type StoreUncheckedCreateWithoutUserAccessInput = {
@@ -16544,10 +22602,14 @@ export namespace Prisma {
     name: string
     address?: string | null
     receiptLogoUrl?: string | null
+    businessMode?: string
     createdAt?: Date | string
     categories?: CategoryUncheckedCreateNestedManyWithoutStoreInput
     products?: ProductUncheckedCreateNestedManyWithoutStoreInput
     sales?: SaleUncheckedCreateNestedManyWithoutStoreInput
+    ingredients?: IngredientUncheckedCreateNestedManyWithoutStoreInput
+    menuCategories?: MenuCategoryUncheckedCreateNestedManyWithoutStoreInput
+    menuItems?: MenuItemUncheckedCreateNestedManyWithoutStoreInput
   }
 
   export type StoreCreateOrConnectWithoutUserAccessInput = {
@@ -16604,11 +22666,15 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutStoresNestedInput
     categories?: CategoryUpdateManyWithoutStoreNestedInput
     products?: ProductUpdateManyWithoutStoreNestedInput
     sales?: SaleUpdateManyWithoutStoreNestedInput
+    ingredients?: IngredientUpdateManyWithoutStoreNestedInput
+    menuCategories?: MenuCategoryUpdateManyWithoutStoreNestedInput
+    menuItems?: MenuItemUpdateManyWithoutStoreNestedInput
   }
 
   export type StoreUncheckedUpdateWithoutUserAccessInput = {
@@ -16617,10 +22683,14 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     categories?: CategoryUncheckedUpdateManyWithoutStoreNestedInput
     products?: ProductUncheckedUpdateManyWithoutStoreNestedInput
     sales?: SaleUncheckedUpdateManyWithoutStoreNestedInput
+    ingredients?: IngredientUncheckedUpdateManyWithoutStoreNestedInput
+    menuCategories?: MenuCategoryUncheckedUpdateManyWithoutStoreNestedInput
+    menuItems?: MenuItemUncheckedUpdateManyWithoutStoreNestedInput
   }
 
   export type StoreCreateWithoutCategoriesInput = {
@@ -16628,11 +22698,15 @@ export namespace Prisma {
     name: string
     address?: string | null
     receiptLogoUrl?: string | null
+    businessMode?: string
     createdAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutStoresInput
     products?: ProductCreateNestedManyWithoutStoreInput
     sales?: SaleCreateNestedManyWithoutStoreInput
     userAccess?: UserStoreCreateNestedManyWithoutStoreInput
+    ingredients?: IngredientCreateNestedManyWithoutStoreInput
+    menuCategories?: MenuCategoryCreateNestedManyWithoutStoreInput
+    menuItems?: MenuItemCreateNestedManyWithoutStoreInput
   }
 
   export type StoreUncheckedCreateWithoutCategoriesInput = {
@@ -16641,10 +22715,14 @@ export namespace Prisma {
     name: string
     address?: string | null
     receiptLogoUrl?: string | null
+    businessMode?: string
     createdAt?: Date | string
     products?: ProductUncheckedCreateNestedManyWithoutStoreInput
     sales?: SaleUncheckedCreateNestedManyWithoutStoreInput
     userAccess?: UserStoreUncheckedCreateNestedManyWithoutStoreInput
+    ingredients?: IngredientUncheckedCreateNestedManyWithoutStoreInput
+    menuCategories?: MenuCategoryUncheckedCreateNestedManyWithoutStoreInput
+    menuItems?: MenuItemUncheckedCreateNestedManyWithoutStoreInput
   }
 
   export type StoreCreateOrConnectWithoutCategoriesInput = {
@@ -16720,11 +22798,15 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutStoresNestedInput
     products?: ProductUpdateManyWithoutStoreNestedInput
     sales?: SaleUpdateManyWithoutStoreNestedInput
     userAccess?: UserStoreUpdateManyWithoutStoreNestedInput
+    ingredients?: IngredientUpdateManyWithoutStoreNestedInput
+    menuCategories?: MenuCategoryUpdateManyWithoutStoreNestedInput
+    menuItems?: MenuItemUpdateManyWithoutStoreNestedInput
   }
 
   export type StoreUncheckedUpdateWithoutCategoriesInput = {
@@ -16733,10 +22815,14 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     products?: ProductUncheckedUpdateManyWithoutStoreNestedInput
     sales?: SaleUncheckedUpdateManyWithoutStoreNestedInput
     userAccess?: UserStoreUncheckedUpdateManyWithoutStoreNestedInput
+    ingredients?: IngredientUncheckedUpdateManyWithoutStoreNestedInput
+    menuCategories?: MenuCategoryUncheckedUpdateManyWithoutStoreNestedInput
+    menuItems?: MenuItemUncheckedUpdateManyWithoutStoreNestedInput
   }
 
   export type ProductUpsertWithWhereUniqueWithoutCategoryInput = {
@@ -16760,11 +22846,15 @@ export namespace Prisma {
     name: string
     address?: string | null
     receiptLogoUrl?: string | null
+    businessMode?: string
     createdAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutStoresInput
     categories?: CategoryCreateNestedManyWithoutStoreInput
     sales?: SaleCreateNestedManyWithoutStoreInput
     userAccess?: UserStoreCreateNestedManyWithoutStoreInput
+    ingredients?: IngredientCreateNestedManyWithoutStoreInput
+    menuCategories?: MenuCategoryCreateNestedManyWithoutStoreInput
+    menuItems?: MenuItemCreateNestedManyWithoutStoreInput
   }
 
   export type StoreUncheckedCreateWithoutProductsInput = {
@@ -16773,10 +22863,14 @@ export namespace Prisma {
     name: string
     address?: string | null
     receiptLogoUrl?: string | null
+    businessMode?: string
     createdAt?: Date | string
     categories?: CategoryUncheckedCreateNestedManyWithoutStoreInput
     sales?: SaleUncheckedCreateNestedManyWithoutStoreInput
     userAccess?: UserStoreUncheckedCreateNestedManyWithoutStoreInput
+    ingredients?: IngredientUncheckedCreateNestedManyWithoutStoreInput
+    menuCategories?: MenuCategoryUncheckedCreateNestedManyWithoutStoreInput
+    menuItems?: MenuItemUncheckedCreateNestedManyWithoutStoreInput
   }
 
   export type StoreCreateOrConnectWithoutProductsInput = {
@@ -16835,12 +22929,14 @@ export namespace Prisma {
     price: number
     subtotal: number
     sale: SaleCreateNestedOneWithoutItemsInput
+    menuItem?: MenuItemCreateNestedOneWithoutSaleItemsInput
     variant?: VariantCreateNestedOneWithoutSaleItemsInput
   }
 
   export type SaleItemUncheckedCreateWithoutProductInput = {
     id?: string
     saleId: string
+    menuItemId?: string | null
     variantId?: string | null
     productName: string
     variantName?: string | null
@@ -16875,11 +22971,15 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutStoresNestedInput
     categories?: CategoryUpdateManyWithoutStoreNestedInput
     sales?: SaleUpdateManyWithoutStoreNestedInput
     userAccess?: UserStoreUpdateManyWithoutStoreNestedInput
+    ingredients?: IngredientUpdateManyWithoutStoreNestedInput
+    menuCategories?: MenuCategoryUpdateManyWithoutStoreNestedInput
+    menuItems?: MenuItemUpdateManyWithoutStoreNestedInput
   }
 
   export type StoreUncheckedUpdateWithoutProductsInput = {
@@ -16888,10 +22988,14 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     categories?: CategoryUncheckedUpdateManyWithoutStoreNestedInput
     sales?: SaleUncheckedUpdateManyWithoutStoreNestedInput
     userAccess?: UserStoreUncheckedUpdateManyWithoutStoreNestedInput
+    ingredients?: IngredientUncheckedUpdateManyWithoutStoreNestedInput
+    menuCategories?: MenuCategoryUncheckedUpdateManyWithoutStoreNestedInput
+    menuItems?: MenuItemUncheckedUpdateManyWithoutStoreNestedInput
   }
 
   export type CategoryUpsertWithoutProductsInput = {
@@ -16966,7 +23070,8 @@ export namespace Prisma {
     NOT?: SaleItemScalarWhereInput | SaleItemScalarWhereInput[]
     id?: StringFilter<"SaleItem"> | string
     saleId?: StringFilter<"SaleItem"> | string
-    productId?: StringFilter<"SaleItem"> | string
+    productId?: StringNullableFilter<"SaleItem"> | string | null
+    menuItemId?: StringNullableFilter<"SaleItem"> | string | null
     variantId?: StringNullableFilter<"SaleItem"> | string | null
     productName?: StringFilter<"SaleItem"> | string
     variantName?: StringNullableFilter<"SaleItem"> | string | null
@@ -17030,13 +23135,15 @@ export namespace Prisma {
     price: number
     subtotal: number
     sale: SaleCreateNestedOneWithoutItemsInput
-    product: ProductCreateNestedOneWithoutSaleItemsInput
+    product?: ProductCreateNestedOneWithoutSaleItemsInput
+    menuItem?: MenuItemCreateNestedOneWithoutSaleItemsInput
   }
 
   export type SaleItemUncheckedCreateWithoutVariantInput = {
     id?: string
     saleId: string
-    productId: string
+    productId?: string | null
+    menuItemId?: string | null
     productName: string
     variantName?: string | null
     quantity: number
@@ -17128,11 +23235,15 @@ export namespace Prisma {
     name: string
     address?: string | null
     receiptLogoUrl?: string | null
+    businessMode?: string
     createdAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutStoresInput
     categories?: CategoryCreateNestedManyWithoutStoreInput
     products?: ProductCreateNestedManyWithoutStoreInput
     userAccess?: UserStoreCreateNestedManyWithoutStoreInput
+    ingredients?: IngredientCreateNestedManyWithoutStoreInput
+    menuCategories?: MenuCategoryCreateNestedManyWithoutStoreInput
+    menuItems?: MenuItemCreateNestedManyWithoutStoreInput
   }
 
   export type StoreUncheckedCreateWithoutSalesInput = {
@@ -17141,10 +23252,14 @@ export namespace Prisma {
     name: string
     address?: string | null
     receiptLogoUrl?: string | null
+    businessMode?: string
     createdAt?: Date | string
     categories?: CategoryUncheckedCreateNestedManyWithoutStoreInput
     products?: ProductUncheckedCreateNestedManyWithoutStoreInput
     userAccess?: UserStoreUncheckedCreateNestedManyWithoutStoreInput
+    ingredients?: IngredientUncheckedCreateNestedManyWithoutStoreInput
+    menuCategories?: MenuCategoryUncheckedCreateNestedManyWithoutStoreInput
+    menuItems?: MenuItemUncheckedCreateNestedManyWithoutStoreInput
   }
 
   export type StoreCreateOrConnectWithoutSalesInput = {
@@ -17186,13 +23301,15 @@ export namespace Prisma {
     quantity: number
     price: number
     subtotal: number
-    product: ProductCreateNestedOneWithoutSaleItemsInput
+    product?: ProductCreateNestedOneWithoutSaleItemsInput
+    menuItem?: MenuItemCreateNestedOneWithoutSaleItemsInput
     variant?: VariantCreateNestedOneWithoutSaleItemsInput
   }
 
   export type SaleItemUncheckedCreateWithoutSaleInput = {
     id?: string
-    productId: string
+    productId?: string | null
+    menuItemId?: string | null
     variantId?: string | null
     productName: string
     variantName?: string | null
@@ -17227,11 +23344,15 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutStoresNestedInput
     categories?: CategoryUpdateManyWithoutStoreNestedInput
     products?: ProductUpdateManyWithoutStoreNestedInput
     userAccess?: UserStoreUpdateManyWithoutStoreNestedInput
+    ingredients?: IngredientUpdateManyWithoutStoreNestedInput
+    menuCategories?: MenuCategoryUpdateManyWithoutStoreNestedInput
+    menuItems?: MenuItemUpdateManyWithoutStoreNestedInput
   }
 
   export type StoreUncheckedUpdateWithoutSalesInput = {
@@ -17240,10 +23361,14 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     categories?: CategoryUncheckedUpdateManyWithoutStoreNestedInput
     products?: ProductUncheckedUpdateManyWithoutStoreNestedInput
     userAccess?: UserStoreUncheckedUpdateManyWithoutStoreNestedInput
+    ingredients?: IngredientUncheckedUpdateManyWithoutStoreNestedInput
+    menuCategories?: MenuCategoryUncheckedUpdateManyWithoutStoreNestedInput
+    menuItems?: MenuItemUncheckedUpdateManyWithoutStoreNestedInput
   }
 
   export type UserUpsertWithoutSalesInput = {
@@ -17293,6 +23418,605 @@ export namespace Prisma {
   export type SaleItemUpdateManyWithWhereWithoutSaleInput = {
     where: SaleItemScalarWhereInput
     data: XOR<SaleItemUpdateManyMutationInput, SaleItemUncheckedUpdateManyWithoutSaleInput>
+  }
+
+  export type StoreCreateWithoutIngredientsInput = {
+    id?: string
+    name: string
+    address?: string | null
+    receiptLogoUrl?: string | null
+    businessMode?: string
+    createdAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutStoresInput
+    categories?: CategoryCreateNestedManyWithoutStoreInput
+    products?: ProductCreateNestedManyWithoutStoreInput
+    sales?: SaleCreateNestedManyWithoutStoreInput
+    userAccess?: UserStoreCreateNestedManyWithoutStoreInput
+    menuCategories?: MenuCategoryCreateNestedManyWithoutStoreInput
+    menuItems?: MenuItemCreateNestedManyWithoutStoreInput
+  }
+
+  export type StoreUncheckedCreateWithoutIngredientsInput = {
+    id?: string
+    organizationId: string
+    name: string
+    address?: string | null
+    receiptLogoUrl?: string | null
+    businessMode?: string
+    createdAt?: Date | string
+    categories?: CategoryUncheckedCreateNestedManyWithoutStoreInput
+    products?: ProductUncheckedCreateNestedManyWithoutStoreInput
+    sales?: SaleUncheckedCreateNestedManyWithoutStoreInput
+    userAccess?: UserStoreUncheckedCreateNestedManyWithoutStoreInput
+    menuCategories?: MenuCategoryUncheckedCreateNestedManyWithoutStoreInput
+    menuItems?: MenuItemUncheckedCreateNestedManyWithoutStoreInput
+  }
+
+  export type StoreCreateOrConnectWithoutIngredientsInput = {
+    where: StoreWhereUniqueInput
+    create: XOR<StoreCreateWithoutIngredientsInput, StoreUncheckedCreateWithoutIngredientsInput>
+  }
+
+  export type RecipeLineCreateWithoutIngredientInput = {
+    id?: string
+    quantity: number
+    wastagePercent?: number | null
+    menuItem: MenuItemCreateNestedOneWithoutRecipeLinesInput
+  }
+
+  export type RecipeLineUncheckedCreateWithoutIngredientInput = {
+    id?: string
+    menuItemId: string
+    quantity: number
+    wastagePercent?: number | null
+  }
+
+  export type RecipeLineCreateOrConnectWithoutIngredientInput = {
+    where: RecipeLineWhereUniqueInput
+    create: XOR<RecipeLineCreateWithoutIngredientInput, RecipeLineUncheckedCreateWithoutIngredientInput>
+  }
+
+  export type RecipeLineCreateManyIngredientInputEnvelope = {
+    data: RecipeLineCreateManyIngredientInput | RecipeLineCreateManyIngredientInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type StoreUpsertWithoutIngredientsInput = {
+    update: XOR<StoreUpdateWithoutIngredientsInput, StoreUncheckedUpdateWithoutIngredientsInput>
+    create: XOR<StoreCreateWithoutIngredientsInput, StoreUncheckedCreateWithoutIngredientsInput>
+    where?: StoreWhereInput
+  }
+
+  export type StoreUpdateToOneWithWhereWithoutIngredientsInput = {
+    where?: StoreWhereInput
+    data: XOR<StoreUpdateWithoutIngredientsInput, StoreUncheckedUpdateWithoutIngredientsInput>
+  }
+
+  export type StoreUpdateWithoutIngredientsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutStoresNestedInput
+    categories?: CategoryUpdateManyWithoutStoreNestedInput
+    products?: ProductUpdateManyWithoutStoreNestedInput
+    sales?: SaleUpdateManyWithoutStoreNestedInput
+    userAccess?: UserStoreUpdateManyWithoutStoreNestedInput
+    menuCategories?: MenuCategoryUpdateManyWithoutStoreNestedInput
+    menuItems?: MenuItemUpdateManyWithoutStoreNestedInput
+  }
+
+  export type StoreUncheckedUpdateWithoutIngredientsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    categories?: CategoryUncheckedUpdateManyWithoutStoreNestedInput
+    products?: ProductUncheckedUpdateManyWithoutStoreNestedInput
+    sales?: SaleUncheckedUpdateManyWithoutStoreNestedInput
+    userAccess?: UserStoreUncheckedUpdateManyWithoutStoreNestedInput
+    menuCategories?: MenuCategoryUncheckedUpdateManyWithoutStoreNestedInput
+    menuItems?: MenuItemUncheckedUpdateManyWithoutStoreNestedInput
+  }
+
+  export type RecipeLineUpsertWithWhereUniqueWithoutIngredientInput = {
+    where: RecipeLineWhereUniqueInput
+    update: XOR<RecipeLineUpdateWithoutIngredientInput, RecipeLineUncheckedUpdateWithoutIngredientInput>
+    create: XOR<RecipeLineCreateWithoutIngredientInput, RecipeLineUncheckedCreateWithoutIngredientInput>
+  }
+
+  export type RecipeLineUpdateWithWhereUniqueWithoutIngredientInput = {
+    where: RecipeLineWhereUniqueInput
+    data: XOR<RecipeLineUpdateWithoutIngredientInput, RecipeLineUncheckedUpdateWithoutIngredientInput>
+  }
+
+  export type RecipeLineUpdateManyWithWhereWithoutIngredientInput = {
+    where: RecipeLineScalarWhereInput
+    data: XOR<RecipeLineUpdateManyMutationInput, RecipeLineUncheckedUpdateManyWithoutIngredientInput>
+  }
+
+  export type RecipeLineScalarWhereInput = {
+    AND?: RecipeLineScalarWhereInput | RecipeLineScalarWhereInput[]
+    OR?: RecipeLineScalarWhereInput[]
+    NOT?: RecipeLineScalarWhereInput | RecipeLineScalarWhereInput[]
+    id?: StringFilter<"RecipeLine"> | string
+    menuItemId?: StringFilter<"RecipeLine"> | string
+    ingredientId?: StringFilter<"RecipeLine"> | string
+    quantity?: FloatFilter<"RecipeLine"> | number
+    wastagePercent?: FloatNullableFilter<"RecipeLine"> | number | null
+  }
+
+  export type StoreCreateWithoutMenuCategoriesInput = {
+    id?: string
+    name: string
+    address?: string | null
+    receiptLogoUrl?: string | null
+    businessMode?: string
+    createdAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutStoresInput
+    categories?: CategoryCreateNestedManyWithoutStoreInput
+    products?: ProductCreateNestedManyWithoutStoreInput
+    sales?: SaleCreateNestedManyWithoutStoreInput
+    userAccess?: UserStoreCreateNestedManyWithoutStoreInput
+    ingredients?: IngredientCreateNestedManyWithoutStoreInput
+    menuItems?: MenuItemCreateNestedManyWithoutStoreInput
+  }
+
+  export type StoreUncheckedCreateWithoutMenuCategoriesInput = {
+    id?: string
+    organizationId: string
+    name: string
+    address?: string | null
+    receiptLogoUrl?: string | null
+    businessMode?: string
+    createdAt?: Date | string
+    categories?: CategoryUncheckedCreateNestedManyWithoutStoreInput
+    products?: ProductUncheckedCreateNestedManyWithoutStoreInput
+    sales?: SaleUncheckedCreateNestedManyWithoutStoreInput
+    userAccess?: UserStoreUncheckedCreateNestedManyWithoutStoreInput
+    ingredients?: IngredientUncheckedCreateNestedManyWithoutStoreInput
+    menuItems?: MenuItemUncheckedCreateNestedManyWithoutStoreInput
+  }
+
+  export type StoreCreateOrConnectWithoutMenuCategoriesInput = {
+    where: StoreWhereUniqueInput
+    create: XOR<StoreCreateWithoutMenuCategoriesInput, StoreUncheckedCreateWithoutMenuCategoriesInput>
+  }
+
+  export type MenuItemCreateWithoutMenuCategoryInput = {
+    id?: string
+    name: string
+    price: number
+    status?: string
+    image?: string | null
+    barcode?: string | null
+    store: StoreCreateNestedOneWithoutMenuItemsInput
+    recipeLines?: RecipeLineCreateNestedManyWithoutMenuItemInput
+    saleItems?: SaleItemCreateNestedManyWithoutMenuItemInput
+  }
+
+  export type MenuItemUncheckedCreateWithoutMenuCategoryInput = {
+    id?: string
+    storeId: string
+    name: string
+    price: number
+    status?: string
+    image?: string | null
+    barcode?: string | null
+    recipeLines?: RecipeLineUncheckedCreateNestedManyWithoutMenuItemInput
+    saleItems?: SaleItemUncheckedCreateNestedManyWithoutMenuItemInput
+  }
+
+  export type MenuItemCreateOrConnectWithoutMenuCategoryInput = {
+    where: MenuItemWhereUniqueInput
+    create: XOR<MenuItemCreateWithoutMenuCategoryInput, MenuItemUncheckedCreateWithoutMenuCategoryInput>
+  }
+
+  export type MenuItemCreateManyMenuCategoryInputEnvelope = {
+    data: MenuItemCreateManyMenuCategoryInput | MenuItemCreateManyMenuCategoryInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type StoreUpsertWithoutMenuCategoriesInput = {
+    update: XOR<StoreUpdateWithoutMenuCategoriesInput, StoreUncheckedUpdateWithoutMenuCategoriesInput>
+    create: XOR<StoreCreateWithoutMenuCategoriesInput, StoreUncheckedCreateWithoutMenuCategoriesInput>
+    where?: StoreWhereInput
+  }
+
+  export type StoreUpdateToOneWithWhereWithoutMenuCategoriesInput = {
+    where?: StoreWhereInput
+    data: XOR<StoreUpdateWithoutMenuCategoriesInput, StoreUncheckedUpdateWithoutMenuCategoriesInput>
+  }
+
+  export type StoreUpdateWithoutMenuCategoriesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutStoresNestedInput
+    categories?: CategoryUpdateManyWithoutStoreNestedInput
+    products?: ProductUpdateManyWithoutStoreNestedInput
+    sales?: SaleUpdateManyWithoutStoreNestedInput
+    userAccess?: UserStoreUpdateManyWithoutStoreNestedInput
+    ingredients?: IngredientUpdateManyWithoutStoreNestedInput
+    menuItems?: MenuItemUpdateManyWithoutStoreNestedInput
+  }
+
+  export type StoreUncheckedUpdateWithoutMenuCategoriesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    categories?: CategoryUncheckedUpdateManyWithoutStoreNestedInput
+    products?: ProductUncheckedUpdateManyWithoutStoreNestedInput
+    sales?: SaleUncheckedUpdateManyWithoutStoreNestedInput
+    userAccess?: UserStoreUncheckedUpdateManyWithoutStoreNestedInput
+    ingredients?: IngredientUncheckedUpdateManyWithoutStoreNestedInput
+    menuItems?: MenuItemUncheckedUpdateManyWithoutStoreNestedInput
+  }
+
+  export type MenuItemUpsertWithWhereUniqueWithoutMenuCategoryInput = {
+    where: MenuItemWhereUniqueInput
+    update: XOR<MenuItemUpdateWithoutMenuCategoryInput, MenuItemUncheckedUpdateWithoutMenuCategoryInput>
+    create: XOR<MenuItemCreateWithoutMenuCategoryInput, MenuItemUncheckedCreateWithoutMenuCategoryInput>
+  }
+
+  export type MenuItemUpdateWithWhereUniqueWithoutMenuCategoryInput = {
+    where: MenuItemWhereUniqueInput
+    data: XOR<MenuItemUpdateWithoutMenuCategoryInput, MenuItemUncheckedUpdateWithoutMenuCategoryInput>
+  }
+
+  export type MenuItemUpdateManyWithWhereWithoutMenuCategoryInput = {
+    where: MenuItemScalarWhereInput
+    data: XOR<MenuItemUpdateManyMutationInput, MenuItemUncheckedUpdateManyWithoutMenuCategoryInput>
+  }
+
+  export type StoreCreateWithoutMenuItemsInput = {
+    id?: string
+    name: string
+    address?: string | null
+    receiptLogoUrl?: string | null
+    businessMode?: string
+    createdAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutStoresInput
+    categories?: CategoryCreateNestedManyWithoutStoreInput
+    products?: ProductCreateNestedManyWithoutStoreInput
+    sales?: SaleCreateNestedManyWithoutStoreInput
+    userAccess?: UserStoreCreateNestedManyWithoutStoreInput
+    ingredients?: IngredientCreateNestedManyWithoutStoreInput
+    menuCategories?: MenuCategoryCreateNestedManyWithoutStoreInput
+  }
+
+  export type StoreUncheckedCreateWithoutMenuItemsInput = {
+    id?: string
+    organizationId: string
+    name: string
+    address?: string | null
+    receiptLogoUrl?: string | null
+    businessMode?: string
+    createdAt?: Date | string
+    categories?: CategoryUncheckedCreateNestedManyWithoutStoreInput
+    products?: ProductUncheckedCreateNestedManyWithoutStoreInput
+    sales?: SaleUncheckedCreateNestedManyWithoutStoreInput
+    userAccess?: UserStoreUncheckedCreateNestedManyWithoutStoreInput
+    ingredients?: IngredientUncheckedCreateNestedManyWithoutStoreInput
+    menuCategories?: MenuCategoryUncheckedCreateNestedManyWithoutStoreInput
+  }
+
+  export type StoreCreateOrConnectWithoutMenuItemsInput = {
+    where: StoreWhereUniqueInput
+    create: XOR<StoreCreateWithoutMenuItemsInput, StoreUncheckedCreateWithoutMenuItemsInput>
+  }
+
+  export type MenuCategoryCreateWithoutMenuItemsInput = {
+    id?: string
+    name: string
+    store: StoreCreateNestedOneWithoutMenuCategoriesInput
+  }
+
+  export type MenuCategoryUncheckedCreateWithoutMenuItemsInput = {
+    id?: string
+    storeId: string
+    name: string
+  }
+
+  export type MenuCategoryCreateOrConnectWithoutMenuItemsInput = {
+    where: MenuCategoryWhereUniqueInput
+    create: XOR<MenuCategoryCreateWithoutMenuItemsInput, MenuCategoryUncheckedCreateWithoutMenuItemsInput>
+  }
+
+  export type RecipeLineCreateWithoutMenuItemInput = {
+    id?: string
+    quantity: number
+    wastagePercent?: number | null
+    ingredient: IngredientCreateNestedOneWithoutRecipeLinesInput
+  }
+
+  export type RecipeLineUncheckedCreateWithoutMenuItemInput = {
+    id?: string
+    ingredientId: string
+    quantity: number
+    wastagePercent?: number | null
+  }
+
+  export type RecipeLineCreateOrConnectWithoutMenuItemInput = {
+    where: RecipeLineWhereUniqueInput
+    create: XOR<RecipeLineCreateWithoutMenuItemInput, RecipeLineUncheckedCreateWithoutMenuItemInput>
+  }
+
+  export type RecipeLineCreateManyMenuItemInputEnvelope = {
+    data: RecipeLineCreateManyMenuItemInput | RecipeLineCreateManyMenuItemInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type SaleItemCreateWithoutMenuItemInput = {
+    id?: string
+    productName: string
+    variantName?: string | null
+    quantity: number
+    price: number
+    subtotal: number
+    sale: SaleCreateNestedOneWithoutItemsInput
+    product?: ProductCreateNestedOneWithoutSaleItemsInput
+    variant?: VariantCreateNestedOneWithoutSaleItemsInput
+  }
+
+  export type SaleItemUncheckedCreateWithoutMenuItemInput = {
+    id?: string
+    saleId: string
+    productId?: string | null
+    variantId?: string | null
+    productName: string
+    variantName?: string | null
+    quantity: number
+    price: number
+    subtotal: number
+  }
+
+  export type SaleItemCreateOrConnectWithoutMenuItemInput = {
+    where: SaleItemWhereUniqueInput
+    create: XOR<SaleItemCreateWithoutMenuItemInput, SaleItemUncheckedCreateWithoutMenuItemInput>
+  }
+
+  export type SaleItemCreateManyMenuItemInputEnvelope = {
+    data: SaleItemCreateManyMenuItemInput | SaleItemCreateManyMenuItemInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type StoreUpsertWithoutMenuItemsInput = {
+    update: XOR<StoreUpdateWithoutMenuItemsInput, StoreUncheckedUpdateWithoutMenuItemsInput>
+    create: XOR<StoreCreateWithoutMenuItemsInput, StoreUncheckedCreateWithoutMenuItemsInput>
+    where?: StoreWhereInput
+  }
+
+  export type StoreUpdateToOneWithWhereWithoutMenuItemsInput = {
+    where?: StoreWhereInput
+    data: XOR<StoreUpdateWithoutMenuItemsInput, StoreUncheckedUpdateWithoutMenuItemsInput>
+  }
+
+  export type StoreUpdateWithoutMenuItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutStoresNestedInput
+    categories?: CategoryUpdateManyWithoutStoreNestedInput
+    products?: ProductUpdateManyWithoutStoreNestedInput
+    sales?: SaleUpdateManyWithoutStoreNestedInput
+    userAccess?: UserStoreUpdateManyWithoutStoreNestedInput
+    ingredients?: IngredientUpdateManyWithoutStoreNestedInput
+    menuCategories?: MenuCategoryUpdateManyWithoutStoreNestedInput
+  }
+
+  export type StoreUncheckedUpdateWithoutMenuItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    categories?: CategoryUncheckedUpdateManyWithoutStoreNestedInput
+    products?: ProductUncheckedUpdateManyWithoutStoreNestedInput
+    sales?: SaleUncheckedUpdateManyWithoutStoreNestedInput
+    userAccess?: UserStoreUncheckedUpdateManyWithoutStoreNestedInput
+    ingredients?: IngredientUncheckedUpdateManyWithoutStoreNestedInput
+    menuCategories?: MenuCategoryUncheckedUpdateManyWithoutStoreNestedInput
+  }
+
+  export type MenuCategoryUpsertWithoutMenuItemsInput = {
+    update: XOR<MenuCategoryUpdateWithoutMenuItemsInput, MenuCategoryUncheckedUpdateWithoutMenuItemsInput>
+    create: XOR<MenuCategoryCreateWithoutMenuItemsInput, MenuCategoryUncheckedCreateWithoutMenuItemsInput>
+    where?: MenuCategoryWhereInput
+  }
+
+  export type MenuCategoryUpdateToOneWithWhereWithoutMenuItemsInput = {
+    where?: MenuCategoryWhereInput
+    data: XOR<MenuCategoryUpdateWithoutMenuItemsInput, MenuCategoryUncheckedUpdateWithoutMenuItemsInput>
+  }
+
+  export type MenuCategoryUpdateWithoutMenuItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    store?: StoreUpdateOneRequiredWithoutMenuCategoriesNestedInput
+  }
+
+  export type MenuCategoryUncheckedUpdateWithoutMenuItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    storeId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type RecipeLineUpsertWithWhereUniqueWithoutMenuItemInput = {
+    where: RecipeLineWhereUniqueInput
+    update: XOR<RecipeLineUpdateWithoutMenuItemInput, RecipeLineUncheckedUpdateWithoutMenuItemInput>
+    create: XOR<RecipeLineCreateWithoutMenuItemInput, RecipeLineUncheckedCreateWithoutMenuItemInput>
+  }
+
+  export type RecipeLineUpdateWithWhereUniqueWithoutMenuItemInput = {
+    where: RecipeLineWhereUniqueInput
+    data: XOR<RecipeLineUpdateWithoutMenuItemInput, RecipeLineUncheckedUpdateWithoutMenuItemInput>
+  }
+
+  export type RecipeLineUpdateManyWithWhereWithoutMenuItemInput = {
+    where: RecipeLineScalarWhereInput
+    data: XOR<RecipeLineUpdateManyMutationInput, RecipeLineUncheckedUpdateManyWithoutMenuItemInput>
+  }
+
+  export type SaleItemUpsertWithWhereUniqueWithoutMenuItemInput = {
+    where: SaleItemWhereUniqueInput
+    update: XOR<SaleItemUpdateWithoutMenuItemInput, SaleItemUncheckedUpdateWithoutMenuItemInput>
+    create: XOR<SaleItemCreateWithoutMenuItemInput, SaleItemUncheckedCreateWithoutMenuItemInput>
+  }
+
+  export type SaleItemUpdateWithWhereUniqueWithoutMenuItemInput = {
+    where: SaleItemWhereUniqueInput
+    data: XOR<SaleItemUpdateWithoutMenuItemInput, SaleItemUncheckedUpdateWithoutMenuItemInput>
+  }
+
+  export type SaleItemUpdateManyWithWhereWithoutMenuItemInput = {
+    where: SaleItemScalarWhereInput
+    data: XOR<SaleItemUpdateManyMutationInput, SaleItemUncheckedUpdateManyWithoutMenuItemInput>
+  }
+
+  export type MenuItemCreateWithoutRecipeLinesInput = {
+    id?: string
+    name: string
+    price: number
+    status?: string
+    image?: string | null
+    barcode?: string | null
+    store: StoreCreateNestedOneWithoutMenuItemsInput
+    menuCategory: MenuCategoryCreateNestedOneWithoutMenuItemsInput
+    saleItems?: SaleItemCreateNestedManyWithoutMenuItemInput
+  }
+
+  export type MenuItemUncheckedCreateWithoutRecipeLinesInput = {
+    id?: string
+    storeId: string
+    menuCategoryId: string
+    name: string
+    price: number
+    status?: string
+    image?: string | null
+    barcode?: string | null
+    saleItems?: SaleItemUncheckedCreateNestedManyWithoutMenuItemInput
+  }
+
+  export type MenuItemCreateOrConnectWithoutRecipeLinesInput = {
+    where: MenuItemWhereUniqueInput
+    create: XOR<MenuItemCreateWithoutRecipeLinesInput, MenuItemUncheckedCreateWithoutRecipeLinesInput>
+  }
+
+  export type IngredientCreateWithoutRecipeLinesInput = {
+    id?: string
+    name: string
+    sku?: string | null
+    barcode?: string | null
+    stock?: number
+    lowStockThreshold?: number
+    unitOfMeasure?: string | null
+    status?: string
+    store: StoreCreateNestedOneWithoutIngredientsInput
+  }
+
+  export type IngredientUncheckedCreateWithoutRecipeLinesInput = {
+    id?: string
+    storeId: string
+    name: string
+    sku?: string | null
+    barcode?: string | null
+    stock?: number
+    lowStockThreshold?: number
+    unitOfMeasure?: string | null
+    status?: string
+  }
+
+  export type IngredientCreateOrConnectWithoutRecipeLinesInput = {
+    where: IngredientWhereUniqueInput
+    create: XOR<IngredientCreateWithoutRecipeLinesInput, IngredientUncheckedCreateWithoutRecipeLinesInput>
+  }
+
+  export type MenuItemUpsertWithoutRecipeLinesInput = {
+    update: XOR<MenuItemUpdateWithoutRecipeLinesInput, MenuItemUncheckedUpdateWithoutRecipeLinesInput>
+    create: XOR<MenuItemCreateWithoutRecipeLinesInput, MenuItemUncheckedCreateWithoutRecipeLinesInput>
+    where?: MenuItemWhereInput
+  }
+
+  export type MenuItemUpdateToOneWithWhereWithoutRecipeLinesInput = {
+    where?: MenuItemWhereInput
+    data: XOR<MenuItemUpdateWithoutRecipeLinesInput, MenuItemUncheckedUpdateWithoutRecipeLinesInput>
+  }
+
+  export type MenuItemUpdateWithoutRecipeLinesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    price?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+    store?: StoreUpdateOneRequiredWithoutMenuItemsNestedInput
+    menuCategory?: MenuCategoryUpdateOneRequiredWithoutMenuItemsNestedInput
+    saleItems?: SaleItemUpdateManyWithoutMenuItemNestedInput
+  }
+
+  export type MenuItemUncheckedUpdateWithoutRecipeLinesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    storeId?: StringFieldUpdateOperationsInput | string
+    menuCategoryId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    price?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+    saleItems?: SaleItemUncheckedUpdateManyWithoutMenuItemNestedInput
+  }
+
+  export type IngredientUpsertWithoutRecipeLinesInput = {
+    update: XOR<IngredientUpdateWithoutRecipeLinesInput, IngredientUncheckedUpdateWithoutRecipeLinesInput>
+    create: XOR<IngredientCreateWithoutRecipeLinesInput, IngredientUncheckedCreateWithoutRecipeLinesInput>
+    where?: IngredientWhereInput
+  }
+
+  export type IngredientUpdateToOneWithWhereWithoutRecipeLinesInput = {
+    where?: IngredientWhereInput
+    data: XOR<IngredientUpdateWithoutRecipeLinesInput, IngredientUncheckedUpdateWithoutRecipeLinesInput>
+  }
+
+  export type IngredientUpdateWithoutRecipeLinesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    sku?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+    stock?: IntFieldUpdateOperationsInput | number
+    lowStockThreshold?: IntFieldUpdateOperationsInput | number
+    unitOfMeasure?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    store?: StoreUpdateOneRequiredWithoutIngredientsNestedInput
+  }
+
+  export type IngredientUncheckedUpdateWithoutRecipeLinesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    storeId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    sku?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+    stock?: IntFieldUpdateOperationsInput | number
+    lowStockThreshold?: IntFieldUpdateOperationsInput | number
+    unitOfMeasure?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
   }
 
   export type SaleCreateWithoutItemsInput = {
@@ -17375,6 +24099,35 @@ export namespace Prisma {
   export type ProductCreateOrConnectWithoutSaleItemsInput = {
     where: ProductWhereUniqueInput
     create: XOR<ProductCreateWithoutSaleItemsInput, ProductUncheckedCreateWithoutSaleItemsInput>
+  }
+
+  export type MenuItemCreateWithoutSaleItemsInput = {
+    id?: string
+    name: string
+    price: number
+    status?: string
+    image?: string | null
+    barcode?: string | null
+    store: StoreCreateNestedOneWithoutMenuItemsInput
+    menuCategory: MenuCategoryCreateNestedOneWithoutMenuItemsInput
+    recipeLines?: RecipeLineCreateNestedManyWithoutMenuItemInput
+  }
+
+  export type MenuItemUncheckedCreateWithoutSaleItemsInput = {
+    id?: string
+    storeId: string
+    menuCategoryId: string
+    name: string
+    price: number
+    status?: string
+    image?: string | null
+    barcode?: string | null
+    recipeLines?: RecipeLineUncheckedCreateNestedManyWithoutMenuItemInput
+  }
+
+  export type MenuItemCreateOrConnectWithoutSaleItemsInput = {
+    where: MenuItemWhereUniqueInput
+    create: XOR<MenuItemCreateWithoutSaleItemsInput, MenuItemUncheckedCreateWithoutSaleItemsInput>
   }
 
   export type VariantCreateWithoutSaleItemsInput = {
@@ -17492,6 +24245,41 @@ export namespace Prisma {
     variants?: VariantUncheckedUpdateManyWithoutProductNestedInput
   }
 
+  export type MenuItemUpsertWithoutSaleItemsInput = {
+    update: XOR<MenuItemUpdateWithoutSaleItemsInput, MenuItemUncheckedUpdateWithoutSaleItemsInput>
+    create: XOR<MenuItemCreateWithoutSaleItemsInput, MenuItemUncheckedCreateWithoutSaleItemsInput>
+    where?: MenuItemWhereInput
+  }
+
+  export type MenuItemUpdateToOneWithWhereWithoutSaleItemsInput = {
+    where?: MenuItemWhereInput
+    data: XOR<MenuItemUpdateWithoutSaleItemsInput, MenuItemUncheckedUpdateWithoutSaleItemsInput>
+  }
+
+  export type MenuItemUpdateWithoutSaleItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    price?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+    store?: StoreUpdateOneRequiredWithoutMenuItemsNestedInput
+    menuCategory?: MenuCategoryUpdateOneRequiredWithoutMenuItemsNestedInput
+    recipeLines?: RecipeLineUpdateManyWithoutMenuItemNestedInput
+  }
+
+  export type MenuItemUncheckedUpdateWithoutSaleItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    storeId?: StringFieldUpdateOperationsInput | string
+    menuCategoryId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    price?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+    recipeLines?: RecipeLineUncheckedUpdateManyWithoutMenuItemNestedInput
+  }
+
   export type VariantUpsertWithoutSaleItemsInput = {
     update: XOR<VariantUpdateWithoutSaleItemsInput, VariantUncheckedUpdateWithoutSaleItemsInput>
     create: XOR<VariantCreateWithoutSaleItemsInput, VariantUncheckedCreateWithoutSaleItemsInput>
@@ -17533,6 +24321,7 @@ export namespace Prisma {
     name: string
     address?: string | null
     receiptLogoUrl?: string | null
+    businessMode?: string
     createdAt?: Date | string
   }
 
@@ -17580,11 +24369,15 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     categories?: CategoryUpdateManyWithoutStoreNestedInput
     products?: ProductUpdateManyWithoutStoreNestedInput
     sales?: SaleUpdateManyWithoutStoreNestedInput
     userAccess?: UserStoreUpdateManyWithoutStoreNestedInput
+    ingredients?: IngredientUpdateManyWithoutStoreNestedInput
+    menuCategories?: MenuCategoryUpdateManyWithoutStoreNestedInput
+    menuItems?: MenuItemUpdateManyWithoutStoreNestedInput
   }
 
   export type StoreUncheckedUpdateWithoutOrganizationInput = {
@@ -17592,11 +24385,15 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     categories?: CategoryUncheckedUpdateManyWithoutStoreNestedInput
     products?: ProductUncheckedUpdateManyWithoutStoreNestedInput
     sales?: SaleUncheckedUpdateManyWithoutStoreNestedInput
     userAccess?: UserStoreUncheckedUpdateManyWithoutStoreNestedInput
+    ingredients?: IngredientUncheckedUpdateManyWithoutStoreNestedInput
+    menuCategories?: MenuCategoryUncheckedUpdateManyWithoutStoreNestedInput
+    menuItems?: MenuItemUncheckedUpdateManyWithoutStoreNestedInput
   }
 
   export type StoreUncheckedUpdateManyWithoutOrganizationInput = {
@@ -17604,6 +24401,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     address?: NullableStringFieldUpdateOperationsInput | string | null
     receiptLogoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    businessMode?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -17671,6 +24469,32 @@ export namespace Prisma {
 
   export type UserStoreCreateManyStoreInput = {
     userId: string
+  }
+
+  export type IngredientCreateManyStoreInput = {
+    id?: string
+    name: string
+    sku?: string | null
+    barcode?: string | null
+    stock?: number
+    lowStockThreshold?: number
+    unitOfMeasure?: string | null
+    status?: string
+  }
+
+  export type MenuCategoryCreateManyStoreInput = {
+    id?: string
+    name: string
+  }
+
+  export type MenuItemCreateManyStoreInput = {
+    id?: string
+    menuCategoryId: string
+    name: string
+    price: number
+    status?: string
+    image?: string | null
+    barcode?: string | null
   }
 
   export type CategoryUpdateWithoutStoreInput = {
@@ -17805,6 +24629,92 @@ export namespace Prisma {
 
   export type UserStoreUncheckedUpdateManyWithoutStoreInput = {
     userId?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type IngredientUpdateWithoutStoreInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    sku?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+    stock?: IntFieldUpdateOperationsInput | number
+    lowStockThreshold?: IntFieldUpdateOperationsInput | number
+    unitOfMeasure?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    recipeLines?: RecipeLineUpdateManyWithoutIngredientNestedInput
+  }
+
+  export type IngredientUncheckedUpdateWithoutStoreInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    sku?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+    stock?: IntFieldUpdateOperationsInput | number
+    lowStockThreshold?: IntFieldUpdateOperationsInput | number
+    unitOfMeasure?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    recipeLines?: RecipeLineUncheckedUpdateManyWithoutIngredientNestedInput
+  }
+
+  export type IngredientUncheckedUpdateManyWithoutStoreInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    sku?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+    stock?: IntFieldUpdateOperationsInput | number
+    lowStockThreshold?: IntFieldUpdateOperationsInput | number
+    unitOfMeasure?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type MenuCategoryUpdateWithoutStoreInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    menuItems?: MenuItemUpdateManyWithoutMenuCategoryNestedInput
+  }
+
+  export type MenuCategoryUncheckedUpdateWithoutStoreInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    menuItems?: MenuItemUncheckedUpdateManyWithoutMenuCategoryNestedInput
+  }
+
+  export type MenuCategoryUncheckedUpdateManyWithoutStoreInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type MenuItemUpdateWithoutStoreInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    price?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+    menuCategory?: MenuCategoryUpdateOneRequiredWithoutMenuItemsNestedInput
+    recipeLines?: RecipeLineUpdateManyWithoutMenuItemNestedInput
+    saleItems?: SaleItemUpdateManyWithoutMenuItemNestedInput
+  }
+
+  export type MenuItemUncheckedUpdateWithoutStoreInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    menuCategoryId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    price?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+    recipeLines?: RecipeLineUncheckedUpdateManyWithoutMenuItemNestedInput
+    saleItems?: SaleItemUncheckedUpdateManyWithoutMenuItemNestedInput
+  }
+
+  export type MenuItemUncheckedUpdateManyWithoutStoreInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    menuCategoryId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    price?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type SaleCreateManyCashierInput = {
@@ -17971,6 +24881,7 @@ export namespace Prisma {
   export type SaleItemCreateManyProductInput = {
     id?: string
     saleId: string
+    menuItemId?: string | null
     variantId?: string | null
     productName: string
     variantName?: string | null
@@ -18010,12 +24921,14 @@ export namespace Prisma {
     price?: FloatFieldUpdateOperationsInput | number
     subtotal?: FloatFieldUpdateOperationsInput | number
     sale?: SaleUpdateOneRequiredWithoutItemsNestedInput
+    menuItem?: MenuItemUpdateOneWithoutSaleItemsNestedInput
     variant?: VariantUpdateOneWithoutSaleItemsNestedInput
   }
 
   export type SaleItemUncheckedUpdateWithoutProductInput = {
     id?: StringFieldUpdateOperationsInput | string
     saleId?: StringFieldUpdateOperationsInput | string
+    menuItemId?: NullableStringFieldUpdateOperationsInput | string | null
     variantId?: NullableStringFieldUpdateOperationsInput | string | null
     productName?: StringFieldUpdateOperationsInput | string
     variantName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -18027,6 +24940,7 @@ export namespace Prisma {
   export type SaleItemUncheckedUpdateManyWithoutProductInput = {
     id?: StringFieldUpdateOperationsInput | string
     saleId?: StringFieldUpdateOperationsInput | string
+    menuItemId?: NullableStringFieldUpdateOperationsInput | string | null
     variantId?: NullableStringFieldUpdateOperationsInput | string | null
     productName?: StringFieldUpdateOperationsInput | string
     variantName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -18038,7 +24952,8 @@ export namespace Prisma {
   export type SaleItemCreateManyVariantInput = {
     id?: string
     saleId: string
-    productId: string
+    productId?: string | null
+    menuItemId?: string | null
     productName: string
     variantName?: string | null
     quantity: number
@@ -18054,13 +24969,15 @@ export namespace Prisma {
     price?: FloatFieldUpdateOperationsInput | number
     subtotal?: FloatFieldUpdateOperationsInput | number
     sale?: SaleUpdateOneRequiredWithoutItemsNestedInput
-    product?: ProductUpdateOneRequiredWithoutSaleItemsNestedInput
+    product?: ProductUpdateOneWithoutSaleItemsNestedInput
+    menuItem?: MenuItemUpdateOneWithoutSaleItemsNestedInput
   }
 
   export type SaleItemUncheckedUpdateWithoutVariantInput = {
     id?: StringFieldUpdateOperationsInput | string
     saleId?: StringFieldUpdateOperationsInput | string
-    productId?: StringFieldUpdateOperationsInput | string
+    productId?: NullableStringFieldUpdateOperationsInput | string | null
+    menuItemId?: NullableStringFieldUpdateOperationsInput | string | null
     productName?: StringFieldUpdateOperationsInput | string
     variantName?: NullableStringFieldUpdateOperationsInput | string | null
     quantity?: IntFieldUpdateOperationsInput | number
@@ -18071,7 +24988,8 @@ export namespace Prisma {
   export type SaleItemUncheckedUpdateManyWithoutVariantInput = {
     id?: StringFieldUpdateOperationsInput | string
     saleId?: StringFieldUpdateOperationsInput | string
-    productId?: StringFieldUpdateOperationsInput | string
+    productId?: NullableStringFieldUpdateOperationsInput | string | null
+    menuItemId?: NullableStringFieldUpdateOperationsInput | string | null
     productName?: StringFieldUpdateOperationsInput | string
     variantName?: NullableStringFieldUpdateOperationsInput | string | null
     quantity?: IntFieldUpdateOperationsInput | number
@@ -18081,7 +24999,8 @@ export namespace Prisma {
 
   export type SaleItemCreateManySaleInput = {
     id?: string
-    productId: string
+    productId?: string | null
+    menuItemId?: string | null
     variantId?: string | null
     productName: string
     variantName?: string | null
@@ -18097,13 +25016,15 @@ export namespace Prisma {
     quantity?: IntFieldUpdateOperationsInput | number
     price?: FloatFieldUpdateOperationsInput | number
     subtotal?: FloatFieldUpdateOperationsInput | number
-    product?: ProductUpdateOneRequiredWithoutSaleItemsNestedInput
+    product?: ProductUpdateOneWithoutSaleItemsNestedInput
+    menuItem?: MenuItemUpdateOneWithoutSaleItemsNestedInput
     variant?: VariantUpdateOneWithoutSaleItemsNestedInput
   }
 
   export type SaleItemUncheckedUpdateWithoutSaleInput = {
     id?: StringFieldUpdateOperationsInput | string
-    productId?: StringFieldUpdateOperationsInput | string
+    productId?: NullableStringFieldUpdateOperationsInput | string | null
+    menuItemId?: NullableStringFieldUpdateOperationsInput | string | null
     variantId?: NullableStringFieldUpdateOperationsInput | string | null
     productName?: StringFieldUpdateOperationsInput | string
     variantName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -18114,7 +25035,156 @@ export namespace Prisma {
 
   export type SaleItemUncheckedUpdateManyWithoutSaleInput = {
     id?: StringFieldUpdateOperationsInput | string
-    productId?: StringFieldUpdateOperationsInput | string
+    productId?: NullableStringFieldUpdateOperationsInput | string | null
+    menuItemId?: NullableStringFieldUpdateOperationsInput | string | null
+    variantId?: NullableStringFieldUpdateOperationsInput | string | null
+    productName?: StringFieldUpdateOperationsInput | string
+    variantName?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity?: IntFieldUpdateOperationsInput | number
+    price?: FloatFieldUpdateOperationsInput | number
+    subtotal?: FloatFieldUpdateOperationsInput | number
+  }
+
+  export type RecipeLineCreateManyIngredientInput = {
+    id?: string
+    menuItemId: string
+    quantity: number
+    wastagePercent?: number | null
+  }
+
+  export type RecipeLineUpdateWithoutIngredientInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    quantity?: FloatFieldUpdateOperationsInput | number
+    wastagePercent?: NullableFloatFieldUpdateOperationsInput | number | null
+    menuItem?: MenuItemUpdateOneRequiredWithoutRecipeLinesNestedInput
+  }
+
+  export type RecipeLineUncheckedUpdateWithoutIngredientInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    menuItemId?: StringFieldUpdateOperationsInput | string
+    quantity?: FloatFieldUpdateOperationsInput | number
+    wastagePercent?: NullableFloatFieldUpdateOperationsInput | number | null
+  }
+
+  export type RecipeLineUncheckedUpdateManyWithoutIngredientInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    menuItemId?: StringFieldUpdateOperationsInput | string
+    quantity?: FloatFieldUpdateOperationsInput | number
+    wastagePercent?: NullableFloatFieldUpdateOperationsInput | number | null
+  }
+
+  export type MenuItemCreateManyMenuCategoryInput = {
+    id?: string
+    storeId: string
+    name: string
+    price: number
+    status?: string
+    image?: string | null
+    barcode?: string | null
+  }
+
+  export type MenuItemUpdateWithoutMenuCategoryInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    price?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+    store?: StoreUpdateOneRequiredWithoutMenuItemsNestedInput
+    recipeLines?: RecipeLineUpdateManyWithoutMenuItemNestedInput
+    saleItems?: SaleItemUpdateManyWithoutMenuItemNestedInput
+  }
+
+  export type MenuItemUncheckedUpdateWithoutMenuCategoryInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    storeId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    price?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+    recipeLines?: RecipeLineUncheckedUpdateManyWithoutMenuItemNestedInput
+    saleItems?: SaleItemUncheckedUpdateManyWithoutMenuItemNestedInput
+  }
+
+  export type MenuItemUncheckedUpdateManyWithoutMenuCategoryInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    storeId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    price?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    barcode?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type RecipeLineCreateManyMenuItemInput = {
+    id?: string
+    ingredientId: string
+    quantity: number
+    wastagePercent?: number | null
+  }
+
+  export type SaleItemCreateManyMenuItemInput = {
+    id?: string
+    saleId: string
+    productId?: string | null
+    variantId?: string | null
+    productName: string
+    variantName?: string | null
+    quantity: number
+    price: number
+    subtotal: number
+  }
+
+  export type RecipeLineUpdateWithoutMenuItemInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    quantity?: FloatFieldUpdateOperationsInput | number
+    wastagePercent?: NullableFloatFieldUpdateOperationsInput | number | null
+    ingredient?: IngredientUpdateOneRequiredWithoutRecipeLinesNestedInput
+  }
+
+  export type RecipeLineUncheckedUpdateWithoutMenuItemInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ingredientId?: StringFieldUpdateOperationsInput | string
+    quantity?: FloatFieldUpdateOperationsInput | number
+    wastagePercent?: NullableFloatFieldUpdateOperationsInput | number | null
+  }
+
+  export type RecipeLineUncheckedUpdateManyWithoutMenuItemInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ingredientId?: StringFieldUpdateOperationsInput | string
+    quantity?: FloatFieldUpdateOperationsInput | number
+    wastagePercent?: NullableFloatFieldUpdateOperationsInput | number | null
+  }
+
+  export type SaleItemUpdateWithoutMenuItemInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    productName?: StringFieldUpdateOperationsInput | string
+    variantName?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity?: IntFieldUpdateOperationsInput | number
+    price?: FloatFieldUpdateOperationsInput | number
+    subtotal?: FloatFieldUpdateOperationsInput | number
+    sale?: SaleUpdateOneRequiredWithoutItemsNestedInput
+    product?: ProductUpdateOneWithoutSaleItemsNestedInput
+    variant?: VariantUpdateOneWithoutSaleItemsNestedInput
+  }
+
+  export type SaleItemUncheckedUpdateWithoutMenuItemInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    saleId?: StringFieldUpdateOperationsInput | string
+    productId?: NullableStringFieldUpdateOperationsInput | string | null
+    variantId?: NullableStringFieldUpdateOperationsInput | string | null
+    productName?: StringFieldUpdateOperationsInput | string
+    variantName?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity?: IntFieldUpdateOperationsInput | number
+    price?: FloatFieldUpdateOperationsInput | number
+    subtotal?: FloatFieldUpdateOperationsInput | number
+  }
+
+  export type SaleItemUncheckedUpdateManyWithoutMenuItemInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    saleId?: StringFieldUpdateOperationsInput | string
+    productId?: NullableStringFieldUpdateOperationsInput | string | null
     variantId?: NullableStringFieldUpdateOperationsInput | string | null
     productName?: StringFieldUpdateOperationsInput | string
     variantName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -18157,6 +25227,18 @@ export namespace Prisma {
      */
     export type SaleCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = SaleCountOutputTypeDefaultArgs<ExtArgs>
     /**
+     * @deprecated Use IngredientCountOutputTypeDefaultArgs instead
+     */
+    export type IngredientCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = IngredientCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use MenuCategoryCountOutputTypeDefaultArgs instead
+     */
+    export type MenuCategoryCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = MenuCategoryCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use MenuItemCountOutputTypeDefaultArgs instead
+     */
+    export type MenuItemCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = MenuItemCountOutputTypeDefaultArgs<ExtArgs>
+    /**
      * @deprecated Use OrganizationDefaultArgs instead
      */
     export type OrganizationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = OrganizationDefaultArgs<ExtArgs>
@@ -18192,6 +25274,22 @@ export namespace Prisma {
      * @deprecated Use SaleDefaultArgs instead
      */
     export type SaleArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = SaleDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use IngredientDefaultArgs instead
+     */
+    export type IngredientArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = IngredientDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use MenuCategoryDefaultArgs instead
+     */
+    export type MenuCategoryArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = MenuCategoryDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use MenuItemDefaultArgs instead
+     */
+    export type MenuItemArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = MenuItemDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use RecipeLineDefaultArgs instead
+     */
+    export type RecipeLineArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = RecipeLineDefaultArgs<ExtArgs>
     /**
      * @deprecated Use SaleItemDefaultArgs instead
      */

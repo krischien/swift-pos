@@ -48,13 +48,18 @@ model Store {
   name           String
   address        String?
   receiptLogoUrl String?
+  /// "retail" | "fnb" — immutable after create (enforced in API)
+  businessMode   String   @default("retail")
   createdAt      DateTime @default(now())
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  categories   Category[]
-  products     Product[]
-  sales        Sale[]
-  userAccess   UserStore[]
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  categories     Category[]
+  products       Product[]
+  sales          Sale[]
+  userAccess     UserStore[]
+  ingredients    Ingredient[]
+  menuCategories MenuCategory[]
+  menuItems      MenuItem[]
 }
 
 model User {
@@ -144,10 +149,64 @@ model Sale {
   items   SaleItem[]
 }
 
+model Ingredient {
+  id                String   @id @default(cuid())
+  storeId           String
+  name              String
+  sku               String?
+  barcode           String?
+  stock             Int      @default(0)
+  lowStockThreshold Int      @default(0)
+  unitOfMeasure     String?  @default("PCS")
+  status            String   @default("active")
+
+  store        Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  recipeLines  RecipeLine[]
+}
+
+model MenuCategory {
+  id      String @id @default(cuid())
+  storeId String
+  name    String
+
+  store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  menuItems MenuItem[]
+}
+
+model MenuItem {
+  id             String @id @default(cuid())
+  storeId        String
+  menuCategoryId String
+  name           String
+  price          Float
+  status         String @default("active")
+  image          String?
+  barcode        String?
+
+  store Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  menuCategory MenuCategory @relation(fields: [menuCategoryId], references: [id], onDelete: Cascade)
+  recipeLines  RecipeLine[]
+  saleItems    SaleItem[]
+}
+
+model RecipeLine {
+  id             String  @id @default(cuid())
+  menuItemId     String
+  ingredientId   String
+  quantity       Float
+  wastagePercent Float?
+
+  menuItem   MenuItem   @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@unique([menuItemId, ingredientId])
+}
+
 model SaleItem {
   id          String   @id @default(cuid())
   saleId      String
-  productId   String
+  productId   String?
+  menuItemId  String?
   variantId   String?
   productName String
   variantName String?
@@ -155,7 +214,8 @@ model SaleItem {
   price       Float
   subtotal    Float
 
-  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  variant Variant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  sale     Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product  Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  menuItem MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
+  variant  Variant?  @relation(fields: [variantId], references: [id], onDelete: SetNull)
 }
