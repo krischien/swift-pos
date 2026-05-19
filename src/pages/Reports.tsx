@@ -43,6 +43,7 @@ import {
   Search,
   Banknote,
   Smartphone,
+  Building2,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useDataLayer } from "@/contexts/DataLayerContext";
@@ -499,6 +500,37 @@ const Reports = () => {
       .sort((a, b) => b.value - a.value)
       .map((x) => ({ ...x, percent: total > 0 ? Math.round((x.value / total) * 100) : 0 }));
   }, [sales, isMultiStoreView, storesToUse]);
+
+  const storePerformanceRows = useMemo(() => {
+    if (!isMultiStoreView) return [];
+    const seed = new Map<string, { id: string; name: string; sales: number; transactions: number }>();
+    for (const store of storesToUse) {
+      seed.set(store.id, {
+        id: store.id,
+        name: store.name,
+        sales: 0,
+        transactions: 0,
+      });
+    }
+
+    for (const sale of sales) {
+      const storeId = (sale as { storeId?: string }).storeId;
+      if (!storeId || !seed.has(storeId)) continue;
+      const row = seed.get(storeId)!;
+      row.sales += sale.total ?? 0;
+      row.transactions += 1;
+    }
+
+    const totalSalesAcrossStores = Array.from(seed.values()).reduce((sum, row) => sum + row.sales, 0);
+    return Array.from(seed.values())
+      .filter((row) => row.sales > 0 || row.transactions > 0)
+      .sort((a, b) => b.sales - a.sales)
+      .map((row) => ({
+        ...row,
+        avgSale: row.transactions > 0 ? row.sales / row.transactions : 0,
+        sharePercent: totalSalesAcrossStores > 0 ? (row.sales / totalSalesAcrossStores) * 100 : 0,
+      }));
+  }, [isMultiStoreView, storesToUse, sales]);
 
   const highestMarginProducts = useMemo(() => {
     // Most profitable = highest total profit earned from actual sales (not just margin %)
@@ -1262,6 +1294,49 @@ const Reports = () => {
                       <Legend />
                     </PieChart>
                   </ChartContainer>
+                </CardContent>
+              </Card>
+            )}
+            {isMultiStoreView && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Building2 className="w-4 h-4" />
+                    Store Performance Leaderboard
+                  </CardTitle>
+                  <CardDescription>
+                    Compare branch output in the selected period
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {storePerformanceRows.length ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Store</TableHead>
+                          <TableHead className="text-right">Sales</TableHead>
+                          <TableHead className="text-right">Txn</TableHead>
+                          <TableHead className="text-right">Avg Sale</TableHead>
+                          <TableHead className="text-right">Share</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {storePerformanceRows.map((row) => (
+                          <TableRow key={row.id}>
+                            <TableCell className="font-medium">{row.name}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(row.sales)}</TableCell>
+                            <TableCell className="text-right">{row.transactions}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(row.avgSale)}</TableCell>
+                            <TableCell className="text-right">{row.sharePercent.toFixed(1)}%</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <p className="text-sm text-muted-foreground py-8 text-center">
+                      No store sales data yet for this range
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             )}

@@ -3,7 +3,7 @@ import { Outlet, useNavigate, NavLink, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { LayoutDashboard, Building2, LogOut, Menu, Trophy } from "lucide-react";
+import { LayoutDashboard, Building2, LogOut, Menu, Trophy, CreditCard } from "lucide-react";
 
 const AdminLayout = () => {
   const { user, logout } = useAuth();
@@ -51,6 +51,18 @@ const AdminLayout = () => {
         >
           <Building2 className="w-5 h-5" />
           Organizations
+        </NavLink>
+        <NavLink
+          to="/admin/payment-monitoring"
+          onClick={() => setMenuOpen(false)}
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+              isActive ? "bg-sidebar-primary text-sidebar-primary-foreground" : "hover:bg-sidebar-accent"
+            }`
+          }
+        >
+          <CreditCard className="w-5 h-5" />
+          Payment monitoring
         </NavLink>
         <NavLink
           to="/admin/product-ranking"

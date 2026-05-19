@@ -44,12 +44,19 @@ export async function saasLogin(email: string, password: string): Promise<SaasLo
     );
   }
   if (!res.ok) {
-    let message = text || "Login failed";
-    try {
-      const json = JSON.parse(text);
-      if (json?.message) message = json.message;
-    } catch {
-      /* use raw text */
+    const trimmed = text.trim();
+    let message = "";
+    if (trimmed) {
+      try {
+        const json = JSON.parse(trimmed) as { message?: unknown; error?: unknown };
+        if (typeof json?.message === "string" && json.message) message = json.message;
+        else if (typeof json?.error === "string" && json.error) message = json.error;
+      } catch {
+        message = trimmed.slice(0, 400);
+      }
+    }
+    if (!message) {
+      message = `Login failed (HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ""}). Is the SaaS API running (e.g. npm run dev:saas on port 4001)?`;
     }
     throw new Error(message);
   }

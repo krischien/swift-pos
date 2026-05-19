@@ -25,6 +25,10 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
+  Users,
+  Clock3,
+  Package,
+  Wallet,
 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { useEffect, useMemo, useState } from "react";
@@ -550,6 +554,65 @@ const Sales = () => {
     ];
   }, [salesTodayNonVoid, products]);
 
+  const dailyOperationalInsights = useMemo(() => {
+    const totalItemsSold = salesTodayNonVoid.reduce((sum, sale) => {
+      const qty = (sale.items ?? []).reduce(
+        (itemSum: number, item: { quantity?: number }) => itemSum + (item.quantity ?? 0),
+        0,
+      );
+      return sum + qty;
+    }, 0);
+
+    const paymentTotals = new Map<string, number>();
+    for (const sale of salesTodayNonVoid) {
+      const method = (sale.paymentMethod || "cash").toString().toLowerCase();
+      paymentTotals.set(method, (paymentTotals.get(method) ?? 0) + (sale.total ?? 0));
+    }
+    const paymentEntries = Array.from(paymentTotals.entries()).sort((a, b) => b[1] - a[1]);
+    const topPaymentMethod = paymentEntries[0];
+
+    const cashierTotals = new Map<string, number>();
+    for (const sale of salesTodayNonVoid) {
+      const cashier = (sale.cashierName ?? "Unknown cashier").toString();
+      cashierTotals.set(cashier, (cashierTotals.get(cashier) ?? 0) + (sale.total ?? 0));
+    }
+    const topCashierEntry = Array.from(cashierTotals.entries()).sort((a, b) => b[1] - a[1])[0];
+
+    const hourlyCounts = new Map<string, number>();
+    for (const sale of salesTodayNonVoid) {
+      const hourLabel = format(new Date(sale.createdAt), "ha");
+      hourlyCounts.set(hourLabel, (hourlyCounts.get(hourLabel) ?? 0) + 1);
+    }
+    const peakHourEntry = Array.from(hourlyCounts.entries()).sort((a, b) => b[1] - a[1])[0];
+
+    return [
+      {
+        title: "Items Sold Today",
+        value: `${totalItemsSold}`,
+        helper: `${salesTodayNonVoid.length} sale(s)`,
+        icon: Package,
+      },
+      {
+        title: "Top Payment Method",
+        value: topPaymentMethod ? topPaymentMethod[0].toUpperCase() : "—",
+        helper: topPaymentMethod ? formatCurrency(topPaymentMethod[1]) : formatCurrency(0),
+        icon: Wallet,
+      },
+      {
+        title: "Top Cashier Today",
+        value: topCashierEntry ? topCashierEntry[0] : "—",
+        helper: topCashierEntry ? formatCurrency(topCashierEntry[1]) : formatCurrency(0),
+        icon: Users,
+      },
+      {
+        title: "Peak Hour Today",
+        value: peakHourEntry ? peakHourEntry[0] : "—",
+        helper: peakHourEntry ? `${peakHourEntry[1]} transaction(s)` : "No transactions yet",
+        icon: Clock3,
+      },
+    ];
+  }, [salesTodayNonVoid]);
+
   const comparativeSales = useMemo(() => {
     const now = new Date();
     const sumRange = (from: Date, to: Date) =>
@@ -1015,6 +1078,41 @@ const Sales = () => {
                 <CardContent>
                   <div className="text-2xl font-bold">{stat.value}</div>
                   <p className="text-xs text-success mt-1">{stat.trend} from yesterday</p>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <Card key={`daily-op-${i}`}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-4 w-4" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-7 w-24 mb-2" />
+                <Skeleton className="h-3 w-32" />
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          dailyOperationalInsights.map((insight) => {
+            const Icon = insight.icon;
+            return (
+              <Card key={insight.title}>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    {insight.title}
+                  </CardTitle>
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{insight.value}</div>
+                  <p className="text-xs text-muted-foreground mt-1">{insight.helper}</p>
                 </CardContent>
               </Card>
             );

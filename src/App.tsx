@@ -32,6 +32,7 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminOrganizations from "./pages/admin/Organizations";
 import AdminOrgDetail from "./pages/admin/OrgDetail";
 import ProductRanking from "./pages/admin/ProductRanking";
+import PaymentMonitoring from "./pages/admin/PaymentMonitoring";
 
 const queryClient = new QueryClient();
 
@@ -77,6 +78,7 @@ const App = () => {
                   <Route path="organizations" element={<AdminOrganizations />} />
                   <Route path="organizations/:id" element={<AdminOrgDetail />} />
                   <Route path="product-ranking" element={<ProductRanking />} />
+                  <Route path="payment-monitoring" element={<PaymentMonitoring />} />
                 </Route>
                 <Route path="/" element={<NavigateToDefault />} />
                 <Route

@@ -5477,9 +5477,6 @@ var require_saas_client = __commonJS({
     };
     var path = __require("path");
     exports2.Prisma.TransactionIsolationLevel = makeStrictEnum2({
-      ReadUncommitted: "ReadUncommitted",
-      ReadCommitted: "ReadCommitted",
-      RepeatableRead: "RepeatableRead",
       Serializable: "Serializable"
     });
     exports2.Prisma.OrganizationScalarFieldEnum = {
@@ -5502,12 +5499,23 @@ var require_saas_client = __commonJS({
       createdAt: "createdAt",
       expiresAt: "expiresAt"
     };
+    exports2.Prisma.OrganizationBillingPaymentScalarFieldEnum = {
+      id: "id",
+      organizationId: "organizationId",
+      period: "period",
+      amountCents: "amountCents",
+      method: "method",
+      note: "note",
+      recordedById: "recordedById",
+      createdAt: "createdAt"
+    };
     exports2.Prisma.StoreScalarFieldEnum = {
       id: "id",
       organizationId: "organizationId",
       name: "name",
       address: "address",
       receiptLogoUrl: "receiptLogoUrl",
+      businessMode: "businessMode",
       createdAt: "createdAt"
     };
     exports2.Prisma.UserScalarFieldEnum = {
@@ -5568,10 +5576,44 @@ var require_saas_client = __commonJS({
       gcashTransactionId: "gcashTransactionId",
       createdAt: "createdAt"
     };
+    exports2.Prisma.IngredientScalarFieldEnum = {
+      id: "id",
+      storeId: "storeId",
+      name: "name",
+      sku: "sku",
+      barcode: "barcode",
+      stock: "stock",
+      lowStockThreshold: "lowStockThreshold",
+      unitOfMeasure: "unitOfMeasure",
+      status: "status"
+    };
+    exports2.Prisma.MenuCategoryScalarFieldEnum = {
+      id: "id",
+      storeId: "storeId",
+      name: "name"
+    };
+    exports2.Prisma.MenuItemScalarFieldEnum = {
+      id: "id",
+      storeId: "storeId",
+      menuCategoryId: "menuCategoryId",
+      name: "name",
+      price: "price",
+      status: "status",
+      image: "image",
+      barcode: "barcode"
+    };
+    exports2.Prisma.RecipeLineScalarFieldEnum = {
+      id: "id",
+      menuItemId: "menuItemId",
+      ingredientId: "ingredientId",
+      quantity: "quantity",
+      wastagePercent: "wastagePercent"
+    };
     exports2.Prisma.SaleItemScalarFieldEnum = {
       id: "id",
       saleId: "saleId",
       productId: "productId",
+      menuItemId: "menuItemId",
       variantId: "variantId",
       productName: "productName",
       variantName: "variantName",
@@ -5583,10 +5625,6 @@ var require_saas_client = __commonJS({
       asc: "asc",
       desc: "desc"
     };
-    exports2.Prisma.QueryMode = {
-      default: "default",
-      insensitive: "insensitive"
-    };
     exports2.Prisma.NullsOrder = {
       first: "first",
       last: "last"
@@ -5594,6 +5632,7 @@ var require_saas_client = __commonJS({
     exports2.Prisma.ModelName = {
       Organization: "Organization",
       OrganizationNotification: "OrganizationNotification",
+      OrganizationBillingPayment: "OrganizationBillingPayment",
       Store: "Store",
       User: "User",
       UserStore: "UserStore",
@@ -5601,6 +5640,10 @@ var require_saas_client = __commonJS({
       Product: "Product",
       Variant: "Variant",
       Sale: "Sale",
+      Ingredient: "Ingredient",
+      MenuCategory: "MenuCategory",
+      MenuItem: "MenuItem",
+      RecipeLine: "RecipeLine",
       SaleItem: "SaleItem"
     };
     var config2 = {
@@ -5622,14 +5665,10 @@ var require_saas_client = __commonJS({
             "fromEnvVar": null,
             "value": "windows",
             "native": true
-          },
-          {
-            "fromEnvVar": null,
-            "value": "rhel-openssl-3.0.x"
           }
         ],
         "previewFeatures": [],
-        "sourceFilePath": "E:\\backbone\\Projects\\swift_pos\\prisma-saas\\schema.pg.prisma",
+        "sourceFilePath": "E:\\backbone\\Projects\\swift_pos\\prisma-saas\\schema.prisma",
         "isCustomOutput": true
       },
       "relativeEnvPaths": {
@@ -5642,7 +5681,7 @@ var require_saas_client = __commonJS({
       "datasourceNames": [
         "db"
       ],
-      "activeProvider": "postgresql",
+      "activeProvider": "sqlite",
       "postinstall": false,
       "inlineDatasources": {
         "db": {
@@ -5652,8 +5691,8 @@ var require_saas_client = __commonJS({
           }
         }
       },
-      "inlineSchema": '// SaaS schema - PostgreSQL (Neon, Vercel production)\n// Run: npx prisma generate --schema=prisma-saas/schema.pg.prisma\n// Push (initial): npx prisma db push --schema=prisma-saas/schema.pg.prisma\n\ngenerator client {\n  provider      = "prisma-client-js"\n  output        = "../node_modules/.prisma/saas-client"\n  binaryTargets = ["native", "rhel-openssl-3.0.x"]\n}\n\ndatasource db {\n  provider = "postgresql"\n  url      = env("SAAS_DATABASE_URL")\n}\n\nmodel Organization {\n  id               String    @id @default(cuid())\n  name             String\n  plan             String    @default("free")\n  phone            String?\n  email            String?\n  address          String?\n  stripeCustomerId String?\n  billingDueDate   DateTime?\n  trialEndsAt      DateTime?\n  createdAt        DateTime  @default(now())\n\n  users         User[]\n  stores        Store[]\n  notifications OrganizationNotification[]\n}\n\nmodel OrganizationNotification {\n  id             String    @id @default(cuid())\n  organizationId String\n  message        String\n  type           String    @default("info")\n  createdAt      DateTime  @default(now())\n  expiresAt      DateTime?\n\n  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)\n}\n\nmodel Store {\n  id             String   @id @default(cuid())\n  organizationId String\n  name           String\n  address        String?\n  receiptLogoUrl String?\n  createdAt      DateTime @default(now())\n\n  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)\n  categories   Category[]\n  products     Product[]\n  sales        Sale[]\n  userAccess   UserStore[]\n}\n\nmodel User {\n  id             String   @id @default(cuid())\n  organizationId String?\n  name           String\n  email          String   @unique\n  password       String\n  role           String\n  createdAt      DateTime @default(now())\n\n  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)\n  sales        Sale[]\n  storeAccess  UserStore[]\n}\n\nmodel UserStore {\n  userId  String\n  storeId String\n  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)\n  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)\n\n  @@id([userId, storeId])\n}\n\nmodel Category {\n  id      String @id @default(cuid())\n  storeId String\n  name    String\n\n  store    Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  products Product[]\n}\n\nmodel Product {\n  id                String  @id @default(cuid())\n  storeId           String\n  name              String\n  categoryId        String\n  itemCode          String?\n  sku               String?\n  hasVariants       Boolean @default(false)\n  basePrice         Float?\n  price             Float?\n  stock             Int?\n  lowStockThreshold Int     @default(0)\n  marginPercentage  Float?\n  status            String  @default("active")\n  image             String?\n  barcode           String?\n  qrCode            String?\n  unitOfMeasure     String? @default("PCS")\n\n  store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  category  Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)\n  variants  Variant[]\n  saleItems SaleItem[]\n}\n\nmodel Variant {\n  id        String @id @default(cuid())\n  productId String\n  name      String\n  price     Float\n  stock     Int\n\n  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)\n  saleItems SaleItem[]\n}\n\nmodel Sale {\n  id                 String   @id @default(cuid())\n  storeId            String\n  ticketNumber       String?\n  cashierId          String?\n  cashierName        String\n  total              Float\n  paymentMethod      String   @default("cash")\n  amountReceived     Float\n  change             Float\n  status             String   @default("completed")\n  gcashTransactionId String?\n  createdAt          DateTime @default(now())\n\n  store   Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  cashier User?      @relation(fields: [cashierId], references: [id], onDelete: SetNull)\n  items   SaleItem[]\n}\n\nmodel SaleItem {\n  id          String  @id @default(cuid())\n  saleId      String\n  productId   String\n  variantId   String?\n  productName String\n  variantName String?\n  quantity    Int\n  price       Float\n  subtotal    Float\n\n  sale    Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)\n  product Product  @relation(fields: [productId], references: [id], onDelete: Cascade)\n  variant Variant? @relation(fields: [variantId], references: [id], onDelete: SetNull)\n}\n',
-      "inlineSchemaHash": "64bb3a0b49e157d0b2babf59fbc92812be2b3059fa4a6185ada98e9d634becd0",
+      "inlineSchema": '// SaaS multi-tenant schema\n// Dev: SQLite (SAAS_DATABASE_URL=file:./prisma-saas/saas-dev.db or omit to use default)\n// Prod: PostgreSQL (SAAS_DATABASE_URL=postgresql://...)\n// Run: npx prisma generate --schema=prisma-saas/schema.prisma\n// Migrate: npx prisma migrate dev --schema=prisma-saas/schema.prisma\n\ngenerator client {\n  provider = "prisma-client-js"\n  output   = "../node_modules/.prisma/saas-client"\n}\n\ndatasource db {\n  provider = "sqlite"\n  url      = env("SAAS_DATABASE_URL")\n}\n\nmodel Organization {\n  id               String    @id @default(cuid())\n  name             String\n  plan             String    @default("free")\n  phone            String?\n  email            String?\n  address          String?\n  stripeCustomerId String?\n  billingDueDate   DateTime?\n  trialEndsAt      DateTime?\n  createdAt        DateTime  @default(now())\n\n  users           User[]\n  stores          Store[]\n  notifications   OrganizationNotification[]\n  billingPayments OrganizationBillingPayment[]\n}\n\nmodel OrganizationNotification {\n  id             String    @id @default(cuid())\n  organizationId String\n  message        String\n  type           String    @default("info") // "info" | "warning" | "urgent"\n  createdAt      DateTime  @default(now())\n  expiresAt      DateTime?\n\n  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)\n}\n\nmodel OrganizationBillingPayment {\n  id             String   @id @default(cuid())\n  organizationId String\n  /// Calendar month paid for, YYYY-MM\n  period         String\n  amountCents    Int?\n  method         String?\n  note           String?\n  recordedById   String?\n  createdAt      DateTime @default(now())\n\n  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)\n  recordedBy   User?        @relation("BillingPaymentRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)\n\n  @@unique([organizationId, period])\n}\n\nmodel Store {\n  id             String   @id @default(cuid())\n  organizationId String\n  name           String\n  address        String?\n  receiptLogoUrl String?\n  /// "retail" | "fnb" \u2014 immutable after create (enforced in API)\n  businessMode   String   @default("retail")\n  createdAt      DateTime @default(now())\n\n  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)\n  categories     Category[]\n  products       Product[]\n  sales          Sale[]\n  userAccess     UserStore[]\n  ingredients    Ingredient[]\n  menuCategories MenuCategory[]\n  menuItems      MenuItem[]\n}\n\nmodel User {\n  id             String   @id @default(cuid())\n  organizationId String?\n  name           String\n  email          String   @unique\n  password       String\n  role           String // "super_admin" | "owner" | "admin" | "cashier"\n  createdAt      DateTime @default(now())\n\n  organization            Organization?                @relation(fields: [organizationId], references: [id], onDelete: Cascade)\n  sales                   Sale[]\n  storeAccess             UserStore[]\n  billingPaymentsRecorded OrganizationBillingPayment[] @relation("BillingPaymentRecordedBy")\n}\n\nmodel UserStore {\n  userId  String\n  storeId String\n  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)\n  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)\n\n  @@id([userId, storeId])\n}\n\nmodel Category {\n  id      String @id @default(cuid())\n  storeId String\n  name    String\n\n  store    Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  products Product[]\n}\n\nmodel Product {\n  id                String  @id @default(cuid())\n  storeId           String\n  name              String\n  categoryId        String\n  itemCode          String?\n  sku               String?\n  hasVariants       Boolean @default(false)\n  basePrice         Float?\n  price             Float?\n  stock             Int?\n  lowStockThreshold Int     @default(0)\n  marginPercentage  Float?\n  status            String  @default("active")\n  image             String?\n  barcode           String?\n  qrCode            String?\n  unitOfMeasure     String? @default("PCS")\n\n  store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  category  Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)\n  variants  Variant[]\n  saleItems SaleItem[]\n}\n\nmodel Variant {\n  id        String @id @default(cuid())\n  productId String\n  name      String\n  price     Float\n  stock     Int\n\n  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)\n  saleItems SaleItem[]\n}\n\nmodel Sale {\n  id                 String   @id @default(cuid())\n  storeId            String\n  ticketNumber       String?\n  cashierId          String?\n  cashierName        String\n  total              Float\n  paymentMethod      String   @default("cash")\n  amountReceived     Float\n  change             Float\n  status             String   @default("completed")\n  gcashTransactionId String?\n  createdAt          DateTime @default(now())\n\n  store   Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  cashier User?      @relation(fields: [cashierId], references: [id], onDelete: SetNull)\n  items   SaleItem[]\n}\n\nmodel Ingredient {\n  id                String  @id @default(cuid())\n  storeId           String\n  name              String\n  sku               String?\n  barcode           String?\n  stock             Int     @default(0)\n  lowStockThreshold Int     @default(0)\n  unitOfMeasure     String? @default("PCS")\n  status            String  @default("active")\n\n  store       Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  recipeLines RecipeLine[]\n}\n\nmodel MenuCategory {\n  id      String @id @default(cuid())\n  storeId String\n  name    String\n\n  store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  menuItems MenuItem[]\n}\n\nmodel MenuItem {\n  id             String  @id @default(cuid())\n  storeId        String\n  menuCategoryId String\n  name           String\n  price          Float\n  status         String  @default("active")\n  image          String?\n  barcode        String?\n\n  store        Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  menuCategory MenuCategory @relation(fields: [menuCategoryId], references: [id], onDelete: Cascade)\n  recipeLines  RecipeLine[]\n  saleItems    SaleItem[]\n}\n\nmodel RecipeLine {\n  id             String @id @default(cuid())\n  menuItemId     String\n  ingredientId   String\n  quantity       Float\n  wastagePercent Float?\n\n  menuItem   MenuItem   @relation(fields: [menuItemId], references: [id], onDelete: Cascade)\n  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)\n\n  @@unique([menuItemId, ingredientId])\n}\n\nmodel SaleItem {\n  id          String  @id @default(cuid())\n  saleId      String\n  productId   String?\n  menuItemId  String?\n  variantId   String?\n  productName String\n  variantName String?\n  quantity    Int\n  price       Float\n  subtotal    Float\n\n  sale     Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade)\n  product  Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)\n  menuItem MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: Restrict)\n  variant  Variant?  @relation(fields: [variantId], references: [id], onDelete: SetNull)\n}\n',
+      "inlineSchemaHash": "085ac78adc89627f130ac5ffd92b0f94121deeb41b89f24247a0dd54c9f05b6c",
       "copyEngine": true
     };
     var fs2 = __require("fs");
@@ -5669,7 +5708,7 @@ var require_saas_client = __commonJS({
       config2.dirname = path.join(process.cwd(), alternativePath);
       config2.isBundled = true;
     }
-    config2.runtimeDataModel = JSON.parse('{"models":{"Organization":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"plan","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"free","isGenerated":false,"isUpdatedAt":false},{"name":"phone","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"email","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"address","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"stripeCustomerId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"billingDueDate","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":false},{"name":"trialEndsAt","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"users","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"User","relationName":"OrganizationToUser","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"stores","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"OrganizationToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"notifications","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"OrganizationNotification","relationName":"OrganizationToOrganizationNotification","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"OrganizationNotification":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organizationId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"message","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"type","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"info","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"expiresAt","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":false},{"name":"organization","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Organization","relationName":"OrganizationToOrganizationNotification","relationFromFields":["organizationId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Store":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organizationId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"address","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"receiptLogoUrl","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organization","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Organization","relationName":"OrganizationToStore","relationFromFields":["organizationId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"categories","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Category","relationName":"CategoryToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"products","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Product","relationName":"ProductToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"sales","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Sale","relationName":"SaleToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"userAccess","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"UserStore","relationName":"StoreToUserStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"User":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organizationId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"email","kind":"scalar","isList":false,"isRequired":true,"isUnique":true,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"password","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"role","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organization","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Organization","relationName":"OrganizationToUser","relationFromFields":["organizationId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"sales","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Sale","relationName":"SaleToUser","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"storeAccess","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"UserStore","relationName":"UserToUserStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"UserStore":{"dbName":null,"fields":[{"name":"userId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"user","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"User","relationName":"UserToUserStore","relationFromFields":["userId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"StoreToUserStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false}],"primaryKey":{"name":null,"fields":["userId","storeId"]},"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Category":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"CategoryToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"products","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Product","relationName":"CategoryToProduct","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Product":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"categoryId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"itemCode","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"sku","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"hasVariants","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"basePrice","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"price","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"stock","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"lowStockThreshold","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Int","default":0,"isGenerated":false,"isUpdatedAt":false},{"name":"marginPercentage","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"status","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"active","isGenerated":false,"isUpdatedAt":false},{"name":"image","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"barcode","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"qrCode","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"unitOfMeasure","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"PCS","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"ProductToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"category","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Category","relationName":"CategoryToProduct","relationFromFields":["categoryId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"variants","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Variant","relationName":"ProductToVariant","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"saleItems","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"SaleItem","relationName":"ProductToSaleItem","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Variant":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"productId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"price","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"stock","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"product","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Product","relationName":"ProductToVariant","relationFromFields":["productId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"saleItems","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"SaleItem","relationName":"SaleItemToVariant","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Sale":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"ticketNumber","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"cashierId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"cashierName","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"total","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"paymentMethod","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"cash","isGenerated":false,"isUpdatedAt":false},{"name":"amountReceived","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"change","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"status","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"completed","isGenerated":false,"isUpdatedAt":false},{"name":"gcashTransactionId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"SaleToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"cashier","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"User","relationName":"SaleToUser","relationFromFields":["cashierId"],"relationToFields":["id"],"relationOnDelete":"SetNull","isGenerated":false,"isUpdatedAt":false},{"name":"items","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"SaleItem","relationName":"SaleToSaleItem","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"SaleItem":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"saleId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"productId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"variantId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"productName","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"variantName","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"quantity","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"price","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"subtotal","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"sale","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Sale","relationName":"SaleToSaleItem","relationFromFields":["saleId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"product","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Product","relationName":"ProductToSaleItem","relationFromFields":["productId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"variant","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Variant","relationName":"SaleItemToVariant","relationFromFields":["variantId"],"relationToFields":["id"],"relationOnDelete":"SetNull","isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false}},"enums":{},"types":{}}');
+    config2.runtimeDataModel = JSON.parse('{"models":{"Organization":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"plan","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"free","isGenerated":false,"isUpdatedAt":false},{"name":"phone","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"email","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"address","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"stripeCustomerId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"billingDueDate","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":false},{"name":"trialEndsAt","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"users","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"User","relationName":"OrganizationToUser","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"stores","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"OrganizationToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"notifications","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"OrganizationNotification","relationName":"OrganizationToOrganizationNotification","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"billingPayments","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"OrganizationBillingPayment","relationName":"OrganizationToOrganizationBillingPayment","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"OrganizationNotification":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organizationId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"message","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"type","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"info","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"expiresAt","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":false},{"name":"organization","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Organization","relationName":"OrganizationToOrganizationNotification","relationFromFields":["organizationId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"OrganizationBillingPayment":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organizationId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"period","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false,"documentation":"Calendar month paid for, YYYY-MM"},{"name":"amountCents","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"method","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"note","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"recordedById","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organization","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Organization","relationName":"OrganizationToOrganizationBillingPayment","relationFromFields":["organizationId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"recordedBy","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"User","relationName":"BillingPaymentRecordedBy","relationFromFields":["recordedById"],"relationToFields":["id"],"relationOnDelete":"SetNull","isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[["organizationId","period"]],"uniqueIndexes":[{"name":null,"fields":["organizationId","period"]}],"isGenerated":false},"Store":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organizationId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"address","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"receiptLogoUrl","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"businessMode","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"retail","isGenerated":false,"isUpdatedAt":false,"documentation":"\\"retail\\" | \\"fnb\\" \u2014 immutable after create (enforced in API)"},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organization","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Organization","relationName":"OrganizationToStore","relationFromFields":["organizationId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"categories","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Category","relationName":"CategoryToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"products","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Product","relationName":"ProductToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"sales","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Sale","relationName":"SaleToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"userAccess","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"UserStore","relationName":"StoreToUserStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"ingredients","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Ingredient","relationName":"IngredientToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"menuCategories","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"MenuCategory","relationName":"MenuCategoryToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"menuItems","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"MenuItem","relationName":"MenuItemToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"User":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organizationId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"email","kind":"scalar","isList":false,"isRequired":true,"isUnique":true,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"password","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"role","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organization","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Organization","relationName":"OrganizationToUser","relationFromFields":["organizationId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"sales","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Sale","relationName":"SaleToUser","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"storeAccess","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"UserStore","relationName":"UserToUserStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"billingPaymentsRecorded","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"OrganizationBillingPayment","relationName":"BillingPaymentRecordedBy","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"UserStore":{"dbName":null,"fields":[{"name":"userId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"user","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"User","relationName":"UserToUserStore","relationFromFields":["userId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"StoreToUserStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false}],"primaryKey":{"name":null,"fields":["userId","storeId"]},"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Category":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"CategoryToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"products","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Product","relationName":"CategoryToProduct","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Product":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"categoryId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"itemCode","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"sku","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"hasVariants","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"basePrice","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"price","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"stock","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"lowStockThreshold","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Int","default":0,"isGenerated":false,"isUpdatedAt":false},{"name":"marginPercentage","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"status","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"active","isGenerated":false,"isUpdatedAt":false},{"name":"image","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"barcode","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"qrCode","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"unitOfMeasure","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"PCS","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"ProductToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"category","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Category","relationName":"CategoryToProduct","relationFromFields":["categoryId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"variants","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Variant","relationName":"ProductToVariant","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"saleItems","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"SaleItem","relationName":"ProductToSaleItem","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Variant":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"productId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"price","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"stock","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"product","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Product","relationName":"ProductToVariant","relationFromFields":["productId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"saleItems","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"SaleItem","relationName":"SaleItemToVariant","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Sale":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"ticketNumber","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"cashierId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"cashierName","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"total","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"paymentMethod","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"cash","isGenerated":false,"isUpdatedAt":false},{"name":"amountReceived","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"change","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"status","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"completed","isGenerated":false,"isUpdatedAt":false},{"name":"gcashTransactionId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"SaleToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"cashier","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"User","relationName":"SaleToUser","relationFromFields":["cashierId"],"relationToFields":["id"],"relationOnDelete":"SetNull","isGenerated":false,"isUpdatedAt":false},{"name":"items","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"SaleItem","relationName":"SaleToSaleItem","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Ingredient":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"sku","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"barcode","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"stock","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Int","default":0,"isGenerated":false,"isUpdatedAt":false},{"name":"lowStockThreshold","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Int","default":0,"isGenerated":false,"isUpdatedAt":false},{"name":"unitOfMeasure","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"PCS","isGenerated":false,"isUpdatedAt":false},{"name":"status","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"active","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"IngredientToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"recipeLines","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"RecipeLine","relationName":"IngredientToRecipeLine","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"MenuCategory":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"MenuCategoryToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"menuItems","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"MenuItem","relationName":"MenuCategoryToMenuItem","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"MenuItem":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"menuCategoryId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"price","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"status","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"active","isGenerated":false,"isUpdatedAt":false},{"name":"image","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"barcode","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"MenuItemToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"menuCategory","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"MenuCategory","relationName":"MenuCategoryToMenuItem","relationFromFields":["menuCategoryId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"recipeLines","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"RecipeLine","relationName":"MenuItemToRecipeLine","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"saleItems","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"SaleItem","relationName":"MenuItemToSaleItem","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"RecipeLine":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"menuItemId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"ingredientId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"quantity","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"wastagePercent","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"menuItem","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"MenuItem","relationName":"MenuItemToRecipeLine","relationFromFields":["menuItemId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"ingredient","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Ingredient","relationName":"IngredientToRecipeLine","relationFromFields":["ingredientId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[["menuItemId","ingredientId"]],"uniqueIndexes":[{"name":null,"fields":["menuItemId","ingredientId"]}],"isGenerated":false},"SaleItem":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"saleId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"productId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"menuItemId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"variantId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"productName","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"variantName","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"quantity","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"price","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"subtotal","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"sale","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Sale","relationName":"SaleToSaleItem","relationFromFields":["saleId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"product","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Product","relationName":"ProductToSaleItem","relationFromFields":["productId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"menuItem","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"MenuItem","relationName":"MenuItemToSaleItem","relationFromFields":["menuItemId"],"relationToFields":["id"],"relationOnDelete":"Restrict","isGenerated":false,"isUpdatedAt":false},{"name":"variant","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Variant","relationName":"SaleItemToVariant","relationFromFields":["variantId"],"relationToFields":["id"],"relationOnDelete":"SetNull","isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false}},"enums":{},"types":{}}');
     defineDmmfProperty2(exports2.Prisma, config2.runtimeDataModel);
     config2.engineWasm = void 0;
     var { warnEnvConflicts: warnEnvConflicts2 } = require_library();
@@ -5682,8 +5721,6 @@ var require_saas_client = __commonJS({
     Object.assign(exports2, Prisma);
     path.join(__dirname, "query_engine-windows.dll.node");
     path.join(process.cwd(), "node_modules/.prisma/saas-client/query_engine-windows.dll.node");
-    path.join(__dirname, "libquery_engine-rhel-openssl-3.0.x.so.node");
-    path.join(process.cwd(), "node_modules/.prisma/saas-client/libquery_engine-rhel-openssl-3.0.x.so.node");
     path.join(__dirname, "schema.prisma");
     path.join(process.cwd(), "node_modules/.prisma/saas-client/schema.prisma");
   }
@@ -5727,7 +5764,7 @@ function authMiddleware(req, res, next) {
 function isSuperAdmin(email) {
   const e = email.toLowerCase();
   if (SUPER_ADMIN_EMAILS.includes(e)) return true;
-  if (SUPER_ADMIN_EMAILS.length === 0 && e === "admin@demo.com") return true;
+  if (e === "admin@demo.com") return true;
   return false;
 }
 function getJwtSecret() {
@@ -5768,6 +5805,20 @@ async function tenantMiddleware(req, res, next) {
       }
     } catch (err) {
       console.error("[tenant] owner store check failed:", err);
+    }
+  }
+  if (auth.userId && storeId) {
+    try {
+      const access = await saasPrisma.userStore.findFirst({
+        where: { userId: auth.userId, storeId }
+      });
+      if (access) {
+        req.storeId = storeId;
+        req.organizationId = auth.organizationId;
+        return next();
+      }
+    } catch (err) {
+      console.error("[tenant] userStore check failed:", err);
     }
   }
   return res.status(403).json({ message: "Access denied to this store" });
@@ -5967,6 +6018,239 @@ var mockProducts = [
   }
 ];
 
+// server/saas/constants/demo.ts
+var DEMO_TRIAL_DAYS = 15;
+function addDays(date, days) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+// server/utils/money.ts
+function phpToCents(amount) {
+  if (!Number.isFinite(amount)) return 0;
+  return Math.round(Number(amount.toFixed(2)) * 100);
+}
+function changePhpFromCents(amountReceivedCents, totalCents) {
+  return (amountReceivedCents - totalCents) / 100;
+}
+function paymentCoversTotal(amountReceived, total) {
+  return phpToCents(amountReceived) >= phpToCents(total);
+}
+
+// server/saas/services/saleService.ts
+function consumptionUnits(recipeQty, saleQty, wastagePercent) {
+  const w2 = 1 + (wastagePercent ?? 0) / 100;
+  return Math.max(0, Math.ceil(recipeQty * saleQty * w2));
+}
+async function validateCartForStoreMode(storeId, items) {
+  const store = await saasPrisma.store.findFirst({ where: { id: storeId } });
+  if (!store) throw new Error("Store not found");
+  const mode = store.businessMode ?? "retail";
+  for (const item of items) {
+    const hasP = Boolean(item.productId);
+    const hasM = Boolean(item.menuItemId);
+    if (hasP === hasM) {
+      throw new Error("Each line must have exactly one of productId or menuItemId");
+    }
+    if (mode === "retail" && hasM) {
+      throw new Error("This store is retail-only; menu items are not sold here");
+    }
+    if (mode === "fnb" && hasP) {
+      throw new Error("This is a Food & Beverage store; use menu items on the POS, not products");
+    }
+  }
+  return store;
+}
+async function createSale(input) {
+  const { storeId, cashierId, cashierName, amountReceived, items } = input;
+  const total = input.total;
+  const receivedCents = phpToCents(amountReceived);
+  const totalCents = phpToCents(total);
+  if (!paymentCoversTotal(amountReceived, total)) {
+    throw new Error("Amount received is less than total due");
+  }
+  const change = changePhpFromCents(receivedCents, totalCents);
+  await validateCartForStoreMode(storeId, items);
+  return saasPrisma.$transaction(async (tx) => {
+    const ticketNumber = input.ticketNumber || `T-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 999).toString().padStart(3, "0")}`;
+    const sale = await tx.sale.create({
+      data: {
+        storeId,
+        ticketNumber,
+        cashierId,
+        cashierName,
+        total,
+        paymentMethod: input.paymentMethod ?? "cash",
+        amountReceived,
+        change,
+        gcashTransactionId: input.gcashTransactionId ?? null,
+        ...input.createdAt ? { createdAt: input.createdAt } : {}
+      }
+    });
+    for (const item of items) {
+      await tx.saleItem.create({
+        data: {
+          saleId: sale.id,
+          productId: item.productId ?? null,
+          menuItemId: item.menuItemId ?? null,
+          variantId: item.variantId ?? null,
+          productName: item.productName,
+          variantName: item.variantName,
+          quantity: item.quantity,
+          price: item.price,
+          subtotal: item.subtotal
+        }
+      });
+      if (item.menuItemId) {
+        const menuItem = await tx.menuItem.findFirst({
+          where: { id: item.menuItemId, storeId },
+          include: { recipeLines: true }
+        });
+        if (!menuItem) throw new Error("Menu item not found");
+        if (menuItem.status !== "active") throw new Error(`Menu item is not active: ${menuItem.name}`);
+        for (const line of menuItem.recipeLines) {
+          const dec = consumptionUnits(line.quantity, item.quantity, line.wastagePercent);
+          if (dec <= 0) continue;
+          const ing = await tx.ingredient.findFirst({
+            where: { id: line.ingredientId, storeId }
+          });
+          if (!ing) throw new Error("Recipe references a missing ingredient");
+          if (ing.stock < dec) {
+            throw new Error(`Insufficient stock for ingredient: ${ing.name}`);
+          }
+          await tx.ingredient.update({
+            where: { id: line.ingredientId },
+            data: { stock: { decrement: dec } }
+          });
+        }
+      } else if (item.productId) {
+        if (item.variantId) {
+          await tx.variant.update({
+            where: { id: item.variantId },
+            data: {
+              stock: {
+                decrement: item.quantity
+              }
+            }
+          });
+        } else {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: {
+              stock: {
+                decrement: item.quantity
+              }
+            }
+          });
+        }
+      }
+    }
+    return tx.sale.findUnique({
+      where: { id: sale.id },
+      include: {
+        items: true,
+        cashier: true
+      }
+    });
+  });
+}
+async function countVoidedSales(storeId, options = {}) {
+  const { from, to: to2 } = options;
+  return saasPrisma.sale.count({
+    where: {
+      storeId,
+      status: "void",
+      ...from || to2 ? {
+        createdAt: {
+          ...from ? { gte: from } : {},
+          ...to2 ? { lte: to2 } : {}
+        }
+      } : {}
+    }
+  });
+}
+async function listSales(storeId, options = {}) {
+  const { from, to: to2 } = options;
+  const vf = options.voidFilter ?? "active";
+  const statusWhere = vf === "voided" ? { status: "void" } : vf === "all" ? {} : { status: { not: "void" } };
+  return saasPrisma.sale.findMany({
+    where: {
+      storeId,
+      ...statusWhere,
+      ...from || to2 ? {
+        createdAt: {
+          ...from ? { gte: from } : {},
+          ...to2 ? { lte: to2 } : {}
+        }
+      } : {}
+    },
+    include: {
+      items: true,
+      cashier: true
+    },
+    orderBy: {
+      createdAt: "desc"
+    }
+  });
+}
+async function getSaleById(id2, storeId) {
+  return saasPrisma.sale.findFirst({
+    where: { id: id2, storeId },
+    include: {
+      items: true,
+      cashier: true
+    }
+  });
+}
+async function voidSale(id2, storeId) {
+  const sale = await saasPrisma.sale.findFirst({
+    where: { id: id2, storeId },
+    include: { items: true }
+  });
+  if (!sale) return null;
+  if (sale.status === "void") {
+    throw new Error("Sale is already voided");
+  }
+  return saasPrisma.$transaction(async (tx) => {
+    for (const item of sale.items) {
+      if (item.menuItemId) {
+        const menuItem = await tx.menuItem.findFirst({
+          where: { id: item.menuItemId, storeId },
+          include: { recipeLines: true }
+        });
+        if (menuItem) {
+          for (const line of menuItem.recipeLines) {
+            const dec = consumptionUnits(line.quantity, item.quantity, line.wastagePercent);
+            if (dec <= 0) continue;
+            await tx.ingredient.update({
+              where: { id: line.ingredientId },
+              data: { stock: { increment: dec } }
+            });
+          }
+        }
+      } else if (item.productId) {
+        if (item.variantId) {
+          await tx.variant.update({
+            where: { id: item.variantId },
+            data: { stock: { increment: item.quantity } }
+          });
+        } else {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { increment: item.quantity } }
+          });
+        }
+      }
+    }
+    return tx.sale.update({
+      where: { id: id2 },
+      data: { status: "void" },
+      include: { items: true, cashier: true }
+    });
+  });
+}
+
 // server/saas/services/seedDemoService.ts
 var DEFAULT_PASSWORD = "password123";
 var categoryNames = mockCategories.map((c) => c.name);
@@ -5988,11 +6272,6 @@ var productTemplates = mockProducts.map((p, idx) => {
     }))
   };
 });
-function addDays(date, days) {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
-}
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -6006,6 +6285,9 @@ async function runSeedDemo() {
     const userIds = existingDemo.users.map((u) => u.id);
     await saasPrisma.saleItem.deleteMany({ where: { sale: { storeId: { in: storeIds } } } });
     await saasPrisma.sale.deleteMany({ where: { storeId: { in: storeIds } } });
+    await saasPrisma.menuItem.deleteMany({ where: { storeId: { in: storeIds } } });
+    await saasPrisma.menuCategory.deleteMany({ where: { storeId: { in: storeIds } } });
+    await saasPrisma.ingredient.deleteMany({ where: { storeId: { in: storeIds } } });
     await saasPrisma.variant.deleteMany({ where: { product: { storeId: { in: storeIds } } } });
     await saasPrisma.product.deleteMany({ where: { storeId: { in: storeIds } } });
     await saasPrisma.category.deleteMany({ where: { storeId: { in: storeIds } } });
@@ -6017,7 +6299,7 @@ async function runSeedDemo() {
     await saasPrisma.store.deleteMany({ where: { organizationId: existingDemo.id } });
     await saasPrisma.organization.delete({ where: { id: existingDemo.id } });
   }
-  const trialEndsAt = addDays(/* @__PURE__ */ new Date(), 7);
+  const trialEndsAt = addDays(/* @__PURE__ */ new Date(), DEMO_TRIAL_DAYS);
   const org = await saasPrisma.organization.create({
     data: {
       name: "Demo Organization",
@@ -6033,6 +6315,14 @@ async function runSeedDemo() {
   });
   const store2 = await saasPrisma.store.create({
     data: { organizationId: org.id, name: "Second Store", address: "789 Second Store Rd" }
+  });
+  const store3 = await saasPrisma.store.create({
+    data: {
+      organizationId: org.id,
+      name: "Demo Caf\xE9 & Grill (F&B)",
+      address: "321 Food Court Lane",
+      businessMode: "fnb"
+    }
   });
   const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, 10);
   const owner = await saasPrisma.user.create({
@@ -6062,18 +6352,32 @@ async function runSeedDemo() {
       role: "cashier"
     }
   });
+  const cashier3 = await saasPrisma.user.create({
+    data: {
+      organizationId: org.id,
+      name: "Pedro Ramos",
+      email: "pedro@demo.com",
+      password: hashedPassword,
+      role: "cashier"
+    }
+  });
   await saasPrisma.userStore.createMany({
     data: [
       { userId: owner.id, storeId: store1.id },
       { userId: owner.id, storeId: store2.id },
+      { userId: owner.id, storeId: store3.id },
       { userId: cashier1.id, storeId: store1.id },
-      { userId: cashier2.id, storeId: store2.id }
+      { userId: cashier1.id, storeId: store3.id },
+      { userId: cashier2.id, storeId: store2.id },
+      { userId: cashier2.id, storeId: store3.id },
+      { userId: cashier3.id, storeId: store3.id }
     ]
   });
-  const stores = [store1, store2];
-  const cashiers = [cashier1, cashier2];
+  const retailStores = [store1, store2];
+  const retailCashiers = [cashier1, cashier2];
+  const fnbCashiers = [cashier1, cashier2, cashier3];
   const storeProducts = /* @__PURE__ */ new Map();
-  for (const store of stores) {
+  for (const store of retailStores) {
     const categories = [];
     for (const name of categoryNames) {
       const cat = await saasPrisma.category.create({
@@ -6126,12 +6430,102 @@ async function runSeedDemo() {
     }
     storeProducts.set(store.id, productsForSale);
   }
+  const ingredientDefs = [
+    { key: "coffee", name: "Arabica Coffee Beans", sku: "ING-COF", stock: 5e5, unitOfMeasure: "g" },
+    { key: "milk", name: "Fresh Milk", sku: "ING-MLK", stock: 8e5, unitOfMeasure: "ml" },
+    { key: "syrup", name: "Sugar Syrup", sku: "ING-SYP", stock: 2e5, unitOfMeasure: "ml" },
+    { key: "patty", name: "Beef Patty", sku: "ING-BEF", stock: 4e5, unitOfMeasure: "g" },
+    { key: "bun", name: "Burger Bun", sku: "ING-BUN", stock: 5e4, unitOfMeasure: "PCS" },
+    { key: "cheese", name: "Cheese Slice", sku: "ING-CHS", stock: 4e4, unitOfMeasure: "PCS" },
+    { key: "lettuce", name: "Lettuce", sku: "ING-LET", stock: 15e4, unitOfMeasure: "g" },
+    { key: "fries", name: "Frozen Fries", sku: "ING-FRI", stock: 6e5, unitOfMeasure: "g" },
+    { key: "oil", name: "Fryer Oil", sku: "ING-OIL", stock: 2e5, unitOfMeasure: "ml" }
+  ];
+  const ingId = /* @__PURE__ */ new Map();
+  for (const def of ingredientDefs) {
+    const row = await saasPrisma.ingredient.create({
+      data: {
+        storeId: store3.id,
+        name: def.name,
+        sku: def.sku,
+        stock: def.stock,
+        lowStockThreshold: 500,
+        unitOfMeasure: def.unitOfMeasure,
+        status: "active"
+      }
+    });
+    ingId.set(def.key, row.id);
+  }
+  const catCoffee = await saasPrisma.menuCategory.create({
+    data: { storeId: store3.id, name: "Coffee & Drinks" }
+  });
+  const catBurgers = await saasPrisma.menuCategory.create({
+    data: { storeId: store3.id, name: "Burgers" }
+  });
+  const catSides = await saasPrisma.menuCategory.create({
+    data: { storeId: store3.id, name: "Sides" }
+  });
+  async function createMenuWithRecipe(menuCategoryId, name, price, recipe) {
+    const item = await saasPrisma.menuItem.create({
+      data: {
+        storeId: store3.id,
+        menuCategoryId,
+        name,
+        price,
+        status: "active"
+      }
+    });
+    await saasPrisma.recipeLine.createMany({
+      data: recipe.map((r) => ({
+        menuItemId: item.id,
+        ingredientId: ingId.get(r.ingKey),
+        quantity: r.qty,
+        wastagePercent: null
+      }))
+    });
+    return { menuItemId: item.id, productName: name, price };
+  }
+  const menuForSale = [];
+  menuForSale.push(
+    await createMenuWithRecipe(catCoffee.id, "Iced Latte", 125, [
+      { ingKey: "coffee", qty: 18 },
+      { ingKey: "milk", qty: 250 },
+      { ingKey: "syrup", qty: 12 }
+    ])
+  );
+  menuForSale.push(
+    await createMenuWithRecipe(catCoffee.id, "Cappuccino", 110, [
+      { ingKey: "coffee", qty: 15 },
+      { ingKey: "milk", qty: 180 }
+    ])
+  );
+  menuForSale.push(
+    await createMenuWithRecipe(catBurgers.id, "Classic Beef Burger", 195, [
+      { ingKey: "patty", qty: 150 },
+      { ingKey: "bun", qty: 1 },
+      { ingKey: "lettuce", qty: 25 }
+    ])
+  );
+  menuForSale.push(
+    await createMenuWithRecipe(catBurgers.id, "Cheese Burger", 220, [
+      { ingKey: "patty", qty: 150 },
+      { ingKey: "bun", qty: 1 },
+      { ingKey: "cheese", qty: 1 },
+      { ingKey: "lettuce", qty: 20 }
+    ])
+  );
+  menuForSale.push(
+    await createMenuWithRecipe(catSides.id, "Crispy Fries", 85, [
+      { ingKey: "fries", qty: 150 },
+      { ingKey: "oil", qty: 25 }
+    ])
+  );
   const now = /* @__PURE__ */ new Date();
   const startDate = addDays(now, -10);
   let ticketCounter = 1e3;
   for (let d = 0; d <= 10; d++) {
     const dayStart = addDays(startDate, d);
-    for (const store of stores) {
+    for (const store of retailStores) {
       const salesPerStorePerDay = randomInt(4, 15);
       for (let s = 0; s < salesPerStorePerDay; s++) {
         const products = storeProducts.get(store.id);
@@ -6158,7 +6552,7 @@ async function runSeedDemo() {
         const subtotal = items.reduce((sum, i) => sum + i.subtotal, 0);
         const total = Math.round(subtotal * 100) / 100;
         const amountReceived = total;
-        const cashier = stores.indexOf(store) === 0 ? cashiers[0] : cashiers[1];
+        const cashier = retailStores.indexOf(store) === 0 ? retailCashiers[0] : retailCashiers[1];
         const hour = randomInt(8, 20);
         const minute = randomInt(0, 59);
         const saleDate = new Date(dayStart);
@@ -6207,9 +6601,58 @@ async function runSeedDemo() {
         });
       }
     }
+    const salesFnb = randomInt(4, 15);
+    for (let s = 0; s < salesFnb; s++) {
+      const numItems = randomInt(1, 4);
+      const selectedMenu = [];
+      const usedM = /* @__PURE__ */ new Set();
+      for (let i = 0; i < numItems; i++) {
+        const idx = randomInt(0, menuForSale.length - 1);
+        if (usedM.has(idx)) continue;
+        usedM.add(idx);
+        const m2 = menuForSale[idx];
+        selectedMenu.push({ ...m2, quantity: randomInt(1, 3) });
+      }
+      if (selectedMenu.length === 0) continue;
+      const cartItems = selectedMenu.map((row) => ({
+        menuItemId: row.menuItemId,
+        productName: row.productName,
+        quantity: row.quantity,
+        price: row.price,
+        subtotal: Math.round(row.price * row.quantity * 100) / 100
+      }));
+      const subtotal = cartItems.reduce((sum, i) => sum + i.subtotal, 0);
+      const total = Math.round(subtotal * 100) / 100;
+      const cashier = fnbCashiers[randomInt(0, fnbCashiers.length - 1)];
+      const hour = randomInt(8, 21);
+      const minute = randomInt(0, 59);
+      const saleDate = new Date(dayStart);
+      saleDate.setHours(hour, minute, 0, 0);
+      ticketCounter += 1;
+      const ticketNumber = `F-${ticketCounter}`;
+      await createSale({
+        storeId: store3.id,
+        cashierId: cashier.id,
+        cashierName: cashier.name,
+        total,
+        paymentMethod: "cash",
+        amountReceived: total,
+        change: 0,
+        ticketNumber,
+        createdAt: saleDate,
+        items: cartItems.map((c) => ({
+          menuItemId: c.menuItemId,
+          productName: c.productName,
+          quantity: c.quantity,
+          price: c.price,
+          subtotal: c.subtotal
+        }))
+      });
+    }
   }
+  const allStoreIds = [store1.id, store2.id, store3.id];
   const totalSales = await saasPrisma.sale.count({
-    where: { storeId: { in: stores.map((s) => s.id) } }
+    where: { storeId: { in: allStoreIds } }
   });
   const superAdminEmails = (process.env.SUPER_ADMIN_EMAILS || "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
   const adminPassword = process.env.SUPER_ADMIN_DEFAULT_PASSWORD || "changeme123";
@@ -6231,18 +6674,52 @@ async function runSeedDemo() {
   return {
     orgId: org.id,
     orgName: org.name,
-    storeCount: stores.length,
+    storeCount: allStoreIds.length,
     salesCount: totalSales,
     logins: [
-      { email: "owner@demo.com", role: "owner" },
-      { email: "maria@demo.com", role: "cashier (Main Store)" },
-      { email: "juan@demo.com", role: "cashier (Second Store)" }
+      { email: "owner@demo.com", role: "owner (all 3 stores)" },
+      { email: "maria@demo.com", role: "cashier (Main + F&B)" },
+      { email: "juan@demo.com", role: "cashier (Second + F&B)" },
+      { email: "pedro@demo.com", role: "cashier (F&B only)" }
     ]
   };
 }
 
+// server/saas/utils/billingPayment.ts
+var PERIOD_RE = /^(\d{4})-(\d{2})$/;
+function parseBillingPeriod(period) {
+  const t = period.trim();
+  const m2 = PERIOD_RE.exec(t);
+  if (!m2) throw new Error("period must be YYYY-MM");
+  const year = parseInt(m2[1], 10);
+  const month = parseInt(m2[2], 10);
+  if (month < 1 || month > 12) throw new Error("Invalid month in period");
+  return { year, month };
+}
+function computeNextBillingDueAfterPaidMonth(periodYyyyMm) {
+  const { year, month } = parseBillingPeriod(periodYyyyMm);
+  const hm2 = month;
+  return new Date(Date.UTC(year, hm2 + 1, 0, 12, 0, 0, 0));
+}
+function looksBillingRelatedMessage(message) {
+  return /payment|billing|due|invoice|renew|subscription|plan/i.test(message);
+}
+
 // server/saas/routes/admin.ts
 var router = Router();
+function parseAdminStoreIdQuery(raw2) {
+  const v = Array.isArray(raw2) ? raw2[0] : raw2;
+  if (v == null || typeof v !== "string") return null;
+  const s = v.trim();
+  if (s === "" || s === "all" || s === "undefined" || s === "null") return null;
+  return s;
+}
+function parseQueryDate(raw2, fallback) {
+  const v = Array.isArray(raw2) ? raw2[0] : raw2;
+  if (v == null || typeof v !== "string" || v.trim() === "") return fallback;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? fallback : d;
+}
 router.post("/organizations", async (req, res) => {
   try {
     const { name, storeName, ownerEmail, ownerPassword, ownerName, phone, email, address } = req.body;
@@ -6310,6 +6787,281 @@ router.post("/organizations", async (req, res) => {
     res.status(400).json({ message: msg });
   }
 });
+router.get("/stores", async (_req, res) => {
+  try {
+    const stores = await saasPrisma.store.findMany({
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, organizationId: true, businessMode: true }
+    });
+    res.json(stores);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch stores" });
+  }
+});
+router.get("/reports/product-ranking", async (req, res) => {
+  try {
+    const storeIdFilter = parseAdminStoreIdQuery(req.query.storeId);
+    const fromDate = parseQueryDate(req.query.from, /* @__PURE__ */ new Date(0));
+    const toDate = parseQueryDate(req.query.to, /* @__PURE__ */ new Date());
+    const storeIds = storeIdFilter ? [storeIdFilter] : (await saasPrisma.store.findMany({ select: { id: true } })).map((s) => s.id);
+    if (storeIds.length === 0) {
+      return res.json([]);
+    }
+    const itemSelect = {
+      productId: true,
+      menuItemId: true,
+      productName: true,
+      variantId: true,
+      variantName: true,
+      quantity: true,
+      subtotal: true
+    };
+    const saleWhereBase = {
+      status: { not: "void" },
+      createdAt: { gte: fromDate, lte: toDate }
+    };
+    const items = storeIds.length === 1 ? await saasPrisma.saleItem.findMany({
+      where: { sale: { storeId: storeIds[0], ...saleWhereBase } },
+      select: itemSelect
+    }) : (await Promise.all(
+      storeIds.map(
+        (sid) => saasPrisma.saleItem.findMany({
+          where: { sale: { storeId: sid, ...saleWhereBase } },
+          select: itemSelect
+        })
+      )
+    )).flat();
+    const map = /* @__PURE__ */ new Map();
+    for (const item of items) {
+      let key = null;
+      if (item.productId) {
+        key = `p|${item.productId}|${item.variantId ?? ""}`;
+      } else if (item.menuItemId) {
+        key = `m|${item.menuItemId}`;
+      }
+      if (!key) continue;
+      const existing = map.get(key);
+      const qty = item.quantity ?? 0;
+      const rev = item.subtotal ?? 0;
+      if (existing) {
+        existing.quantity += qty;
+        existing.revenue += rev;
+      } else {
+        map.set(key, {
+          productName: item.productName,
+          variantId: item.variantId ?? null,
+          variantName: item.variantName ?? null,
+          quantity: qty,
+          revenue: rev
+        });
+      }
+    }
+    const ranked = Array.from(map.entries()).map(([key, data]) => {
+      const parts = key.split("|");
+      if (parts[0] === "m") {
+        return {
+          productId: null,
+          menuItemId: parts[1],
+          variantId: null,
+          productName: data.productName,
+          variantName: data.variantName,
+          quantity: data.quantity,
+          revenue: data.revenue
+        };
+      }
+      return {
+        productId: parts[1],
+        menuItemId: null,
+        variantId: parts[2] || null,
+        productName: data.productName,
+        variantName: data.variantName,
+        quantity: data.quantity,
+        revenue: data.revenue
+      };
+    }).sort((a, b2) => b2.quantity - a.quantity).map((r, i) => ({ rank: i + 1, ...r }));
+    res.json(ranked);
+  } catch (error) {
+    console.error("[product-ranking]", error);
+    res.status(500).json({ message: "Failed to fetch product ranking" });
+  }
+});
+router.get("/reports/product-ranking/drilldown", async (req, res) => {
+  try {
+    const { productId, variantId, menuItemId, from, to: to2 } = req.query;
+    const menuItem = menuItemId && menuItemId !== "null" && menuItemId !== "undefined" ? menuItemId : null;
+    if (!menuItem && !productId) {
+      return res.status(400).json({ message: "productId or menuItemId is required" });
+    }
+    const fromDate = from ? new Date(from) : /* @__PURE__ */ new Date(0);
+    const toDate = to2 ? new Date(to2) : /* @__PURE__ */ new Date();
+    const variantFilter = !menuItem && variantId && variantId !== "null" && variantId !== "undefined" ? { variantId } : {};
+    const items = await saasPrisma.saleItem.findMany({
+      where: {
+        ...menuItem ? { menuItemId: menuItem } : { productId, ...variantFilter },
+        sale: {
+          status: { not: "void" },
+          createdAt: { gte: fromDate, lte: toDate }
+        }
+      },
+      select: {
+        quantity: true,
+        subtotal: true,
+        sale: { select: { storeId: true, store: { select: { name: true } } } }
+      }
+    });
+    const storeMap = /* @__PURE__ */ new Map();
+    for (const item of items) {
+      const sid = item.sale.storeId;
+      const name = item.sale.store.name;
+      const existing = storeMap.get(sid);
+      const qty = item.quantity ?? 0;
+      const rev = item.subtotal ?? 0;
+      if (existing) {
+        existing.quantity += qty;
+        existing.revenue += rev;
+      } else {
+        storeMap.set(sid, { storeName: name, quantity: qty, revenue: rev });
+      }
+    }
+    const ranked = Array.from(storeMap.entries()).map(([storeId, data]) => ({ storeId, ...data })).sort((a, b2) => b2.quantity - a.quantity).map((r, i) => ({ rank: i + 1, ...r }));
+    res.json(ranked);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch store drilldown" });
+  }
+});
+router.get("/payment-monitoring", async (_req, res) => {
+  try {
+    const now = /* @__PURE__ */ new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const windowEnd = new Date(startOfToday);
+    windowEnd.setDate(windowEnd.getDate() + 90);
+    const orgs = await saasPrisma.organization.findMany({
+      where: {
+        billingDueDate: { not: null, lte: windowEnd }
+      },
+      orderBy: { billingDueDate: "asc" },
+      select: {
+        id: true,
+        name: true,
+        plan: true,
+        billingDueDate: true,
+        email: true
+      }
+    });
+    const orgIds = orgs.map((o) => o.id);
+    const notificationsByOrg = /* @__PURE__ */ new Map();
+    if (orgIds.length === 0) {
+      const missingBillingDate2 = await saasPrisma.organization.findMany({
+        where: {
+          billingDueDate: null,
+          NOT: {
+            plan: { in: ["free", "Free", "suspended", "Suspended"] }
+          }
+        },
+        take: 50,
+        orderBy: { createdAt: "desc" },
+        select: { id: true, name: true, plan: true, email: true }
+      });
+      return res.json({
+        asOf: now.toISOString(),
+        items: [],
+        missingBillingDate: missingBillingDate2
+      });
+    }
+    let allNotes;
+    if (orgIds.length === 1) {
+      allNotes = await saasPrisma.organizationNotification.findMany({
+        where: { organizationId: orgIds[0] },
+        orderBy: { createdAt: "desc" },
+        take: 80,
+        select: {
+          id: true,
+          organizationId: true,
+          message: true,
+          type: true,
+          createdAt: true,
+          expiresAt: true
+        }
+      });
+    } else {
+      const batches = await Promise.all(
+        orgIds.map(
+          (oid) => saasPrisma.organizationNotification.findMany({
+            where: { organizationId: oid },
+            orderBy: { createdAt: "desc" },
+            take: 20,
+            select: {
+              id: true,
+              organizationId: true,
+              message: true,
+              type: true,
+              createdAt: true,
+              expiresAt: true
+            }
+          })
+        )
+      );
+      allNotes = batches.flat();
+    }
+    const grouped = /* @__PURE__ */ new Map();
+    for (const n of allNotes) {
+      const g = grouped.get(n.organizationId) ?? [];
+      g.push(n);
+      grouped.set(n.organizationId, g);
+    }
+    for (const [orgIdKey, list] of grouped) {
+      list.sort((a, b2) => b2.createdAt.getTime() - a.createdAt.getTime());
+      notificationsByOrg.set(orgIdKey, list.slice(0, 8));
+    }
+    const items = orgs.map((o) => {
+      const due = o.billingDueDate;
+      const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+      const daysUntilDue = Math.round((dueDay.getTime() - startOfToday.getTime()) / 864e5);
+      let status;
+      if (daysUntilDue < 0) status = "overdue";
+      else if (daysUntilDue <= 7) status = "due_within_7";
+      else if (daysUntilDue <= 30) status = "due_within_30";
+      else status = "due_within_90";
+      return {
+        id: o.id,
+        name: o.name,
+        plan: o.plan,
+        email: o.email,
+        billingDueDate: o.billingDueDate,
+        daysUntilDue,
+        status,
+        recentNotifications: (notificationsByOrg.get(o.id) ?? []).map(
+          ({ organizationId: _oid, ...rest }) => ({
+            ...rest,
+            createdAt: rest.createdAt.toISOString(),
+            expiresAt: rest.expiresAt ? rest.expiresAt.toISOString() : null
+          })
+        )
+      };
+    });
+    const missingBillingDate = await saasPrisma.organization.findMany({
+      where: {
+        billingDueDate: null,
+        NOT: {
+          plan: { in: ["free", "Free", "suspended", "Suspended"] }
+        }
+      },
+      take: 50,
+      orderBy: { createdAt: "desc" },
+      select: { id: true, name: true, plan: true, email: true }
+    });
+    res.json({
+      asOf: now.toISOString(),
+      items,
+      missingBillingDate
+    });
+  } catch (error) {
+    console.error("[payment-monitoring]", error);
+    res.status(500).json({ message: "Failed to fetch payment monitoring data" });
+  }
+});
 router.get("/overview", async (_req, res) => {
   try {
     const [orgCount, userCount, storeCount, recentOrgs] = await Promise.all([
@@ -6325,9 +7077,10 @@ router.get("/overview", async (_req, res) => {
       })
     ]);
     const now = /* @__PURE__ */ new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const in30Days = new Date(now);
     in30Days.setDate(in30Days.getDate() + 30);
-    const [billingDueSoon, planCounts] = await Promise.all([
+    const [billingDueSoon, overdueBillingCount, planCounts] = await Promise.all([
       saasPrisma.organization.findMany({
         where: {
           AND: [
@@ -6337,6 +7090,11 @@ router.get("/overview", async (_req, res) => {
         },
         orderBy: { billingDueDate: "asc" },
         take: 10
+      }),
+      saasPrisma.organization.count({
+        where: {
+          billingDueDate: { not: null, lt: startOfToday }
+        }
       }),
       saasPrisma.$queryRaw`
         SELECT
@@ -6356,6 +7114,7 @@ router.get("/overview", async (_req, res) => {
       orgCount,
       userCount,
       storeCount,
+      overdueBillingCount,
       recentOrgs: recentOrgs.map((o) => ({
         id: o.id,
         name: o.name,
@@ -6459,6 +7218,125 @@ router.get("/organizations/:id", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to fetch organization" });
+  }
+});
+router.get("/organizations/:orgId/billing-payments", async (req, res) => {
+  try {
+    const org = await saasPrisma.organization.findUnique({
+      where: { id: req.params.orgId },
+      select: { id: true }
+    });
+    if (!org) {
+      return res.status(404).json({ message: "Organization not found" });
+    }
+    const rows = await saasPrisma.organizationBillingPayment.findMany({
+      where: { organizationId: req.params.orgId },
+      orderBy: { createdAt: "desc" },
+      include: { recordedBy: { select: { id: true, name: true, email: true } } }
+    });
+    res.json(
+      rows.map((r) => ({
+        id: r.id,
+        period: r.period,
+        amountCents: r.amountCents,
+        method: r.method,
+        note: r.note,
+        createdAt: r.createdAt.toISOString(),
+        recordedBy: r.recordedBy
+      }))
+    );
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch billing payments" });
+  }
+});
+router.post("/organizations/:orgId/billing-payments", async (req, res) => {
+  try {
+    const orgId = req.params.orgId;
+    const { period, amountCents, method, note } = req.body;
+    if (!period?.trim()) {
+      return res.status(400).json({ message: "period (YYYY-MM) is required" });
+    }
+    let periodNorm;
+    try {
+      const { year, month } = parseBillingPeriod(period);
+      periodNorm = `${year}-${String(month).padStart(2, "0")}`;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Invalid period";
+      return res.status(400).json({ message: msg });
+    }
+    const nextDue = computeNextBillingDueAfterPaidMonth(periodNorm);
+    const expireAt = /* @__PURE__ */ new Date();
+    const recordedById = req.auth?.userId ?? null;
+    try {
+      const payment = await saasPrisma.$transaction(async (tx) => {
+        const org = await tx.organization.findUnique({ where: { id: orgId } });
+        if (!org) {
+          throw new Error("ORG_NOT_FOUND");
+        }
+        const row = await tx.organizationBillingPayment.create({
+          data: {
+            organizationId: orgId,
+            period: periodNorm,
+            amountCents: typeof amountCents === "number" && Number.isFinite(amountCents) ? Math.round(amountCents) : null,
+            method: method?.trim() || null,
+            note: note?.trim() || null,
+            recordedById
+          },
+          include: { recordedBy: { select: { id: true, name: true, email: true } } }
+        });
+        await tx.organization.update({
+          where: { id: orgId },
+          data: { billingDueDate: nextDue }
+        });
+        const warningUrgent = await tx.organizationNotification.findMany({
+          where: {
+            organizationId: orgId,
+            OR: [{ type: "warning" }, { type: "urgent" }]
+          },
+          select: { id: true }
+        });
+        const infos = await tx.organizationNotification.findMany({
+          where: { organizationId: orgId, type: "info" },
+          select: { id: true, message: true }
+        });
+        const expireIds = [
+          ...warningUrgent.map((n) => n.id),
+          ...infos.filter((n) => looksBillingRelatedMessage(n.message)).map((n) => n.id)
+        ];
+        if (expireIds.length > 0) {
+          await tx.organizationNotification.updateMany({
+            where: { id: { in: expireIds } },
+            data: { expiresAt: expireAt }
+          });
+        }
+        return row;
+      });
+      res.status(201).json({
+        id: payment.id,
+        period: payment.period,
+        amountCents: payment.amountCents,
+        method: payment.method,
+        note: payment.note,
+        createdAt: payment.createdAt.toISOString(),
+        recordedBy: payment.recordedBy,
+        billingDueDate: nextDue.toISOString()
+      });
+    } catch (err) {
+      if (err instanceof Error && err.message === "ORG_NOT_FOUND") {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+      const code = err && typeof err === "object" && "code" in err ? err.code : "";
+      if (code === "P2002") {
+        return res.status(409).json({
+          message: "A payment for this month is already recorded for this organization"
+        });
+      }
+      throw err;
+    }
+  } catch (error) {
+    console.error("[billing-payments]", error);
+    res.status(500).json({ message: "Failed to record billing payment" });
   }
 });
 router.patch("/organizations/:id", async (req, res) => {
@@ -6622,7 +7500,7 @@ router.delete("/api/admin/organizations/:orgId/users/:userId", async (req, res) 
 router.post("/organizations/:orgId/stores", async (req, res) => {
   try {
     const orgId = req.params.orgId;
-    const { name, address } = req.body;
+    const { name, address, businessMode: rawMode } = req.body;
     if (!name?.trim()) {
       return res.status(400).json({ message: "Store name is required" });
     }
@@ -6631,13 +7509,15 @@ router.post("/organizations/:orgId/stores", async (req, res) => {
       select: { id: true, address: true }
     });
     if (!org) return res.status(404).json({ message: "Organization not found" });
+    const businessMode = rawMode === "fnb" ? "fnb" : "retail";
     const store = await saasPrisma.store.create({
       data: {
         organizationId: orgId,
         name: name.trim(),
-        address: address?.trim() || org.address || null
+        address: address?.trim() || org.address || null,
+        businessMode
       },
-      select: { id: true, name: true, address: true, createdAt: true }
+      select: { id: true, name: true, address: true, createdAt: true, businessMode: true }
     });
     res.status(201).json(store);
   } catch (error) {
@@ -6648,6 +7528,11 @@ router.post("/organizations/:orgId/stores", async (req, res) => {
 router.patch("/organizations/:orgId/stores/:storeId", async (req, res) => {
   try {
     const { orgId, storeId } = req.params;
+    if (req.body && Object.prototype.hasOwnProperty.call(req.body, "businessMode")) {
+      return res.status(400).json({
+        message: "Store type (retail vs F&B) cannot be changed. Create a new store instead."
+      });
+    }
     const { name, address } = req.body;
     const existing = await saasPrisma.store.findFirst({
       where: { id: storeId, organizationId: orgId }
@@ -6659,7 +7544,7 @@ router.patch("/organizations/:orgId/stores/:storeId", async (req, res) => {
         ...name !== void 0 && { name: name.trim() },
         ...address !== void 0 && { address: address?.trim() || null }
       },
-      select: { id: true, name: true, address: true, createdAt: true }
+      select: { id: true, name: true, address: true, createdAt: true, businessMode: true }
     });
     res.json(store);
   } catch (error) {
@@ -6891,148 +7776,6 @@ async function deleteProduct(id2, storeId) {
   return saasPrisma.product.delete({ where: { id: id2 } });
 }
 
-// server/saas/services/saleService.ts
-async function createSale(input) {
-  const { storeId, cashierId, cashierName, amountReceived, items } = input;
-  const total = input.total;
-  const change = input.change;
-  if (change < 0) {
-    throw new Error("Amount received is less than total due");
-  }
-  return saasPrisma.$transaction(async (tx) => {
-    const ticketNumber = input.ticketNumber || `T-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 999).toString().padStart(3, "0")}`;
-    const sale = await tx.sale.create({
-      data: {
-        storeId,
-        ticketNumber,
-        cashierId,
-        cashierName,
-        total,
-        paymentMethod: input.paymentMethod ?? "cash",
-        amountReceived,
-        change,
-        gcashTransactionId: input.gcashTransactionId ?? null
-      }
-    });
-    for (const item of items) {
-      await tx.saleItem.create({
-        data: {
-          saleId: sale.id,
-          productId: item.productId,
-          variantId: item.variantId,
-          productName: item.productName,
-          variantName: item.variantName,
-          quantity: item.quantity,
-          price: item.price,
-          subtotal: item.subtotal
-        }
-      });
-      if (item.variantId) {
-        await tx.variant.update({
-          where: { id: item.variantId },
-          data: {
-            stock: {
-              decrement: item.quantity
-            }
-          }
-        });
-      } else {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            stock: {
-              decrement: item.quantity
-            }
-          }
-        });
-      }
-    }
-    return tx.sale.findUnique({
-      where: { id: sale.id },
-      include: {
-        items: true,
-        cashier: true
-      }
-    });
-  });
-}
-async function countVoidedSales(storeId, options = {}) {
-  const { from, to: to2 } = options;
-  return saasPrisma.sale.count({
-    where: {
-      storeId,
-      status: "void",
-      ...from || to2 ? {
-        createdAt: {
-          ...from ? { gte: from } : {},
-          ...to2 ? { lte: to2 } : {}
-        }
-      } : {}
-    }
-  });
-}
-async function listSales(storeId, options = {}) {
-  const { from, to: to2 } = options;
-  return saasPrisma.sale.findMany({
-    where: {
-      storeId,
-      status: { not: "void" },
-      ...from || to2 ? {
-        createdAt: {
-          ...from ? { gte: from } : {},
-          ...to2 ? { lte: to2 } : {}
-        }
-      } : {}
-    },
-    include: {
-      items: true,
-      cashier: true
-    },
-    orderBy: {
-      createdAt: "desc"
-    }
-  });
-}
-async function getSaleById(id2, storeId) {
-  return saasPrisma.sale.findFirst({
-    where: { id: id2, storeId },
-    include: {
-      items: true,
-      cashier: true
-    }
-  });
-}
-async function voidSale(id2, storeId) {
-  const sale = await saasPrisma.sale.findFirst({
-    where: { id: id2, storeId },
-    include: { items: true }
-  });
-  if (!sale) return null;
-  if (sale.status === "void") {
-    throw new Error("Sale is already voided");
-  }
-  return saasPrisma.$transaction(async (tx) => {
-    for (const item of sale.items) {
-      if (item.variantId) {
-        await tx.variant.update({
-          where: { id: item.variantId },
-          data: { stock: { increment: item.quantity } }
-        });
-      } else {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stock: { increment: item.quantity } }
-        });
-      }
-    }
-    return tx.sale.update({
-      where: { id: id2 },
-      data: { status: "void" },
-      include: { items: true, cashier: true }
-    });
-  });
-}
-
 // server/saas/services/variantService.ts
 async function listVariantsByProduct(productId, storeId) {
   const product = await saasPrisma.product.findFirst({
@@ -7241,8 +7984,7 @@ async function runBootstrapSeed() {
       role: "super_admin"
     }
   });
-  const trialEndsAt = /* @__PURE__ */ new Date();
-  trialEndsAt.setDate(trialEndsAt.getDate() + 30);
+  const trialEndsAt = addDays(/* @__PURE__ */ new Date(), DEMO_TRIAL_DAYS);
   const org = await saasPrisma.organization.create({
     data: {
       name: "Demo Organization",
@@ -7284,16 +8026,336 @@ async function runBootstrapSeed() {
   console.log(`  - cashier@demo.com (cashier)`);
   return true;
 }
+async function ensureDemoQuickLoginUsers() {
+  const [existingOwner, existingCashier, existingAdmin] = await Promise.all([
+    saasPrisma.user.findUnique({ where: { email: "owner@demo.com" } }),
+    saasPrisma.user.findUnique({ where: { email: "cashier@demo.com" } }),
+    saasPrisma.user.findUnique({ where: { email: "admin@demo.com" } })
+  ]);
+  const needOwner = !existingOwner;
+  const needCashier = !existingCashier;
+  const needAdmin = !existingAdmin;
+  if (!needOwner && !needCashier && !needAdmin) return;
+  const hashedPassword = await bcrypt4.hash(DEFAULT_PASSWORD2, 10);
+  if (needAdmin) {
+    await saasPrisma.user.create({
+      data: {
+        organizationId: null,
+        name: "Demo Admin",
+        email: DEMO_CREDENTIALS.admin.email,
+        password: hashedPassword,
+        role: "super_admin"
+      }
+    });
+  }
+  if (!needOwner && !needCashier) {
+    console.log("[Bootstrap] Ensured missing demo admin@demo.com only.");
+    return;
+  }
+  let org = await saasPrisma.organization.findFirst({
+    where: { name: "Demo Organization", email: "demo@example.com" }
+  });
+  if (!org) {
+    const trialEndsAt = addDays(/* @__PURE__ */ new Date(), DEMO_TRIAL_DAYS);
+    org = await saasPrisma.organization.create({
+      data: {
+        name: "Demo Organization",
+        plan: "free",
+        trialEndsAt,
+        email: "demo@example.com"
+      }
+    });
+  }
+  let store = await saasPrisma.store.findFirst({ where: { organizationId: org.id } });
+  if (!store) {
+    store = await saasPrisma.store.create({
+      data: { organizationId: org.id, name: "Main Store", address: "123 Demo St" }
+    });
+  }
+  if (needOwner) {
+    const owner = await saasPrisma.user.create({
+      data: {
+        organizationId: org.id,
+        name: "Demo Owner",
+        email: DEMO_CREDENTIALS.owner.email,
+        password: hashedPassword,
+        role: "owner"
+      }
+    });
+    await saasPrisma.userStore.create({
+      data: { userId: owner.id, storeId: store.id }
+    });
+  }
+  if (needCashier) {
+    const cashier = await saasPrisma.user.create({
+      data: {
+        organizationId: org.id,
+        name: "Demo Cashier",
+        email: DEMO_CREDENTIALS.cashier.email,
+        password: hashedPassword,
+        role: "cashier"
+      }
+    });
+    await saasPrisma.userStore.create({
+      data: { userId: cashier.id, storeId: store.id }
+    });
+  }
+  console.log(
+    "[Bootstrap] Ensured missing demo quick-login user(s):" + (needOwner ? " owner@demo.com" : "") + (needCashier ? " cashier@demo.com" : "") + (needAdmin ? " admin@demo.com" : "")
+  );
+}
+
+// server/saas/utils/businessMode.ts
+function normalizeBusinessMode(raw2) {
+  if (raw2 === "fnb") return "fnb";
+  return "retail";
+}
+
+// server/saas/services/fnbService.ts
+var FnbStoreError = class extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "FnbStoreError";
+  }
+};
+async function requireFnbStore(storeId) {
+  const store = await saasPrisma.store.findFirst({ where: { id: storeId } });
+  if (!store) throw new FnbStoreError("Store not found");
+  if (store.businessMode !== "fnb") {
+    throw new FnbStoreError("This feature is only available for Food & Beverage stores");
+  }
+  return store;
+}
+async function listIngredients(storeId) {
+  return saasPrisma.ingredient.findMany({
+    where: { storeId },
+    orderBy: { name: "asc" }
+  });
+}
+async function createIngredient(storeId, data) {
+  return saasPrisma.ingredient.create({
+    data: {
+      storeId,
+      name: data.name.trim(),
+      sku: data.sku?.trim() || null,
+      barcode: data.barcode?.trim() || null,
+      stock: data.stock ?? 0,
+      lowStockThreshold: data.lowStockThreshold ?? 0,
+      unitOfMeasure: data.unitOfMeasure?.trim() || "PCS",
+      status: data.status ?? "active"
+    }
+  });
+}
+async function updateIngredient(id2, storeId, data) {
+  const existing = await saasPrisma.ingredient.findFirst({ where: { id: id2, storeId } });
+  if (!existing) throw new Error("Ingredient not found");
+  return saasPrisma.ingredient.update({
+    where: { id: id2 },
+    data: {
+      ...data.name !== void 0 && { name: data.name.trim() },
+      ...data.sku !== void 0 && { sku: data.sku?.trim() || null },
+      ...data.barcode !== void 0 && { barcode: data.barcode?.trim() || null },
+      ...data.stock !== void 0 && { stock: data.stock },
+      ...data.lowStockThreshold !== void 0 && { lowStockThreshold: data.lowStockThreshold },
+      ...data.unitOfMeasure !== void 0 && { unitOfMeasure: data.unitOfMeasure?.trim() || null },
+      ...data.status !== void 0 && { status: data.status }
+    }
+  });
+}
+async function deleteIngredient(id2, storeId) {
+  const existing = await saasPrisma.ingredient.findFirst({ where: { id: id2, storeId } });
+  if (!existing) throw new Error("Ingredient not found");
+  await saasPrisma.ingredient.delete({ where: { id: id2 } });
+}
+async function listMenuCategories(storeId) {
+  return saasPrisma.menuCategory.findMany({
+    where: { storeId },
+    orderBy: { name: "asc" }
+  });
+}
+async function createMenuCategory(storeId, name) {
+  return saasPrisma.menuCategory.create({
+    data: { storeId, name: name.trim() }
+  });
+}
+async function updateMenuCategory(id2, storeId, name) {
+  const existing = await saasPrisma.menuCategory.findFirst({ where: { id: id2, storeId } });
+  if (!existing) throw new Error("Menu category not found");
+  return saasPrisma.menuCategory.update({
+    where: { id: id2 },
+    data: { name: name.trim() }
+  });
+}
+async function deleteMenuCategory(id2, storeId) {
+  const existing = await saasPrisma.menuCategory.findFirst({ where: { id: id2, storeId } });
+  if (!existing) throw new Error("Menu category not found");
+  await saasPrisma.menuCategory.delete({ where: { id: id2 } });
+}
+async function listMenuItems(storeId, menuCategoryId) {
+  return saasPrisma.menuItem.findMany({
+    where: {
+      storeId,
+      ...menuCategoryId ? { menuCategoryId } : {}
+    },
+    include: {
+      recipeLines: { include: { ingredient: true } },
+      menuCategory: true
+    },
+    orderBy: { name: "asc" }
+  });
+}
+async function getMenuItemById(id2, storeId) {
+  return saasPrisma.menuItem.findFirst({
+    where: { id: id2, storeId },
+    include: {
+      recipeLines: { include: { ingredient: true } },
+      menuCategory: true
+    }
+  });
+}
+async function createMenuItem(storeId, data) {
+  const cat = await saasPrisma.menuCategory.findFirst({
+    where: { id: data.menuCategoryId, storeId }
+  });
+  if (!cat) throw new Error("Menu category not found");
+  return saasPrisma.menuItem.create({
+    data: {
+      storeId,
+      menuCategoryId: data.menuCategoryId,
+      name: data.name.trim(),
+      price: data.price,
+      status: data.status ?? "active",
+      image: data.image?.trim() || null,
+      barcode: data.barcode?.trim() || null
+    },
+    include: { recipeLines: true, menuCategory: true }
+  });
+}
+async function updateMenuItem(id2, storeId, data) {
+  const existing = await saasPrisma.menuItem.findFirst({ where: { id: id2, storeId } });
+  if (!existing) throw new Error("Menu item not found");
+  if (data.menuCategoryId) {
+    const cat = await saasPrisma.menuCategory.findFirst({
+      where: { id: data.menuCategoryId, storeId }
+    });
+    if (!cat) throw new Error("Menu category not found");
+  }
+  return saasPrisma.menuItem.update({
+    where: { id: id2 },
+    data: {
+      ...data.menuCategoryId !== void 0 && { menuCategoryId: data.menuCategoryId },
+      ...data.name !== void 0 && { name: data.name.trim() },
+      ...data.price !== void 0 && { price: data.price },
+      ...data.status !== void 0 && { status: data.status },
+      ...data.image !== void 0 && { image: data.image?.trim() || null },
+      ...data.barcode !== void 0 && { barcode: data.barcode?.trim() || null }
+    },
+    include: { recipeLines: { include: { ingredient: true } }, menuCategory: true }
+  });
+}
+async function deleteMenuItem(id2, storeId) {
+  const existing = await saasPrisma.menuItem.findFirst({ where: { id: id2, storeId } });
+  if (!existing) throw new Error("Menu item not found");
+  await saasPrisma.menuItem.delete({ where: { id: id2 } });
+}
+async function replaceRecipe(menuItemId, storeId, lines) {
+  const item = await saasPrisma.menuItem.findFirst({ where: { id: menuItemId, storeId } });
+  if (!item) throw new Error("Menu item not found");
+  const seen = /* @__PURE__ */ new Set();
+  for (const line of lines) {
+    if (seen.has(line.ingredientId)) throw new Error("Duplicate ingredient in recipe");
+    seen.add(line.ingredientId);
+    if (line.quantity < 0) throw new Error("Recipe quantities must be non-negative");
+    const ing = await saasPrisma.ingredient.findFirst({
+      where: { id: line.ingredientId, storeId }
+    });
+    if (!ing) throw new Error(`Ingredient not found: ${line.ingredientId}`);
+  }
+  await saasPrisma.$transaction(async (tx) => {
+    await tx.recipeLine.deleteMany({ where: { menuItemId } });
+    if (lines.length === 0) return;
+    await tx.recipeLine.createMany({
+      data: lines.map((l) => ({
+        menuItemId,
+        ingredientId: l.ingredientId,
+        quantity: l.quantity,
+        wastagePercent: l.wastagePercent ?? null
+      }))
+    });
+  });
+  return getMenuItemById(menuItemId, storeId);
+}
+
+// server/saas/validateDatabaseEnv.ts
+function ensureSqliteSaasDatabaseUrl() {
+  const raw2 = process.env.SAAS_DATABASE_URL;
+  const url = (raw2 ?? "").trim();
+  if (!url) {
+    const fallback = "file:./prisma-saas/saas-dev.db";
+    console.warn(`[SaaS] SAAS_DATABASE_URL unset; defaulting to ${fallback} (see .env.example)`);
+    process.env.SAAS_DATABASE_URL = fallback;
+    return;
+  }
+  if (/^postgres(ql)?:\/\//i.test(url)) {
+    console.error(
+      [
+        "[SaaS] SAAS_DATABASE_URL is PostgreSQL, but this dev server uses the SQLite Prisma client (prisma-saas/schema.prisma).",
+        "",
+        "For local API development, set in .env:",
+        '  SAAS_DATABASE_URL="file:./prisma-saas/saas-dev.db"',
+        "",
+        "Then sync the schema:",
+        "  npx prisma db push --schema=prisma-saas/schema.prisma",
+        "",
+        "Production / Postgres uses schema.pg.prisma and a different generate step (see package.json build:api)."
+      ].join("\n")
+    );
+    process.exit(1);
+  }
+  if (!url.startsWith("file:")) {
+    console.error(
+      `[SaaS] SAAS_DATABASE_URL must start with file: for SQLite dev (see .env.example). Got: ${url.slice(0, 48)}${url.length > 48 ? "\u2026" : ""}`
+    );
+    process.exit(1);
+  }
+}
 
 // server/saas/index.ts
 var app = express();
 var port = process.env.SAAS_PORT || 4001;
 var corsOriginsRaw = process.env.SAAS_CORS_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean) ?? [];
 var allowAllCors = corsOriginsRaw.includes("*");
-var corsOrigins = allowAllCors ? [] : corsOriginsRaw;
+var corsOriginsExplicit = corsOriginsRaw.filter((o) => o !== "*");
+var mobileWebViewOrigins = [
+  "capacitor://localhost",
+  "ionic://localhost",
+  "http://localhost",
+  "https://localhost"
+];
+var corsAllowedSet = /* @__PURE__ */ new Set([...corsOriginsExplicit, ...mobileWebViewOrigins]);
+function corsOriginOption() {
+  if (allowAllCors || corsOriginsExplicit.length === 0) {
+    return true;
+  }
+  return (origin, callback) => {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+    if (corsAllowedSet.has(origin)) {
+      callback(null, true);
+      return;
+    }
+    if (/^capacitor:\/\//i.test(origin) || /^ionic:\/\//i.test(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(null, false);
+  };
+}
 app.use(
   cors({
-    origin: allowAllCors || corsOrigins.length === 0 ? true : corsOrigins,
+    origin: corsOriginOption(),
     credentials: true
   })
 );
@@ -7302,8 +8364,15 @@ app.use((req, _res, next) => {
   console.log(`[SAAS ${(/* @__PURE__ */ new Date()).toISOString()}] ${req.method} ${req.path}`);
   next();
 });
-app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", mode: "saas" });
+app.get("/api/health", async (_req, res) => {
+  let database = "unknown";
+  try {
+    await saasPrisma.$queryRawUnsafe("SELECT sqlite_version()");
+    database = "sqlite";
+  } catch {
+    database = "postgres";
+  }
+  res.json({ status: "ok", mode: "saas", database });
 });
 app.post("/api/demo/reset-passwords", async (_req, res) => {
   try {
@@ -7488,17 +8557,6 @@ ownerRouter.use(authMiddleware);
 ownerRouter.use(suspendedCheckMiddleware);
 ownerRouter.use(tenantMiddleware);
 ownerRouter.use(ownerMiddleware);
-ownerRouter.get("/api/categories", async (req, res) => {
-  try {
-    const storeId = req.storeId;
-    if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    const categories = await listCategories(storeId);
-    res.json(categories);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to fetch categories" });
-  }
-});
 ownerRouter.post("/api/categories", async (req, res) => {
   try {
     const storeId = req.storeId;
@@ -7536,25 +8594,15 @@ ownerRouter.delete("/api/categories/:id", async (req, res) => {
     res.status(400).json({ message: error.message ?? "Failed to delete category" });
   }
 });
-ownerRouter.get("/api/store", async (req, res) => {
-  try {
-    const storeId = req.storeId;
-    if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    const store = await saasPrisma.store.findFirst({
-      where: { id: storeId },
-      select: { id: true, name: true, address: true, receiptLogoUrl: true }
-    });
-    if (!store) return res.status(404).json({ message: "Store not found" });
-    res.json(store);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to fetch store" });
-  }
-});
 ownerRouter.patch("/api/store", async (req, res) => {
   try {
     const storeId = req.storeId;
     if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    if (req.body && Object.prototype.hasOwnProperty.call(req.body, "businessMode")) {
+      return res.status(400).json({
+        message: "Store type (retail vs F&B) cannot be changed. Create a new store instead."
+      });
+    }
     const { name, address } = req.body;
     const store = await saasPrisma.store.update({
       where: { id: storeId },
@@ -7562,7 +8610,7 @@ ownerRouter.patch("/api/store", async (req, res) => {
         ...name !== void 0 && { name: name.trim() },
         ...address !== void 0 && { address: address?.trim() || null }
       },
-      select: { id: true, name: true, address: true, receiptLogoUrl: true }
+      select: { id: true, name: true, address: true, receiptLogoUrl: true, businessMode: true }
     });
     res.json(store);
   } catch (error) {
@@ -7649,10 +8697,246 @@ ownerRouter.delete("/api/users/:id", async (req, res) => {
     res.status(400).json({ message: error.message ?? "Failed to delete user" });
   }
 });
+function fnbErrorStatus(e) {
+  if (e instanceof FnbStoreError) return 403;
+  return 400;
+}
+ownerRouter.post("/api/ingredients", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await requireFnbStore(storeId);
+    const { name, sku, barcode, stock, lowStockThreshold, unitOfMeasure, status } = req.body;
+    if (!name || typeof name !== "string" || !name.trim()) {
+      return res.status(400).json({ message: "Ingredient name is required" });
+    }
+    const row = await createIngredient(storeId, {
+      name,
+      sku,
+      barcode,
+      stock: typeof stock === "number" ? stock : void 0,
+      lowStockThreshold: typeof lowStockThreshold === "number" ? lowStockThreshold : void 0,
+      unitOfMeasure,
+      status
+    });
+    res.status(201).json(row);
+  } catch (error) {
+    console.error(error);
+    res.status(fnbErrorStatus(error)).json({ message: error.message ?? "Failed" });
+  }
+});
+ownerRouter.patch("/api/ingredients/:id", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await requireFnbStore(storeId);
+    const row = await updateIngredient(req.params.id, storeId, req.body);
+    res.json(row);
+  } catch (error) {
+    console.error(error);
+    res.status(fnbErrorStatus(error)).json({ message: error.message ?? "Failed" });
+  }
+});
+ownerRouter.delete("/api/ingredients/:id", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await requireFnbStore(storeId);
+    await deleteIngredient(req.params.id, storeId);
+    res.status(204).send();
+  } catch (error) {
+    console.error(error);
+    res.status(fnbErrorStatus(error)).json({ message: error.message ?? "Failed" });
+  }
+});
+ownerRouter.post("/api/menu-categories", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await requireFnbStore(storeId);
+    const { name } = req.body;
+    if (!name?.trim()) return res.status(400).json({ message: "Category name is required" });
+    const row = await createMenuCategory(storeId, name);
+    res.status(201).json(row);
+  } catch (error) {
+    console.error(error);
+    res.status(fnbErrorStatus(error)).json({ message: error.message ?? "Failed" });
+  }
+});
+ownerRouter.patch("/api/menu-categories/:id", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await requireFnbStore(storeId);
+    const { name } = req.body;
+    if (!name?.trim()) return res.status(400).json({ message: "Category name is required" });
+    const row = await updateMenuCategory(req.params.id, storeId, name);
+    res.json(row);
+  } catch (error) {
+    console.error(error);
+    res.status(fnbErrorStatus(error)).json({ message: error.message ?? "Failed" });
+  }
+});
+ownerRouter.delete("/api/menu-categories/:id", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await requireFnbStore(storeId);
+    await deleteMenuCategory(req.params.id, storeId);
+    res.status(204).send();
+  } catch (error) {
+    console.error(error);
+    res.status(fnbErrorStatus(error)).json({ message: error.message ?? "Failed" });
+  }
+});
+ownerRouter.post("/api/menu-items", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await requireFnbStore(storeId);
+    const { menuCategoryId, name, price, status, image, barcode } = req.body;
+    if (!menuCategoryId || typeof menuCategoryId !== "string") {
+      return res.status(400).json({ message: "menuCategoryId is required" });
+    }
+    if (!name || typeof name !== "string" || !name.trim()) {
+      return res.status(400).json({ message: "Menu item name is required" });
+    }
+    if (typeof price !== "number" || price < 0) {
+      return res.status(400).json({ message: "Valid price is required" });
+    }
+    const row = await createMenuItem(storeId, {
+      menuCategoryId,
+      name,
+      price,
+      status,
+      image,
+      barcode
+    });
+    res.status(201).json(row);
+  } catch (error) {
+    console.error(error);
+    res.status(fnbErrorStatus(error)).json({ message: error.message ?? "Failed" });
+  }
+});
+ownerRouter.patch("/api/menu-items/:id", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await requireFnbStore(storeId);
+    const row = await updateMenuItem(req.params.id, storeId, req.body);
+    res.json(row);
+  } catch (error) {
+    console.error(error);
+    res.status(fnbErrorStatus(error)).json({ message: error.message ?? "Failed" });
+  }
+});
+ownerRouter.delete("/api/menu-items/:id", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await requireFnbStore(storeId);
+    await deleteMenuItem(req.params.id, storeId);
+    res.status(204).send();
+  } catch (error) {
+    console.error(error);
+    res.status(fnbErrorStatus(error)).json({ message: error.message ?? "Failed" });
+  }
+});
+ownerRouter.put("/api/menu-items/:id/recipe", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await requireFnbStore(storeId);
+    const { lines } = req.body;
+    if (!Array.isArray(lines)) {
+      return res.status(400).json({ message: "lines array is required" });
+    }
+    const row = await replaceRecipe(req.params.id, storeId, lines);
+    res.json(row);
+  } catch (error) {
+    console.error(error);
+    res.status(fnbErrorStatus(error)).json({ message: error.message ?? "Failed" });
+  }
+});
 var protectedRouter = express.Router();
 protectedRouter.use(authMiddleware);
 protectedRouter.use(suspendedCheckMiddleware);
 protectedRouter.use(tenantMiddleware);
+protectedRouter.get("/api/categories", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    const categories = await listCategories(storeId);
+    res.json(categories);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch categories" });
+  }
+});
+protectedRouter.get("/api/store", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    const store = await saasPrisma.store.findFirst({
+      where: { id: storeId },
+      select: { id: true, name: true, address: true, receiptLogoUrl: true, businessMode: true }
+    });
+    if (!store) return res.status(404).json({ message: "Store not found" });
+    res.json(store);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch store" });
+  }
+});
+protectedRouter.get("/api/ingredients", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    try {
+      await requireFnbStore(storeId);
+    } catch {
+      return res.status(403).json({ message: "Ingredients are only available for Food & Beverage stores" });
+    }
+    const rows = await listIngredients(storeId);
+    res.json(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch ingredients" });
+  }
+});
+protectedRouter.get("/api/menu-categories", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    try {
+      await requireFnbStore(storeId);
+    } catch {
+      return res.status(403).json({ message: "Menu is only available for Food & Beverage stores" });
+    }
+    const rows = await listMenuCategories(storeId);
+    res.json(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch menu categories" });
+  }
+});
+protectedRouter.get("/api/menu-items", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    try {
+      await requireFnbStore(storeId);
+    } catch {
+      return res.status(403).json({ message: "Menu is only available for Food & Beverage stores" });
+    }
+    const { menuCategoryId } = req.query;
+    const rows = await listMenuItems(storeId, menuCategoryId || null);
+    res.json(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch menu items" });
+  }
+});
 protectedRouter.get("/api/products", async (req, res) => {
   try {
     const storeId = req.storeId;
@@ -7770,10 +9054,13 @@ protectedRouter.get("/api/sales", async (req, res) => {
   try {
     const storeId = req.storeId;
     if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    const { from, to: to2 } = req.query;
+    const { from, to: to2, voidFilter } = req.query;
+    const vfRaw = voidFilter?.toLowerCase();
+    const voidFilterParsed = vfRaw === "voided" || vfRaw === "all" || vfRaw === "active" ? vfRaw : void 0;
     const sales = await listSales(storeId, {
       from: from ? new Date(from) : void 0,
-      to: to2 ? new Date(to2) : void 0
+      to: to2 ? new Date(to2) : void 0,
+      voidFilter: voidFilterParsed
     });
     res.json(sales);
   } catch (error) {
@@ -7838,9 +9125,15 @@ protectedRouter.post("/api/sales", async (req, res) => {
     const discountAmount = subtotal * Math.max(0, Math.min(100, discountPercent)) / 100;
     const netSubtotal = Math.max(0, subtotal - discountAmount);
     const total = netSubtotal + netSubtotal * taxRate;
-    const change = amountReceived - total;
+    const receivedCents = phpToCents(amountReceived);
+    const totalCents = phpToCents(total);
+    if (!paymentCoversTotal(amountReceived, total)) {
+      return res.status(400).json({ message: "Amount received is less than total due" });
+    }
+    const change = changePhpFromCents(receivedCents, totalCents);
     const items = cartItems.map((item) => ({
       productId: item.productId,
+      menuItemId: item.menuItemId,
       variantId: item.variantId,
       productName: item.productName ?? item.name ?? "",
       variantName: item.variantName,
@@ -7892,20 +9185,48 @@ orgRouter.get("/api/stores", async (req, res) => {
     const orgId = req.auth?.organizationId;
     const role = req.auth?.role;
     const storeIds = req.auth?.storeIds ?? [];
+    if (role === "super_admin" && !orgId) {
+      const demoOrg = await saasPrisma.organization.findFirst({
+        where: { name: "Demo Organization", email: "demo@example.com" }
+      });
+      if (demoOrg) {
+        const stores2 = await saasPrisma.store.findMany({
+          where: { organizationId: demoOrg.id },
+          select: { id: true, name: true, businessMode: true },
+          orderBy: { createdAt: "asc" }
+        });
+        return res.json(stores2);
+      }
+      return res.json([]);
+    }
     if (role === "owner" && orgId) {
       const stores2 = await saasPrisma.store.findMany({
         where: { organizationId: orgId },
-        select: { id: true, name: true },
+        select: { id: true, name: true, businessMode: true },
         orderBy: { createdAt: "asc" }
       });
       return res.json(stores2);
+    }
+    if (req.auth?.userId && orgId) {
+      const rows = await saasPrisma.userStore.findMany({
+        where: { userId: req.auth.userId },
+        include: { store: { select: { id: true, name: true, businessMode: true } } },
+        orderBy: { storeId: "asc" }
+      });
+      return res.json(
+        rows.map((r) => ({
+          id: r.store.id,
+          name: r.store.name,
+          businessMode: r.store.businessMode
+        }))
+      );
     }
     if (storeIds.length === 0) {
       return res.json([]);
     }
     const stores = await saasPrisma.store.findMany({
       where: { id: { in: storeIds } },
-      select: { id: true, name: true }
+      select: { id: true, name: true, businessMode: true }
     });
     res.json(stores);
   } catch (error) {
@@ -7946,7 +9267,7 @@ orgRouter.get("/api/org/stores", async (req, res) => {
     if (req.auth?.role !== "owner") return res.status(403).json({ message: "Owner access required" });
     const stores = await saasPrisma.store.findMany({
       where: { organizationId: orgId },
-      select: { id: true, name: true, address: true, createdAt: true },
+      select: { id: true, name: true, address: true, createdAt: true, businessMode: true },
       orderBy: { createdAt: "asc" }
     });
     res.json(stores);
@@ -7962,19 +9283,21 @@ orgRouter.post("/api/org/stores", async (req, res) => {
     if (req.auth?.role !== "owner") return res.status(403).json({ message: "Owner access required" });
     const userId = req.auth?.userId;
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
-    const { name, address } = req.body;
+    const { name, address, businessMode: rawMode } = req.body;
     if (!name?.trim()) return res.status(400).json({ message: "Store name is required" });
     const org = await saasPrisma.organization.findUnique({
       where: { id: orgId },
       select: { address: true }
     });
+    const businessMode = normalizeBusinessMode(rawMode);
     const store = await saasPrisma.store.create({
       data: {
         organizationId: orgId,
         name: name.trim(),
-        address: address?.trim() || org?.address || null
+        address: address?.trim() || org?.address || null,
+        businessMode
       },
-      select: { id: true, name: true, address: true, createdAt: true }
+      select: { id: true, name: true, address: true, createdAt: true, businessMode: true }
     });
     await saasPrisma.userStore.create({
       data: { userId, storeId: store.id }
@@ -7994,6 +9317,11 @@ orgRouter.patch("/api/org/stores/:id", async (req, res) => {
       where: { id: req.params.id, organizationId: orgId }
     });
     if (!existing) return res.status(404).json({ message: "Store not found" });
+    if (req.body && Object.prototype.hasOwnProperty.call(req.body, "businessMode")) {
+      return res.status(400).json({
+        message: "Store type (retail vs F&B) cannot be changed. Create a new store instead."
+      });
+    }
     const { name, address } = req.body;
     const store = await saasPrisma.store.update({
       where: { id: req.params.id },
@@ -8001,7 +9329,7 @@ orgRouter.patch("/api/org/stores/:id", async (req, res) => {
         ...name !== void 0 && { name: name.trim() },
         ...address !== void 0 && { address: address?.trim() || null }
       },
-      select: { id: true, name: true, address: true, createdAt: true }
+      select: { id: true, name: true, address: true, createdAt: true, businessMode: true }
     });
     res.json(store);
   } catch (error) {
@@ -8070,11 +9398,71 @@ adminRoutes.use(authMiddleware);
 adminRoutes.use(superAdminMiddleware);
 adminRoutes.use(admin_default);
 app.use("/api/admin", adminRoutes);
-app.use(ownerRouter);
 app.use(protectedRouter);
+app.use(ownerRouter);
+async function resetDemoPasswords() {
+  const DEMO_EMAILS = ["admin@demo.com", "owner@demo.com", "cashier@demo.com"];
+  const hashedPassword = await bcrypt5.hash("password123", 10);
+  let updated = 0;
+  for (const email of DEMO_EMAILS) {
+    const user = await saasPrisma.user.findUnique({ where: { email } });
+    if (user) {
+      await saasPrisma.user.update({
+        where: { email },
+        data: { password: hashedPassword }
+      });
+      updated++;
+    }
+  }
+  if (updated > 0) {
+    console.log(`[Demo] Reset passwords for ${updated} demo user(s). Use password123 to log in.`);
+  }
+}
+async function unsuspendDemoOrg() {
+  const owner = await saasPrisma.user.findUnique({
+    where: { email: "owner@demo.com" }
+  });
+  if (!owner?.organizationId) return;
+  const trialEndsAt = addDays(/* @__PURE__ */ new Date(), DEMO_TRIAL_DAYS);
+  await saasPrisma.organization.update({
+    where: { id: owner.organizationId },
+    data: { plan: "free", trialEndsAt }
+  });
+  console.log(`[Demo] Demo organization active. Trial ends ${trialEndsAt.toISOString().slice(0, 10)}.`);
+}
+async function runSeedDemoIfEmptyDev() {
+  if (process.env.NODE_ENV === "production") return;
+  if (process.env.SAAS_AUTO_SEED_DEMO === "false") return;
+  const demoOrg = await saasPrisma.organization.findFirst({
+    where: { name: "Demo Organization", email: "demo@example.com" },
+    include: { stores: { select: { id: true } } }
+  });
+  let needFullSeed = false;
+  if (!demoOrg) {
+    const totalProducts = await saasPrisma.product.count();
+    needFullSeed = totalProducts === 0;
+  } else {
+    const storeIds = demoOrg.stores.map((s) => s.id);
+    const demoProductCount = storeIds.length === 0 ? 0 : await saasPrisma.product.count({ where: { storeId: { in: storeIds } } });
+    needFullSeed = demoProductCount === 0;
+  }
+  if (!needFullSeed) return;
+  console.log(
+    "[Bootstrap] Demo catalog empty (no Demo org or no products in its stores) \u2014 running full demo seed (3 stores incl. F&B, trial, sales history)\u2026"
+  );
+  await runSeedDemo();
+  console.log("[Bootstrap] Full demo seed finished.");
+}
 async function start() {
+  ensureSqliteSaasDatabaseUrl();
   try {
     await runBootstrapSeed();
+    if (process.env.NODE_ENV !== "production") {
+      await runSeedDemoIfEmptyDev();
+      await ensureDemoQuickLoginUsers();
+      await resetDemoPasswords();
+      await unsuspendDemoOrg();
+    }
   } catch (e) {
     console.error("[Bootstrap] Failed:", e);
   }

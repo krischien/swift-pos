@@ -3,6 +3,11 @@ import bcrypt from "bcryptjs";
 import type { AuthRequest } from "../middleware/auth.js";
 import { saasPrisma } from "../db.js";
 import { runSeedDemo } from "../services/seedDemoService.js";
+import {
+  computeNextBillingDueAfterPaidMonth,
+  looksBillingRelatedMessage,
+  parseBillingPeriod,
+} from "../utils/billingPayment.js";
 
 const router = Router();
 
@@ -297,6 +302,164 @@ router.get("/reports/product-ranking/drilldown", async (req: AuthRequest, res) =
   }
 });
 
+router.get("/payment-monitoring", async (_req: AuthRequest, res) => {
+  try {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const windowEnd = new Date(startOfToday);
+    windowEnd.setDate(windowEnd.getDate() + 90);
+
+    const orgs = await saasPrisma.organization.findMany({
+      where: {
+        billingDueDate: { not: null, lte: windowEnd },
+      },
+      orderBy: { billingDueDate: "asc" },
+      select: {
+        id: true,
+        name: true,
+        plan: true,
+        billingDueDate: true,
+        email: true,
+      },
+    });
+
+    const orgIds = orgs.map((o) => o.id);
+    const notificationsByOrg = new Map<
+      string,
+      Array<{
+        id: string;
+        message: string;
+        type: string;
+        createdAt: Date;
+        expiresAt: Date | null;
+      }>
+    >();
+
+    if (orgIds.length === 0) {
+      const missingBillingDate = await saasPrisma.organization.findMany({
+        where: {
+          billingDueDate: null,
+          NOT: {
+            plan: { in: ["free", "Free", "suspended", "Suspended"] },
+          },
+        },
+        take: 50,
+        orderBy: { createdAt: "desc" },
+        select: { id: true, name: true, plan: true, email: true },
+      });
+      return res.json({
+        asOf: now.toISOString(),
+        items: [],
+        missingBillingDate,
+      });
+    }
+
+    let allNotes: Array<{
+      id: string;
+      organizationId: string;
+      message: string;
+      type: string;
+      createdAt: Date;
+      expiresAt: Date | null;
+    }>;
+
+    if (orgIds.length === 1) {
+      allNotes = await saasPrisma.organizationNotification.findMany({
+        where: { organizationId: orgIds[0] },
+        orderBy: { createdAt: "desc" },
+        take: 80,
+        select: {
+          id: true,
+          organizationId: true,
+          message: true,
+          type: true,
+          createdAt: true,
+          expiresAt: true,
+        },
+      });
+    } else {
+      const batches = await Promise.all(
+        orgIds.map((oid) =>
+          saasPrisma.organizationNotification.findMany({
+            where: { organizationId: oid },
+            orderBy: { createdAt: "desc" },
+            take: 20,
+            select: {
+              id: true,
+              organizationId: true,
+              message: true,
+              type: true,
+              createdAt: true,
+              expiresAt: true,
+            },
+          })
+        )
+      );
+      allNotes = batches.flat();
+    }
+
+    const grouped = new Map<string, typeof allNotes>();
+    for (const n of allNotes) {
+      const g = grouped.get(n.organizationId) ?? [];
+      g.push(n);
+      grouped.set(n.organizationId, g);
+    }
+    for (const [orgIdKey, list] of grouped) {
+      list.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      notificationsByOrg.set(orgIdKey, list.slice(0, 8));
+    }
+
+    const items = orgs.map((o) => {
+      const due = o.billingDueDate!;
+      const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+      const daysUntilDue = Math.round((dueDay.getTime() - startOfToday.getTime()) / 86400000);
+      let status: "overdue" | "due_within_7" | "due_within_30" | "due_within_90";
+      if (daysUntilDue < 0) status = "overdue";
+      else if (daysUntilDue <= 7) status = "due_within_7";
+      else if (daysUntilDue <= 30) status = "due_within_30";
+      else status = "due_within_90";
+
+      return {
+        id: o.id,
+        name: o.name,
+        plan: o.plan,
+        email: o.email,
+        billingDueDate: o.billingDueDate,
+        daysUntilDue,
+        status,
+        recentNotifications: (notificationsByOrg.get(o.id) ?? []).map(
+          ({ organizationId: _oid, ...rest }) => ({
+            ...rest,
+            createdAt: rest.createdAt.toISOString(),
+            expiresAt: rest.expiresAt ? rest.expiresAt.toISOString() : null,
+          })
+        ),
+      };
+    });
+
+    const missingBillingDate = await saasPrisma.organization.findMany({
+      where: {
+        billingDueDate: null,
+        NOT: {
+          plan: { in: ["free", "Free", "suspended", "Suspended"] },
+        },
+      },
+      take: 50,
+      orderBy: { createdAt: "desc" },
+      select: { id: true, name: true, plan: true, email: true },
+    });
+
+    res.json({
+      asOf: now.toISOString(),
+      items,
+      missingBillingDate,
+    });
+  } catch (error: unknown) {
+    console.error("[payment-monitoring]", error);
+    res.status(500).json({ message: "Failed to fetch payment monitoring data" });
+  }
+});
+
 router.get("/overview", async (_req: AuthRequest, res) => {
   try {
     const [orgCount, userCount, storeCount, recentOrgs] = await Promise.all([
@@ -313,10 +476,11 @@ router.get("/overview", async (_req: AuthRequest, res) => {
     ]);
 
     const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const in30Days = new Date(now);
     in30Days.setDate(in30Days.getDate() + 30);
 
-    const [billingDueSoon, planCounts] = await Promise.all([
+    const [billingDueSoon, overdueBillingCount, planCounts] = await Promise.all([
       saasPrisma.organization.findMany({
         where: {
           AND: [
@@ -326,6 +490,11 @@ router.get("/overview", async (_req: AuthRequest, res) => {
         },
         orderBy: { billingDueDate: "asc" },
         take: 10,
+      }),
+      saasPrisma.organization.count({
+        where: {
+          billingDueDate: { not: null, lt: startOfToday },
+        },
       }),
       (saasPrisma.$queryRaw<
         [{ freeCount: bigint; proCount: bigint; enterpriseCount: bigint; suspendedCount: bigint }]
@@ -348,6 +517,7 @@ router.get("/overview", async (_req: AuthRequest, res) => {
       orgCount,
       userCount,
       storeCount,
+      overdueBillingCount,
       recentOrgs: recentOrgs.map((o) => ({
         id: o.id,
         name: o.name,
@@ -457,6 +627,145 @@ router.get("/organizations/:id", async (req: AuthRequest, res) => {
   } catch (error: unknown) {
     console.error(error);
     res.status(500).json({ message: "Failed to fetch organization" });
+  }
+});
+
+router.get("/organizations/:orgId/billing-payments", async (req: AuthRequest, res) => {
+  try {
+    const org = await saasPrisma.organization.findUnique({
+      where: { id: req.params.orgId },
+      select: { id: true },
+    });
+    if (!org) {
+      return res.status(404).json({ message: "Organization not found" });
+    }
+    const rows = await saasPrisma.organizationBillingPayment.findMany({
+      where: { organizationId: req.params.orgId },
+      orderBy: { createdAt: "desc" },
+      include: { recordedBy: { select: { id: true, name: true, email: true } } },
+    });
+    res.json(
+      rows.map((r) => ({
+        id: r.id,
+        period: r.period,
+        amountCents: r.amountCents,
+        method: r.method,
+        note: r.note,
+        createdAt: r.createdAt.toISOString(),
+        recordedBy: r.recordedBy,
+      }))
+    );
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch billing payments" });
+  }
+});
+
+router.post("/organizations/:orgId/billing-payments", async (req: AuthRequest, res) => {
+  try {
+    const orgId = req.params.orgId;
+    const { period, amountCents, method, note } = req.body as {
+      period?: string;
+      amountCents?: number | null;
+      method?: string;
+      note?: string;
+    };
+
+    if (!period?.trim()) {
+      return res.status(400).json({ message: "period (YYYY-MM) is required" });
+    }
+
+    let periodNorm: string;
+    try {
+      const { year, month } = parseBillingPeriod(period);
+      periodNorm = `${year}-${String(month).padStart(2, "0")}`;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Invalid period";
+      return res.status(400).json({ message: msg });
+    }
+
+    const nextDue = computeNextBillingDueAfterPaidMonth(periodNorm);
+    const expireAt = new Date();
+    const recordedById = req.auth?.userId ?? null;
+
+    try {
+      const payment = await saasPrisma.$transaction(async (tx) => {
+        const org = await tx.organization.findUnique({ where: { id: orgId } });
+        if (!org) {
+          throw new Error("ORG_NOT_FOUND");
+        }
+
+        const row = await tx.organizationBillingPayment.create({
+          data: {
+            organizationId: orgId,
+            period: periodNorm,
+            amountCents:
+              typeof amountCents === "number" && Number.isFinite(amountCents)
+                ? Math.round(amountCents)
+                : null,
+            method: method?.trim() || null,
+            note: note?.trim() || null,
+            recordedById,
+          },
+          include: { recordedBy: { select: { id: true, name: true, email: true } } },
+        });
+
+        await tx.organization.update({
+          where: { id: orgId },
+          data: { billingDueDate: nextDue },
+        });
+
+        const warningUrgent = await tx.organizationNotification.findMany({
+          where: {
+            organizationId: orgId,
+            OR: [{ type: "warning" }, { type: "urgent" }],
+          },
+          select: { id: true },
+        });
+        const infos = await tx.organizationNotification.findMany({
+          where: { organizationId: orgId, type: "info" },
+          select: { id: true, message: true },
+        });
+        const expireIds = [
+          ...warningUrgent.map((n) => n.id),
+          ...infos.filter((n) => looksBillingRelatedMessage(n.message)).map((n) => n.id),
+        ];
+        if (expireIds.length > 0) {
+          await tx.organizationNotification.updateMany({
+            where: { id: { in: expireIds } },
+            data: { expiresAt: expireAt },
+          });
+        }
+
+        return row;
+      });
+
+      res.status(201).json({
+        id: payment.id,
+        period: payment.period,
+        amountCents: payment.amountCents,
+        method: payment.method,
+        note: payment.note,
+        createdAt: payment.createdAt.toISOString(),
+        recordedBy: payment.recordedBy,
+        billingDueDate: nextDue.toISOString(),
+      });
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === "ORG_NOT_FOUND") {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+      const code =
+        err && typeof err === "object" && "code" in err ? (err as { code: string }).code : "";
+      if (code === "P2002") {
+        return res.status(409).json({
+          message: "A payment for this month is already recorded for this organization",
+        });
+      }
+      throw err;
+    }
+  } catch (error: unknown) {
+    console.error("[billing-payments]", error);
+    res.status(500).json({ message: "Failed to record billing payment" });
   }
 });
 

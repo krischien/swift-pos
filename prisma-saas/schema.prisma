@@ -26,9 +26,10 @@ model Organization {
   trialEndsAt      DateTime?
   createdAt        DateTime  @default(now())
 
-  users         User[]
-  stores        Store[]
-  notifications OrganizationNotification[]
+  users           User[]
+  stores          Store[]
+  notifications   OrganizationNotification[]
+  billingPayments OrganizationBillingPayment[]
 }
 
 model OrganizationNotification {
@@ -40,6 +41,23 @@ model OrganizationNotification {
   expiresAt      DateTime?
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model OrganizationBillingPayment {
+  id             String   @id @default(cuid())
+  organizationId String
+  /// Calendar month paid for, YYYY-MM
+  period         String
+  amountCents    Int?
+  method         String?
+  note           String?
+  recordedById   String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  recordedBy   User?        @relation("BillingPaymentRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, period])
 }
 
 model Store {
@@ -72,8 +90,9 @@ model User {
   createdAt      DateTime @default(now())
 
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  sales        Sale[]
-  storeAccess  UserStore[]
+  sales                     Sale[]
+  storeAccess               UserStore[]
+  billingPaymentsRecorded   OrganizationBillingPayment[] @relation("BillingPaymentRecordedBy")
 }
 
 model UserStore {

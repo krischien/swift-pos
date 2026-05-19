@@ -24,6 +24,11 @@ export type Organization = $Result.DefaultSelection<Prisma.$OrganizationPayload>
  */
 export type OrganizationNotification = $Result.DefaultSelection<Prisma.$OrganizationNotificationPayload>
 /**
+ * Model OrganizationBillingPayment
+ * 
+ */
+export type OrganizationBillingPayment = $Result.DefaultSelection<Prisma.$OrganizationBillingPaymentPayload>
+/**
  * Model Store
  * 
  */
@@ -226,6 +231,16 @@ export class PrismaClient<
     * ```
     */
   get organizationNotification(): Prisma.OrganizationNotificationDelegate<ExtArgs>;
+
+  /**
+   * `prisma.organizationBillingPayment`: Exposes CRUD operations for the **OrganizationBillingPayment** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more OrganizationBillingPayments
+    * const organizationBillingPayments = await prisma.organizationBillingPayment.findMany()
+    * ```
+    */
+  get organizationBillingPayment(): Prisma.OrganizationBillingPaymentDelegate<ExtArgs>;
 
   /**
    * `prisma.store`: Exposes CRUD operations for the **Store** model.
@@ -789,6 +804,7 @@ export namespace Prisma {
   export const ModelName: {
     Organization: 'Organization',
     OrganizationNotification: 'OrganizationNotification',
+    OrganizationBillingPayment: 'OrganizationBillingPayment',
     Store: 'Store',
     User: 'User',
     UserStore: 'UserStore',
@@ -816,7 +832,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "organization" | "organizationNotification" | "store" | "user" | "userStore" | "category" | "product" | "variant" | "sale" | "ingredient" | "menuCategory" | "menuItem" | "recipeLine" | "saleItem"
+      modelProps: "organization" | "organizationNotification" | "organizationBillingPayment" | "store" | "user" | "userStore" | "category" | "product" | "variant" | "sale" | "ingredient" | "menuCategory" | "menuItem" | "recipeLine" | "saleItem"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -957,6 +973,76 @@ export namespace Prisma {
           count: {
             args: Prisma.OrganizationNotificationCountArgs<ExtArgs>
             result: $Utils.Optional<OrganizationNotificationCountAggregateOutputType> | number
+          }
+        }
+      }
+      OrganizationBillingPayment: {
+        payload: Prisma.$OrganizationBillingPaymentPayload<ExtArgs>
+        fields: Prisma.OrganizationBillingPaymentFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.OrganizationBillingPaymentFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationBillingPaymentPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.OrganizationBillingPaymentFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationBillingPaymentPayload>
+          }
+          findFirst: {
+            args: Prisma.OrganizationBillingPaymentFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationBillingPaymentPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.OrganizationBillingPaymentFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationBillingPaymentPayload>
+          }
+          findMany: {
+            args: Prisma.OrganizationBillingPaymentFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationBillingPaymentPayload>[]
+          }
+          create: {
+            args: Prisma.OrganizationBillingPaymentCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationBillingPaymentPayload>
+          }
+          createMany: {
+            args: Prisma.OrganizationBillingPaymentCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.OrganizationBillingPaymentCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationBillingPaymentPayload>[]
+          }
+          delete: {
+            args: Prisma.OrganizationBillingPaymentDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationBillingPaymentPayload>
+          }
+          update: {
+            args: Prisma.OrganizationBillingPaymentUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationBillingPaymentPayload>
+          }
+          deleteMany: {
+            args: Prisma.OrganizationBillingPaymentDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.OrganizationBillingPaymentUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.OrganizationBillingPaymentUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationBillingPaymentPayload>
+          }
+          aggregate: {
+            args: Prisma.OrganizationBillingPaymentAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateOrganizationBillingPayment>
+          }
+          groupBy: {
+            args: Prisma.OrganizationBillingPaymentGroupByArgs<ExtArgs>
+            result: $Utils.Optional<OrganizationBillingPaymentGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.OrganizationBillingPaymentCountArgs<ExtArgs>
+            result: $Utils.Optional<OrganizationBillingPaymentCountAggregateOutputType> | number
           }
         }
       }
@@ -1964,12 +2050,14 @@ export namespace Prisma {
     users: number
     stores: number
     notifications: number
+    billingPayments: number
   }
 
   export type OrganizationCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     users?: boolean | OrganizationCountOutputTypeCountUsersArgs
     stores?: boolean | OrganizationCountOutputTypeCountStoresArgs
     notifications?: boolean | OrganizationCountOutputTypeCountNotificationsArgs
+    billingPayments?: boolean | OrganizationCountOutputTypeCountBillingPaymentsArgs
   }
 
   // Custom InputTypes
@@ -2002,6 +2090,13 @@ export namespace Prisma {
    */
   export type OrganizationCountOutputTypeCountNotificationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: OrganizationNotificationWhereInput
+  }
+
+  /**
+   * OrganizationCountOutputType without action
+   */
+  export type OrganizationCountOutputTypeCountBillingPaymentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: OrganizationBillingPaymentWhereInput
   }
 
 
@@ -2097,11 +2192,13 @@ export namespace Prisma {
   export type UserCountOutputType = {
     sales: number
     storeAccess: number
+    billingPaymentsRecorded: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     sales?: boolean | UserCountOutputTypeCountSalesArgs
     storeAccess?: boolean | UserCountOutputTypeCountStoreAccessArgs
+    billingPaymentsRecorded?: boolean | UserCountOutputTypeCountBillingPaymentsRecordedArgs
   }
 
   // Custom InputTypes
@@ -2127,6 +2224,13 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountStoreAccessArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: UserStoreWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountBillingPaymentsRecordedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: OrganizationBillingPaymentWhereInput
   }
 
 
@@ -2576,6 +2680,7 @@ export namespace Prisma {
     users?: boolean | Organization$usersArgs<ExtArgs>
     stores?: boolean | Organization$storesArgs<ExtArgs>
     notifications?: boolean | Organization$notificationsArgs<ExtArgs>
+    billingPayments?: boolean | Organization$billingPaymentsArgs<ExtArgs>
     _count?: boolean | OrganizationCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["organization"]>
 
@@ -2609,6 +2714,7 @@ export namespace Prisma {
     users?: boolean | Organization$usersArgs<ExtArgs>
     stores?: boolean | Organization$storesArgs<ExtArgs>
     notifications?: boolean | Organization$notificationsArgs<ExtArgs>
+    billingPayments?: boolean | Organization$billingPaymentsArgs<ExtArgs>
     _count?: boolean | OrganizationCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type OrganizationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -2619,6 +2725,7 @@ export namespace Prisma {
       users: Prisma.$UserPayload<ExtArgs>[]
       stores: Prisma.$StorePayload<ExtArgs>[]
       notifications: Prisma.$OrganizationNotificationPayload<ExtArgs>[]
+      billingPayments: Prisma.$OrganizationBillingPaymentPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -2998,6 +3105,7 @@ export namespace Prisma {
     users<T extends Organization$usersArgs<ExtArgs> = {}>(args?: Subset<T, Organization$usersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findMany"> | Null>
     stores<T extends Organization$storesArgs<ExtArgs> = {}>(args?: Subset<T, Organization$storesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$StorePayload<ExtArgs>, T, "findMany"> | Null>
     notifications<T extends Organization$notificationsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrganizationNotificationPayload<ExtArgs>, T, "findMany"> | Null>
+    billingPayments<T extends Organization$billingPaymentsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$billingPaymentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrganizationBillingPaymentPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3408,6 +3516,26 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: OrganizationNotificationScalarFieldEnum | OrganizationNotificationScalarFieldEnum[]
+  }
+
+  /**
+   * Organization.billingPayments
+   */
+  export type Organization$billingPaymentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationBillingPayment
+     */
+    select?: OrganizationBillingPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationBillingPaymentInclude<ExtArgs> | null
+    where?: OrganizationBillingPaymentWhereInput
+    orderBy?: OrganizationBillingPaymentOrderByWithRelationInput | OrganizationBillingPaymentOrderByWithRelationInput[]
+    cursor?: OrganizationBillingPaymentWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: OrganizationBillingPaymentScalarFieldEnum | OrganizationBillingPaymentScalarFieldEnum[]
   }
 
   /**
@@ -4367,6 +4495,1030 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: OrganizationNotificationInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model OrganizationBillingPayment
+   */
+
+  export type AggregateOrganizationBillingPayment = {
+    _count: OrganizationBillingPaymentCountAggregateOutputType | null
+    _avg: OrganizationBillingPaymentAvgAggregateOutputType | null
+    _sum: OrganizationBillingPaymentSumAggregateOutputType | null
+    _min: OrganizationBillingPaymentMinAggregateOutputType | null
+    _max: OrganizationBillingPaymentMaxAggregateOutputType | null
+  }
+
+  export type OrganizationBillingPaymentAvgAggregateOutputType = {
+    amountCents: number | null
+  }
+
+  export type OrganizationBillingPaymentSumAggregateOutputType = {
+    amountCents: number | null
+  }
+
+  export type OrganizationBillingPaymentMinAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    period: string | null
+    amountCents: number | null
+    method: string | null
+    note: string | null
+    recordedById: string | null
+    createdAt: Date | null
+  }
+
+  export type OrganizationBillingPaymentMaxAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    period: string | null
+    amountCents: number | null
+    method: string | null
+    note: string | null
+    recordedById: string | null
+    createdAt: Date | null
+  }
+
+  export type OrganizationBillingPaymentCountAggregateOutputType = {
+    id: number
+    organizationId: number
+    period: number
+    amountCents: number
+    method: number
+    note: number
+    recordedById: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type OrganizationBillingPaymentAvgAggregateInputType = {
+    amountCents?: true
+  }
+
+  export type OrganizationBillingPaymentSumAggregateInputType = {
+    amountCents?: true
+  }
+
+  export type OrganizationBillingPaymentMinAggregateInputType = {
+    id?: true
+    organizationId?: true
+    period?: true
+    amountCents?: true
+    method?: true
+    note?: true
+    recordedById?: true
+    createdAt?: true
+  }
+
+  export type OrganizationBillingPaymentMaxAggregateInputType = {
+    id?: true
+    organizationId?: true
+    period?: true
+    amountCents?: true
+    method?: true
+    note?: true
+    recordedById?: true
+    createdAt?: true
+  }
+
+  export type OrganizationBillingPaymentCountAggregateInputType = {
+    id?: true
+    organizationId?: true
+    period?: true
+    amountCents?: true
+    method?: true
+    note?: true
+    recordedById?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type OrganizationBillingPaymentAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which OrganizationBillingPayment to aggregate.
+     */
+    where?: OrganizationBillingPaymentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of OrganizationBillingPayments to fetch.
+     */
+    orderBy?: OrganizationBillingPaymentOrderByWithRelationInput | OrganizationBillingPaymentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: OrganizationBillingPaymentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` OrganizationBillingPayments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` OrganizationBillingPayments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned OrganizationBillingPayments
+    **/
+    _count?: true | OrganizationBillingPaymentCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: OrganizationBillingPaymentAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: OrganizationBillingPaymentSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: OrganizationBillingPaymentMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: OrganizationBillingPaymentMaxAggregateInputType
+  }
+
+  export type GetOrganizationBillingPaymentAggregateType<T extends OrganizationBillingPaymentAggregateArgs> = {
+        [P in keyof T & keyof AggregateOrganizationBillingPayment]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateOrganizationBillingPayment[P]>
+      : GetScalarType<T[P], AggregateOrganizationBillingPayment[P]>
+  }
+
+
+
+
+  export type OrganizationBillingPaymentGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: OrganizationBillingPaymentWhereInput
+    orderBy?: OrganizationBillingPaymentOrderByWithAggregationInput | OrganizationBillingPaymentOrderByWithAggregationInput[]
+    by: OrganizationBillingPaymentScalarFieldEnum[] | OrganizationBillingPaymentScalarFieldEnum
+    having?: OrganizationBillingPaymentScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: OrganizationBillingPaymentCountAggregateInputType | true
+    _avg?: OrganizationBillingPaymentAvgAggregateInputType
+    _sum?: OrganizationBillingPaymentSumAggregateInputType
+    _min?: OrganizationBillingPaymentMinAggregateInputType
+    _max?: OrganizationBillingPaymentMaxAggregateInputType
+  }
+
+  export type OrganizationBillingPaymentGroupByOutputType = {
+    id: string
+    organizationId: string
+    period: string
+    amountCents: number | null
+    method: string | null
+    note: string | null
+    recordedById: string | null
+    createdAt: Date
+    _count: OrganizationBillingPaymentCountAggregateOutputType | null
+    _avg: OrganizationBillingPaymentAvgAggregateOutputType | null
+    _sum: OrganizationBillingPaymentSumAggregateOutputType | null
+    _min: OrganizationBillingPaymentMinAggregateOutputType | null
+    _max: OrganizationBillingPaymentMaxAggregateOutputType | null
+  }
+
+  type GetOrganizationBillingPaymentGroupByPayload<T extends OrganizationBillingPaymentGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<OrganizationBillingPaymentGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof OrganizationBillingPaymentGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], OrganizationBillingPaymentGroupByOutputType[P]>
+            : GetScalarType<T[P], OrganizationBillingPaymentGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type OrganizationBillingPaymentSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    period?: boolean
+    amountCents?: boolean
+    method?: boolean
+    note?: boolean
+    recordedById?: boolean
+    createdAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    recordedBy?: boolean | OrganizationBillingPayment$recordedByArgs<ExtArgs>
+  }, ExtArgs["result"]["organizationBillingPayment"]>
+
+  export type OrganizationBillingPaymentSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    period?: boolean
+    amountCents?: boolean
+    method?: boolean
+    note?: boolean
+    recordedById?: boolean
+    createdAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    recordedBy?: boolean | OrganizationBillingPayment$recordedByArgs<ExtArgs>
+  }, ExtArgs["result"]["organizationBillingPayment"]>
+
+  export type OrganizationBillingPaymentSelectScalar = {
+    id?: boolean
+    organizationId?: boolean
+    period?: boolean
+    amountCents?: boolean
+    method?: boolean
+    note?: boolean
+    recordedById?: boolean
+    createdAt?: boolean
+  }
+
+  export type OrganizationBillingPaymentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    recordedBy?: boolean | OrganizationBillingPayment$recordedByArgs<ExtArgs>
+  }
+  export type OrganizationBillingPaymentIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    recordedBy?: boolean | OrganizationBillingPayment$recordedByArgs<ExtArgs>
+  }
+
+  export type $OrganizationBillingPaymentPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "OrganizationBillingPayment"
+    objects: {
+      organization: Prisma.$OrganizationPayload<ExtArgs>
+      recordedBy: Prisma.$UserPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organizationId: string
+      period: string
+      amountCents: number | null
+      method: string | null
+      note: string | null
+      recordedById: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["organizationBillingPayment"]>
+    composites: {}
+  }
+
+  type OrganizationBillingPaymentGetPayload<S extends boolean | null | undefined | OrganizationBillingPaymentDefaultArgs> = $Result.GetResult<Prisma.$OrganizationBillingPaymentPayload, S>
+
+  type OrganizationBillingPaymentCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<OrganizationBillingPaymentFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: OrganizationBillingPaymentCountAggregateInputType | true
+    }
+
+  export interface OrganizationBillingPaymentDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['OrganizationBillingPayment'], meta: { name: 'OrganizationBillingPayment' } }
+    /**
+     * Find zero or one OrganizationBillingPayment that matches the filter.
+     * @param {OrganizationBillingPaymentFindUniqueArgs} args - Arguments to find a OrganizationBillingPayment
+     * @example
+     * // Get one OrganizationBillingPayment
+     * const organizationBillingPayment = await prisma.organizationBillingPayment.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends OrganizationBillingPaymentFindUniqueArgs>(args: SelectSubset<T, OrganizationBillingPaymentFindUniqueArgs<ExtArgs>>): Prisma__OrganizationBillingPaymentClient<$Result.GetResult<Prisma.$OrganizationBillingPaymentPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one OrganizationBillingPayment that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {OrganizationBillingPaymentFindUniqueOrThrowArgs} args - Arguments to find a OrganizationBillingPayment
+     * @example
+     * // Get one OrganizationBillingPayment
+     * const organizationBillingPayment = await prisma.organizationBillingPayment.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends OrganizationBillingPaymentFindUniqueOrThrowArgs>(args: SelectSubset<T, OrganizationBillingPaymentFindUniqueOrThrowArgs<ExtArgs>>): Prisma__OrganizationBillingPaymentClient<$Result.GetResult<Prisma.$OrganizationBillingPaymentPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first OrganizationBillingPayment that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationBillingPaymentFindFirstArgs} args - Arguments to find a OrganizationBillingPayment
+     * @example
+     * // Get one OrganizationBillingPayment
+     * const organizationBillingPayment = await prisma.organizationBillingPayment.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends OrganizationBillingPaymentFindFirstArgs>(args?: SelectSubset<T, OrganizationBillingPaymentFindFirstArgs<ExtArgs>>): Prisma__OrganizationBillingPaymentClient<$Result.GetResult<Prisma.$OrganizationBillingPaymentPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first OrganizationBillingPayment that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationBillingPaymentFindFirstOrThrowArgs} args - Arguments to find a OrganizationBillingPayment
+     * @example
+     * // Get one OrganizationBillingPayment
+     * const organizationBillingPayment = await prisma.organizationBillingPayment.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends OrganizationBillingPaymentFindFirstOrThrowArgs>(args?: SelectSubset<T, OrganizationBillingPaymentFindFirstOrThrowArgs<ExtArgs>>): Prisma__OrganizationBillingPaymentClient<$Result.GetResult<Prisma.$OrganizationBillingPaymentPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more OrganizationBillingPayments that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationBillingPaymentFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all OrganizationBillingPayments
+     * const organizationBillingPayments = await prisma.organizationBillingPayment.findMany()
+     * 
+     * // Get first 10 OrganizationBillingPayments
+     * const organizationBillingPayments = await prisma.organizationBillingPayment.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const organizationBillingPaymentWithIdOnly = await prisma.organizationBillingPayment.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends OrganizationBillingPaymentFindManyArgs>(args?: SelectSubset<T, OrganizationBillingPaymentFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrganizationBillingPaymentPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a OrganizationBillingPayment.
+     * @param {OrganizationBillingPaymentCreateArgs} args - Arguments to create a OrganizationBillingPayment.
+     * @example
+     * // Create one OrganizationBillingPayment
+     * const OrganizationBillingPayment = await prisma.organizationBillingPayment.create({
+     *   data: {
+     *     // ... data to create a OrganizationBillingPayment
+     *   }
+     * })
+     * 
+     */
+    create<T extends OrganizationBillingPaymentCreateArgs>(args: SelectSubset<T, OrganizationBillingPaymentCreateArgs<ExtArgs>>): Prisma__OrganizationBillingPaymentClient<$Result.GetResult<Prisma.$OrganizationBillingPaymentPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many OrganizationBillingPayments.
+     * @param {OrganizationBillingPaymentCreateManyArgs} args - Arguments to create many OrganizationBillingPayments.
+     * @example
+     * // Create many OrganizationBillingPayments
+     * const organizationBillingPayment = await prisma.organizationBillingPayment.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends OrganizationBillingPaymentCreateManyArgs>(args?: SelectSubset<T, OrganizationBillingPaymentCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many OrganizationBillingPayments and returns the data saved in the database.
+     * @param {OrganizationBillingPaymentCreateManyAndReturnArgs} args - Arguments to create many OrganizationBillingPayments.
+     * @example
+     * // Create many OrganizationBillingPayments
+     * const organizationBillingPayment = await prisma.organizationBillingPayment.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many OrganizationBillingPayments and only return the `id`
+     * const organizationBillingPaymentWithIdOnly = await prisma.organizationBillingPayment.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends OrganizationBillingPaymentCreateManyAndReturnArgs>(args?: SelectSubset<T, OrganizationBillingPaymentCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrganizationBillingPaymentPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a OrganizationBillingPayment.
+     * @param {OrganizationBillingPaymentDeleteArgs} args - Arguments to delete one OrganizationBillingPayment.
+     * @example
+     * // Delete one OrganizationBillingPayment
+     * const OrganizationBillingPayment = await prisma.organizationBillingPayment.delete({
+     *   where: {
+     *     // ... filter to delete one OrganizationBillingPayment
+     *   }
+     * })
+     * 
+     */
+    delete<T extends OrganizationBillingPaymentDeleteArgs>(args: SelectSubset<T, OrganizationBillingPaymentDeleteArgs<ExtArgs>>): Prisma__OrganizationBillingPaymentClient<$Result.GetResult<Prisma.$OrganizationBillingPaymentPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one OrganizationBillingPayment.
+     * @param {OrganizationBillingPaymentUpdateArgs} args - Arguments to update one OrganizationBillingPayment.
+     * @example
+     * // Update one OrganizationBillingPayment
+     * const organizationBillingPayment = await prisma.organizationBillingPayment.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends OrganizationBillingPaymentUpdateArgs>(args: SelectSubset<T, OrganizationBillingPaymentUpdateArgs<ExtArgs>>): Prisma__OrganizationBillingPaymentClient<$Result.GetResult<Prisma.$OrganizationBillingPaymentPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more OrganizationBillingPayments.
+     * @param {OrganizationBillingPaymentDeleteManyArgs} args - Arguments to filter OrganizationBillingPayments to delete.
+     * @example
+     * // Delete a few OrganizationBillingPayments
+     * const { count } = await prisma.organizationBillingPayment.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends OrganizationBillingPaymentDeleteManyArgs>(args?: SelectSubset<T, OrganizationBillingPaymentDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more OrganizationBillingPayments.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationBillingPaymentUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many OrganizationBillingPayments
+     * const organizationBillingPayment = await prisma.organizationBillingPayment.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends OrganizationBillingPaymentUpdateManyArgs>(args: SelectSubset<T, OrganizationBillingPaymentUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one OrganizationBillingPayment.
+     * @param {OrganizationBillingPaymentUpsertArgs} args - Arguments to update or create a OrganizationBillingPayment.
+     * @example
+     * // Update or create a OrganizationBillingPayment
+     * const organizationBillingPayment = await prisma.organizationBillingPayment.upsert({
+     *   create: {
+     *     // ... data to create a OrganizationBillingPayment
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the OrganizationBillingPayment we want to update
+     *   }
+     * })
+     */
+    upsert<T extends OrganizationBillingPaymentUpsertArgs>(args: SelectSubset<T, OrganizationBillingPaymentUpsertArgs<ExtArgs>>): Prisma__OrganizationBillingPaymentClient<$Result.GetResult<Prisma.$OrganizationBillingPaymentPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of OrganizationBillingPayments.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationBillingPaymentCountArgs} args - Arguments to filter OrganizationBillingPayments to count.
+     * @example
+     * // Count the number of OrganizationBillingPayments
+     * const count = await prisma.organizationBillingPayment.count({
+     *   where: {
+     *     // ... the filter for the OrganizationBillingPayments we want to count
+     *   }
+     * })
+    **/
+    count<T extends OrganizationBillingPaymentCountArgs>(
+      args?: Subset<T, OrganizationBillingPaymentCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], OrganizationBillingPaymentCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a OrganizationBillingPayment.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationBillingPaymentAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends OrganizationBillingPaymentAggregateArgs>(args: Subset<T, OrganizationBillingPaymentAggregateArgs>): Prisma.PrismaPromise<GetOrganizationBillingPaymentAggregateType<T>>
+
+    /**
+     * Group by OrganizationBillingPayment.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationBillingPaymentGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends OrganizationBillingPaymentGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: OrganizationBillingPaymentGroupByArgs['orderBy'] }
+        : { orderBy?: OrganizationBillingPaymentGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, OrganizationBillingPaymentGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetOrganizationBillingPaymentGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the OrganizationBillingPayment model
+   */
+  readonly fields: OrganizationBillingPaymentFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for OrganizationBillingPayment.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__OrganizationBillingPaymentClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    organization<T extends OrganizationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, OrganizationDefaultArgs<ExtArgs>>): Prisma__OrganizationClient<$Result.GetResult<Prisma.$OrganizationPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    recordedBy<T extends OrganizationBillingPayment$recordedByArgs<ExtArgs> = {}>(args?: Subset<T, OrganizationBillingPayment$recordedByArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the OrganizationBillingPayment model
+   */ 
+  interface OrganizationBillingPaymentFieldRefs {
+    readonly id: FieldRef<"OrganizationBillingPayment", 'String'>
+    readonly organizationId: FieldRef<"OrganizationBillingPayment", 'String'>
+    readonly period: FieldRef<"OrganizationBillingPayment", 'String'>
+    readonly amountCents: FieldRef<"OrganizationBillingPayment", 'Int'>
+    readonly method: FieldRef<"OrganizationBillingPayment", 'String'>
+    readonly note: FieldRef<"OrganizationBillingPayment", 'String'>
+    readonly recordedById: FieldRef<"OrganizationBillingPayment", 'String'>
+    readonly createdAt: FieldRef<"OrganizationBillingPayment", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * OrganizationBillingPayment findUnique
+   */
+  export type OrganizationBillingPaymentFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationBillingPayment
+     */
+    select?: OrganizationBillingPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationBillingPaymentInclude<ExtArgs> | null
+    /**
+     * Filter, which OrganizationBillingPayment to fetch.
+     */
+    where: OrganizationBillingPaymentWhereUniqueInput
+  }
+
+  /**
+   * OrganizationBillingPayment findUniqueOrThrow
+   */
+  export type OrganizationBillingPaymentFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationBillingPayment
+     */
+    select?: OrganizationBillingPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationBillingPaymentInclude<ExtArgs> | null
+    /**
+     * Filter, which OrganizationBillingPayment to fetch.
+     */
+    where: OrganizationBillingPaymentWhereUniqueInput
+  }
+
+  /**
+   * OrganizationBillingPayment findFirst
+   */
+  export type OrganizationBillingPaymentFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationBillingPayment
+     */
+    select?: OrganizationBillingPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationBillingPaymentInclude<ExtArgs> | null
+    /**
+     * Filter, which OrganizationBillingPayment to fetch.
+     */
+    where?: OrganizationBillingPaymentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of OrganizationBillingPayments to fetch.
+     */
+    orderBy?: OrganizationBillingPaymentOrderByWithRelationInput | OrganizationBillingPaymentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for OrganizationBillingPayments.
+     */
+    cursor?: OrganizationBillingPaymentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` OrganizationBillingPayments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` OrganizationBillingPayments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of OrganizationBillingPayments.
+     */
+    distinct?: OrganizationBillingPaymentScalarFieldEnum | OrganizationBillingPaymentScalarFieldEnum[]
+  }
+
+  /**
+   * OrganizationBillingPayment findFirstOrThrow
+   */
+  export type OrganizationBillingPaymentFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationBillingPayment
+     */
+    select?: OrganizationBillingPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationBillingPaymentInclude<ExtArgs> | null
+    /**
+     * Filter, which OrganizationBillingPayment to fetch.
+     */
+    where?: OrganizationBillingPaymentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of OrganizationBillingPayments to fetch.
+     */
+    orderBy?: OrganizationBillingPaymentOrderByWithRelationInput | OrganizationBillingPaymentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for OrganizationBillingPayments.
+     */
+    cursor?: OrganizationBillingPaymentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` OrganizationBillingPayments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` OrganizationBillingPayments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of OrganizationBillingPayments.
+     */
+    distinct?: OrganizationBillingPaymentScalarFieldEnum | OrganizationBillingPaymentScalarFieldEnum[]
+  }
+
+  /**
+   * OrganizationBillingPayment findMany
+   */
+  export type OrganizationBillingPaymentFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationBillingPayment
+     */
+    select?: OrganizationBillingPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationBillingPaymentInclude<ExtArgs> | null
+    /**
+     * Filter, which OrganizationBillingPayments to fetch.
+     */
+    where?: OrganizationBillingPaymentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of OrganizationBillingPayments to fetch.
+     */
+    orderBy?: OrganizationBillingPaymentOrderByWithRelationInput | OrganizationBillingPaymentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing OrganizationBillingPayments.
+     */
+    cursor?: OrganizationBillingPaymentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` OrganizationBillingPayments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` OrganizationBillingPayments.
+     */
+    skip?: number
+    distinct?: OrganizationBillingPaymentScalarFieldEnum | OrganizationBillingPaymentScalarFieldEnum[]
+  }
+
+  /**
+   * OrganizationBillingPayment create
+   */
+  export type OrganizationBillingPaymentCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationBillingPayment
+     */
+    select?: OrganizationBillingPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationBillingPaymentInclude<ExtArgs> | null
+    /**
+     * The data needed to create a OrganizationBillingPayment.
+     */
+    data: XOR<OrganizationBillingPaymentCreateInput, OrganizationBillingPaymentUncheckedCreateInput>
+  }
+
+  /**
+   * OrganizationBillingPayment createMany
+   */
+  export type OrganizationBillingPaymentCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many OrganizationBillingPayments.
+     */
+    data: OrganizationBillingPaymentCreateManyInput | OrganizationBillingPaymentCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * OrganizationBillingPayment createManyAndReturn
+   */
+  export type OrganizationBillingPaymentCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationBillingPayment
+     */
+    select?: OrganizationBillingPaymentSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many OrganizationBillingPayments.
+     */
+    data: OrganizationBillingPaymentCreateManyInput | OrganizationBillingPaymentCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationBillingPaymentIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * OrganizationBillingPayment update
+   */
+  export type OrganizationBillingPaymentUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationBillingPayment
+     */
+    select?: OrganizationBillingPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationBillingPaymentInclude<ExtArgs> | null
+    /**
+     * The data needed to update a OrganizationBillingPayment.
+     */
+    data: XOR<OrganizationBillingPaymentUpdateInput, OrganizationBillingPaymentUncheckedUpdateInput>
+    /**
+     * Choose, which OrganizationBillingPayment to update.
+     */
+    where: OrganizationBillingPaymentWhereUniqueInput
+  }
+
+  /**
+   * OrganizationBillingPayment updateMany
+   */
+  export type OrganizationBillingPaymentUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update OrganizationBillingPayments.
+     */
+    data: XOR<OrganizationBillingPaymentUpdateManyMutationInput, OrganizationBillingPaymentUncheckedUpdateManyInput>
+    /**
+     * Filter which OrganizationBillingPayments to update
+     */
+    where?: OrganizationBillingPaymentWhereInput
+  }
+
+  /**
+   * OrganizationBillingPayment upsert
+   */
+  export type OrganizationBillingPaymentUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationBillingPayment
+     */
+    select?: OrganizationBillingPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationBillingPaymentInclude<ExtArgs> | null
+    /**
+     * The filter to search for the OrganizationBillingPayment to update in case it exists.
+     */
+    where: OrganizationBillingPaymentWhereUniqueInput
+    /**
+     * In case the OrganizationBillingPayment found by the `where` argument doesn't exist, create a new OrganizationBillingPayment with this data.
+     */
+    create: XOR<OrganizationBillingPaymentCreateInput, OrganizationBillingPaymentUncheckedCreateInput>
+    /**
+     * In case the OrganizationBillingPayment was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<OrganizationBillingPaymentUpdateInput, OrganizationBillingPaymentUncheckedUpdateInput>
+  }
+
+  /**
+   * OrganizationBillingPayment delete
+   */
+  export type OrganizationBillingPaymentDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationBillingPayment
+     */
+    select?: OrganizationBillingPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationBillingPaymentInclude<ExtArgs> | null
+    /**
+     * Filter which OrganizationBillingPayment to delete.
+     */
+    where: OrganizationBillingPaymentWhereUniqueInput
+  }
+
+  /**
+   * OrganizationBillingPayment deleteMany
+   */
+  export type OrganizationBillingPaymentDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which OrganizationBillingPayments to delete
+     */
+    where?: OrganizationBillingPaymentWhereInput
+  }
+
+  /**
+   * OrganizationBillingPayment.recordedBy
+   */
+  export type OrganizationBillingPayment$recordedByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+  }
+
+  /**
+   * OrganizationBillingPayment without action
+   */
+  export type OrganizationBillingPaymentDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationBillingPayment
+     */
+    select?: OrganizationBillingPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationBillingPaymentInclude<ExtArgs> | null
   }
 
 
@@ -5680,6 +6832,7 @@ export namespace Prisma {
     organization?: boolean | User$organizationArgs<ExtArgs>
     sales?: boolean | User$salesArgs<ExtArgs>
     storeAccess?: boolean | User$storeAccessArgs<ExtArgs>
+    billingPaymentsRecorded?: boolean | User$billingPaymentsRecordedArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -5708,6 +6861,7 @@ export namespace Prisma {
     organization?: boolean | User$organizationArgs<ExtArgs>
     sales?: boolean | User$salesArgs<ExtArgs>
     storeAccess?: boolean | User$storeAccessArgs<ExtArgs>
+    billingPaymentsRecorded?: boolean | User$billingPaymentsRecordedArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -5720,6 +6874,7 @@ export namespace Prisma {
       organization: Prisma.$OrganizationPayload<ExtArgs> | null
       sales: Prisma.$SalePayload<ExtArgs>[]
       storeAccess: Prisma.$UserStorePayload<ExtArgs>[]
+      billingPaymentsRecorded: Prisma.$OrganizationBillingPaymentPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -6096,6 +7251,7 @@ export namespace Prisma {
     organization<T extends User$organizationArgs<ExtArgs> = {}>(args?: Subset<T, User$organizationArgs<ExtArgs>>): Prisma__OrganizationClient<$Result.GetResult<Prisma.$OrganizationPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     sales<T extends User$salesArgs<ExtArgs> = {}>(args?: Subset<T, User$salesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SalePayload<ExtArgs>, T, "findMany"> | Null>
     storeAccess<T extends User$storeAccessArgs<ExtArgs> = {}>(args?: Subset<T, User$storeAccessArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserStorePayload<ExtArgs>, T, "findMany"> | Null>
+    billingPaymentsRecorded<T extends User$billingPaymentsRecordedArgs<ExtArgs> = {}>(args?: Subset<T, User$billingPaymentsRecordedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrganizationBillingPaymentPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -6502,6 +7658,26 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: UserStoreScalarFieldEnum | UserStoreScalarFieldEnum[]
+  }
+
+  /**
+   * User.billingPaymentsRecorded
+   */
+  export type User$billingPaymentsRecordedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationBillingPayment
+     */
+    select?: OrganizationBillingPaymentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationBillingPaymentInclude<ExtArgs> | null
+    where?: OrganizationBillingPaymentWhereInput
+    orderBy?: OrganizationBillingPaymentOrderByWithRelationInput | OrganizationBillingPaymentOrderByWithRelationInput[]
+    cursor?: OrganizationBillingPaymentWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: OrganizationBillingPaymentScalarFieldEnum | OrganizationBillingPaymentScalarFieldEnum[]
   }
 
   /**
@@ -16799,6 +17975,20 @@ export namespace Prisma {
   export type OrganizationNotificationScalarFieldEnum = (typeof OrganizationNotificationScalarFieldEnum)[keyof typeof OrganizationNotificationScalarFieldEnum]
 
 
+  export const OrganizationBillingPaymentScalarFieldEnum: {
+    id: 'id',
+    organizationId: 'organizationId',
+    period: 'period',
+    amountCents: 'amountCents',
+    method: 'method',
+    note: 'note',
+    recordedById: 'recordedById',
+    createdAt: 'createdAt'
+  };
+
+  export type OrganizationBillingPaymentScalarFieldEnum = (typeof OrganizationBillingPaymentScalarFieldEnum)[keyof typeof OrganizationBillingPaymentScalarFieldEnum]
+
+
   export const StoreScalarFieldEnum: {
     id: 'id',
     organizationId: 'organizationId',
@@ -17017,6 +18207,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Int'
+   */
+  export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+  /**
+   * Reference to a field of type 'Int[]'
+   */
+  export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+  /**
    * Reference to a field of type 'Boolean'
    */
   export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
@@ -17034,20 +18238,6 @@ export namespace Prisma {
    * Reference to a field of type 'Float[]'
    */
   export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
-    
-
-
-  /**
-   * Reference to a field of type 'Int'
-   */
-  export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-  /**
-   * Reference to a field of type 'Int[]'
-   */
-  export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
   /**
    * Deep Input Types
@@ -17071,6 +18261,7 @@ export namespace Prisma {
     users?: UserListRelationFilter
     stores?: StoreListRelationFilter
     notifications?: OrganizationNotificationListRelationFilter
+    billingPayments?: OrganizationBillingPaymentListRelationFilter
   }
 
   export type OrganizationOrderByWithRelationInput = {
@@ -17087,6 +18278,7 @@ export namespace Prisma {
     users?: UserOrderByRelationAggregateInput
     stores?: StoreOrderByRelationAggregateInput
     notifications?: OrganizationNotificationOrderByRelationAggregateInput
+    billingPayments?: OrganizationBillingPaymentOrderByRelationAggregateInput
   }
 
   export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
@@ -17106,6 +18298,7 @@ export namespace Prisma {
     users?: UserListRelationFilter
     stores?: StoreListRelationFilter
     notifications?: OrganizationNotificationListRelationFilter
+    billingPayments?: OrganizationBillingPaymentListRelationFilter
   }, "id">
 
   export type OrganizationOrderByWithAggregationInput = {
@@ -17198,6 +18391,82 @@ export namespace Prisma {
     type?: StringWithAggregatesFilter<"OrganizationNotification"> | string
     createdAt?: DateTimeWithAggregatesFilter<"OrganizationNotification"> | Date | string
     expiresAt?: DateTimeNullableWithAggregatesFilter<"OrganizationNotification"> | Date | string | null
+  }
+
+  export type OrganizationBillingPaymentWhereInput = {
+    AND?: OrganizationBillingPaymentWhereInput | OrganizationBillingPaymentWhereInput[]
+    OR?: OrganizationBillingPaymentWhereInput[]
+    NOT?: OrganizationBillingPaymentWhereInput | OrganizationBillingPaymentWhereInput[]
+    id?: StringFilter<"OrganizationBillingPayment"> | string
+    organizationId?: StringFilter<"OrganizationBillingPayment"> | string
+    period?: StringFilter<"OrganizationBillingPayment"> | string
+    amountCents?: IntNullableFilter<"OrganizationBillingPayment"> | number | null
+    method?: StringNullableFilter<"OrganizationBillingPayment"> | string | null
+    note?: StringNullableFilter<"OrganizationBillingPayment"> | string | null
+    recordedById?: StringNullableFilter<"OrganizationBillingPayment"> | string | null
+    createdAt?: DateTimeFilter<"OrganizationBillingPayment"> | Date | string
+    organization?: XOR<OrganizationRelationFilter, OrganizationWhereInput>
+    recordedBy?: XOR<UserNullableRelationFilter, UserWhereInput> | null
+  }
+
+  export type OrganizationBillingPaymentOrderByWithRelationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    period?: SortOrder
+    amountCents?: SortOrderInput | SortOrder
+    method?: SortOrderInput | SortOrder
+    note?: SortOrderInput | SortOrder
+    recordedById?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    organization?: OrganizationOrderByWithRelationInput
+    recordedBy?: UserOrderByWithRelationInput
+  }
+
+  export type OrganizationBillingPaymentWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    organizationId_period?: OrganizationBillingPaymentOrganizationIdPeriodCompoundUniqueInput
+    AND?: OrganizationBillingPaymentWhereInput | OrganizationBillingPaymentWhereInput[]
+    OR?: OrganizationBillingPaymentWhereInput[]
+    NOT?: OrganizationBillingPaymentWhereInput | OrganizationBillingPaymentWhereInput[]
+    organizationId?: StringFilter<"OrganizationBillingPayment"> | string
+    period?: StringFilter<"OrganizationBillingPayment"> | string
+    amountCents?: IntNullableFilter<"OrganizationBillingPayment"> | number | null
+    method?: StringNullableFilter<"OrganizationBillingPayment"> | string | null
+    note?: StringNullableFilter<"OrganizationBillingPayment"> | string | null
+    recordedById?: StringNullableFilter<"OrganizationBillingPayment"> | string | null
+    createdAt?: DateTimeFilter<"OrganizationBillingPayment"> | Date | string
+    organization?: XOR<OrganizationRelationFilter, OrganizationWhereInput>
+    recordedBy?: XOR<UserNullableRelationFilter, UserWhereInput> | null
+  }, "id" | "organizationId_period">
+
+  export type OrganizationBillingPaymentOrderByWithAggregationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    period?: SortOrder
+    amountCents?: SortOrderInput | SortOrder
+    method?: SortOrderInput | SortOrder
+    note?: SortOrderInput | SortOrder
+    recordedById?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: OrganizationBillingPaymentCountOrderByAggregateInput
+    _avg?: OrganizationBillingPaymentAvgOrderByAggregateInput
+    _max?: OrganizationBillingPaymentMaxOrderByAggregateInput
+    _min?: OrganizationBillingPaymentMinOrderByAggregateInput
+    _sum?: OrganizationBillingPaymentSumOrderByAggregateInput
+  }
+
+  export type OrganizationBillingPaymentScalarWhereWithAggregatesInput = {
+    AND?: OrganizationBillingPaymentScalarWhereWithAggregatesInput | OrganizationBillingPaymentScalarWhereWithAggregatesInput[]
+    OR?: OrganizationBillingPaymentScalarWhereWithAggregatesInput[]
+    NOT?: OrganizationBillingPaymentScalarWhereWithAggregatesInput | OrganizationBillingPaymentScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"OrganizationBillingPayment"> | string
+    organizationId?: StringWithAggregatesFilter<"OrganizationBillingPayment"> | string
+    period?: StringWithAggregatesFilter<"OrganizationBillingPayment"> | string
+    amountCents?: IntNullableWithAggregatesFilter<"OrganizationBillingPayment"> | number | null
+    method?: StringNullableWithAggregatesFilter<"OrganizationBillingPayment"> | string | null
+    note?: StringNullableWithAggregatesFilter<"OrganizationBillingPayment"> | string | null
+    recordedById?: StringNullableWithAggregatesFilter<"OrganizationBillingPayment"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"OrganizationBillingPayment"> | Date | string
   }
 
   export type StoreWhereInput = {
@@ -17300,6 +18569,7 @@ export namespace Prisma {
     organization?: XOR<OrganizationNullableRelationFilter, OrganizationWhereInput> | null
     sales?: SaleListRelationFilter
     storeAccess?: UserStoreListRelationFilter
+    billingPaymentsRecorded?: OrganizationBillingPaymentListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -17313,6 +18583,7 @@ export namespace Prisma {
     organization?: OrganizationOrderByWithRelationInput
     sales?: SaleOrderByRelationAggregateInput
     storeAccess?: UserStoreOrderByRelationAggregateInput
+    billingPaymentsRecorded?: OrganizationBillingPaymentOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -17329,6 +18600,7 @@ export namespace Prisma {
     organization?: XOR<OrganizationNullableRelationFilter, OrganizationWhereInput> | null
     sales?: SaleListRelationFilter
     storeAccess?: UserStoreListRelationFilter
+    billingPaymentsRecorded?: OrganizationBillingPaymentListRelationFilter
   }, "id" | "email">
 
   export type UserOrderByWithAggregationInput = {
@@ -18108,6 +19380,7 @@ export namespace Prisma {
     users?: UserCreateNestedManyWithoutOrganizationInput
     stores?: StoreCreateNestedManyWithoutOrganizationInput
     notifications?: OrganizationNotificationCreateNestedManyWithoutOrganizationInput
+    billingPayments?: OrganizationBillingPaymentCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateInput = {
@@ -18124,6 +19397,7 @@ export namespace Prisma {
     users?: UserUncheckedCreateNestedManyWithoutOrganizationInput
     stores?: StoreUncheckedCreateNestedManyWithoutOrganizationInput
     notifications?: OrganizationNotificationUncheckedCreateNestedManyWithoutOrganizationInput
+    billingPayments?: OrganizationBillingPaymentUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUpdateInput = {
@@ -18140,6 +19414,7 @@ export namespace Prisma {
     users?: UserUpdateManyWithoutOrganizationNestedInput
     stores?: StoreUpdateManyWithoutOrganizationNestedInput
     notifications?: OrganizationNotificationUpdateManyWithoutOrganizationNestedInput
+    billingPayments?: OrganizationBillingPaymentUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateInput = {
@@ -18156,6 +19431,7 @@ export namespace Prisma {
     users?: UserUncheckedUpdateManyWithoutOrganizationNestedInput
     stores?: StoreUncheckedUpdateManyWithoutOrganizationNestedInput
     notifications?: OrganizationNotificationUncheckedUpdateManyWithoutOrganizationNestedInput
+    billingPayments?: OrganizationBillingPaymentUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateManyInput = {
@@ -18257,6 +19533,81 @@ export namespace Prisma {
     type?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type OrganizationBillingPaymentCreateInput = {
+    id?: string
+    period: string
+    amountCents?: number | null
+    method?: string | null
+    note?: string | null
+    createdAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutBillingPaymentsInput
+    recordedBy?: UserCreateNestedOneWithoutBillingPaymentsRecordedInput
+  }
+
+  export type OrganizationBillingPaymentUncheckedCreateInput = {
+    id?: string
+    organizationId: string
+    period: string
+    amountCents?: number | null
+    method?: string | null
+    note?: string | null
+    recordedById?: string | null
+    createdAt?: Date | string
+  }
+
+  export type OrganizationBillingPaymentUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    period?: StringFieldUpdateOperationsInput | string
+    amountCents?: NullableIntFieldUpdateOperationsInput | number | null
+    method?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutBillingPaymentsNestedInput
+    recordedBy?: UserUpdateOneWithoutBillingPaymentsRecordedNestedInput
+  }
+
+  export type OrganizationBillingPaymentUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    period?: StringFieldUpdateOperationsInput | string
+    amountCents?: NullableIntFieldUpdateOperationsInput | number | null
+    method?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedById?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type OrganizationBillingPaymentCreateManyInput = {
+    id?: string
+    organizationId: string
+    period: string
+    amountCents?: number | null
+    method?: string | null
+    note?: string | null
+    recordedById?: string | null
+    createdAt?: Date | string
+  }
+
+  export type OrganizationBillingPaymentUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    period?: StringFieldUpdateOperationsInput | string
+    amountCents?: NullableIntFieldUpdateOperationsInput | number | null
+    method?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type OrganizationBillingPaymentUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    period?: StringFieldUpdateOperationsInput | string
+    amountCents?: NullableIntFieldUpdateOperationsInput | number | null
+    method?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedById?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type StoreCreateInput = {
@@ -18366,6 +19717,7 @@ export namespace Prisma {
     organization?: OrganizationCreateNestedOneWithoutUsersInput
     sales?: SaleCreateNestedManyWithoutCashierInput
     storeAccess?: UserStoreCreateNestedManyWithoutUserInput
+    billingPaymentsRecorded?: OrganizationBillingPaymentCreateNestedManyWithoutRecordedByInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -18378,6 +19730,7 @@ export namespace Prisma {
     createdAt?: Date | string
     sales?: SaleUncheckedCreateNestedManyWithoutCashierInput
     storeAccess?: UserStoreUncheckedCreateNestedManyWithoutUserInput
+    billingPaymentsRecorded?: OrganizationBillingPaymentUncheckedCreateNestedManyWithoutRecordedByInput
   }
 
   export type UserUpdateInput = {
@@ -18390,6 +19743,7 @@ export namespace Prisma {
     organization?: OrganizationUpdateOneWithoutUsersNestedInput
     sales?: SaleUpdateManyWithoutCashierNestedInput
     storeAccess?: UserStoreUpdateManyWithoutUserNestedInput
+    billingPaymentsRecorded?: OrganizationBillingPaymentUpdateManyWithoutRecordedByNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -18402,6 +19756,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sales?: SaleUncheckedUpdateManyWithoutCashierNestedInput
     storeAccess?: UserStoreUncheckedUpdateManyWithoutUserNestedInput
+    billingPaymentsRecorded?: OrganizationBillingPaymentUncheckedUpdateManyWithoutRecordedByNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -19250,6 +20605,12 @@ export namespace Prisma {
     none?: OrganizationNotificationWhereInput
   }
 
+  export type OrganizationBillingPaymentListRelationFilter = {
+    every?: OrganizationBillingPaymentWhereInput
+    some?: OrganizationBillingPaymentWhereInput
+    none?: OrganizationBillingPaymentWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -19264,6 +20625,10 @@ export namespace Prisma {
   }
 
   export type OrganizationNotificationOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type OrganizationBillingPaymentOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -19400,6 +20765,84 @@ export namespace Prisma {
     type?: SortOrder
     createdAt?: SortOrder
     expiresAt?: SortOrder
+  }
+
+  export type IntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type UserNullableRelationFilter = {
+    is?: UserWhereInput | null
+    isNot?: UserWhereInput | null
+  }
+
+  export type OrganizationBillingPaymentOrganizationIdPeriodCompoundUniqueInput = {
+    organizationId: string
+    period: string
+  }
+
+  export type OrganizationBillingPaymentCountOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    period?: SortOrder
+    amountCents?: SortOrder
+    method?: SortOrder
+    note?: SortOrder
+    recordedById?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type OrganizationBillingPaymentAvgOrderByAggregateInput = {
+    amountCents?: SortOrder
+  }
+
+  export type OrganizationBillingPaymentMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    period?: SortOrder
+    amountCents?: SortOrder
+    method?: SortOrder
+    note?: SortOrder
+    recordedById?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type OrganizationBillingPaymentMinOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    period?: SortOrder
+    amountCents?: SortOrder
+    method?: SortOrder
+    note?: SortOrder
+    recordedById?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type OrganizationBillingPaymentSumOrderByAggregateInput = {
+    amountCents?: SortOrder
+  }
+
+  export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedIntNullableFilter<$PrismaModel>
+    _max?: NestedIntNullableFilter<$PrismaModel>
   }
 
   export type CategoryListRelationFilter = {
@@ -19601,17 +21044,6 @@ export namespace Prisma {
     not?: NestedFloatNullableFilter<$PrismaModel> | number | null
   }
 
-  export type IntNullableFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableFilter<$PrismaModel> | number | null
-  }
-
   export type IntFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
     in?: number[] | ListIntFieldRefInput<$PrismaModel>
@@ -19748,22 +21180,6 @@ export namespace Prisma {
     _max?: NestedFloatNullableFilter<$PrismaModel>
   }
 
-  export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedFloatNullableFilter<$PrismaModel>
-    _sum?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedIntNullableFilter<$PrismaModel>
-    _max?: NestedIntNullableFilter<$PrismaModel>
-  }
-
   export type IntWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
     in?: number[] | ListIntFieldRefInput<$PrismaModel>
@@ -19844,11 +21260,6 @@ export namespace Prisma {
     _sum?: NestedFloatFilter<$PrismaModel>
     _min?: NestedFloatFilter<$PrismaModel>
     _max?: NestedFloatFilter<$PrismaModel>
-  }
-
-  export type UserNullableRelationFilter = {
-    is?: UserWhereInput | null
-    isNot?: UserWhereInput | null
   }
 
   export type SaleCountOrderByAggregateInput = {
@@ -20169,6 +21580,13 @@ export namespace Prisma {
     connect?: OrganizationNotificationWhereUniqueInput | OrganizationNotificationWhereUniqueInput[]
   }
 
+  export type OrganizationBillingPaymentCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<OrganizationBillingPaymentCreateWithoutOrganizationInput, OrganizationBillingPaymentUncheckedCreateWithoutOrganizationInput> | OrganizationBillingPaymentCreateWithoutOrganizationInput[] | OrganizationBillingPaymentUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: OrganizationBillingPaymentCreateOrConnectWithoutOrganizationInput | OrganizationBillingPaymentCreateOrConnectWithoutOrganizationInput[]
+    createMany?: OrganizationBillingPaymentCreateManyOrganizationInputEnvelope
+    connect?: OrganizationBillingPaymentWhereUniqueInput | OrganizationBillingPaymentWhereUniqueInput[]
+  }
+
   export type UserUncheckedCreateNestedManyWithoutOrganizationInput = {
     create?: XOR<UserCreateWithoutOrganizationInput, UserUncheckedCreateWithoutOrganizationInput> | UserCreateWithoutOrganizationInput[] | UserUncheckedCreateWithoutOrganizationInput[]
     connectOrCreate?: UserCreateOrConnectWithoutOrganizationInput | UserCreateOrConnectWithoutOrganizationInput[]
@@ -20188,6 +21606,13 @@ export namespace Prisma {
     connectOrCreate?: OrganizationNotificationCreateOrConnectWithoutOrganizationInput | OrganizationNotificationCreateOrConnectWithoutOrganizationInput[]
     createMany?: OrganizationNotificationCreateManyOrganizationInputEnvelope
     connect?: OrganizationNotificationWhereUniqueInput | OrganizationNotificationWhereUniqueInput[]
+  }
+
+  export type OrganizationBillingPaymentUncheckedCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<OrganizationBillingPaymentCreateWithoutOrganizationInput, OrganizationBillingPaymentUncheckedCreateWithoutOrganizationInput> | OrganizationBillingPaymentCreateWithoutOrganizationInput[] | OrganizationBillingPaymentUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: OrganizationBillingPaymentCreateOrConnectWithoutOrganizationInput | OrganizationBillingPaymentCreateOrConnectWithoutOrganizationInput[]
+    createMany?: OrganizationBillingPaymentCreateManyOrganizationInputEnvelope
+    connect?: OrganizationBillingPaymentWhereUniqueInput | OrganizationBillingPaymentWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -20248,6 +21673,20 @@ export namespace Prisma {
     deleteMany?: OrganizationNotificationScalarWhereInput | OrganizationNotificationScalarWhereInput[]
   }
 
+  export type OrganizationBillingPaymentUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<OrganizationBillingPaymentCreateWithoutOrganizationInput, OrganizationBillingPaymentUncheckedCreateWithoutOrganizationInput> | OrganizationBillingPaymentCreateWithoutOrganizationInput[] | OrganizationBillingPaymentUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: OrganizationBillingPaymentCreateOrConnectWithoutOrganizationInput | OrganizationBillingPaymentCreateOrConnectWithoutOrganizationInput[]
+    upsert?: OrganizationBillingPaymentUpsertWithWhereUniqueWithoutOrganizationInput | OrganizationBillingPaymentUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: OrganizationBillingPaymentCreateManyOrganizationInputEnvelope
+    set?: OrganizationBillingPaymentWhereUniqueInput | OrganizationBillingPaymentWhereUniqueInput[]
+    disconnect?: OrganizationBillingPaymentWhereUniqueInput | OrganizationBillingPaymentWhereUniqueInput[]
+    delete?: OrganizationBillingPaymentWhereUniqueInput | OrganizationBillingPaymentWhereUniqueInput[]
+    connect?: OrganizationBillingPaymentWhereUniqueInput | OrganizationBillingPaymentWhereUniqueInput[]
+    update?: OrganizationBillingPaymentUpdateWithWhereUniqueWithoutOrganizationInput | OrganizationBillingPaymentUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: OrganizationBillingPaymentUpdateManyWithWhereWithoutOrganizationInput | OrganizationBillingPaymentUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: OrganizationBillingPaymentScalarWhereInput | OrganizationBillingPaymentScalarWhereInput[]
+  }
+
   export type UserUncheckedUpdateManyWithoutOrganizationNestedInput = {
     create?: XOR<UserCreateWithoutOrganizationInput, UserUncheckedCreateWithoutOrganizationInput> | UserCreateWithoutOrganizationInput[] | UserUncheckedCreateWithoutOrganizationInput[]
     connectOrCreate?: UserCreateOrConnectWithoutOrganizationInput | UserCreateOrConnectWithoutOrganizationInput[]
@@ -20290,6 +21729,20 @@ export namespace Prisma {
     deleteMany?: OrganizationNotificationScalarWhereInput | OrganizationNotificationScalarWhereInput[]
   }
 
+  export type OrganizationBillingPaymentUncheckedUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<OrganizationBillingPaymentCreateWithoutOrganizationInput, OrganizationBillingPaymentUncheckedCreateWithoutOrganizationInput> | OrganizationBillingPaymentCreateWithoutOrganizationInput[] | OrganizationBillingPaymentUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: OrganizationBillingPaymentCreateOrConnectWithoutOrganizationInput | OrganizationBillingPaymentCreateOrConnectWithoutOrganizationInput[]
+    upsert?: OrganizationBillingPaymentUpsertWithWhereUniqueWithoutOrganizationInput | OrganizationBillingPaymentUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: OrganizationBillingPaymentCreateManyOrganizationInputEnvelope
+    set?: OrganizationBillingPaymentWhereUniqueInput | OrganizationBillingPaymentWhereUniqueInput[]
+    disconnect?: OrganizationBillingPaymentWhereUniqueInput | OrganizationBillingPaymentWhereUniqueInput[]
+    delete?: OrganizationBillingPaymentWhereUniqueInput | OrganizationBillingPaymentWhereUniqueInput[]
+    connect?: OrganizationBillingPaymentWhereUniqueInput | OrganizationBillingPaymentWhereUniqueInput[]
+    update?: OrganizationBillingPaymentUpdateWithWhereUniqueWithoutOrganizationInput | OrganizationBillingPaymentUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: OrganizationBillingPaymentUpdateManyWithWhereWithoutOrganizationInput | OrganizationBillingPaymentUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: OrganizationBillingPaymentScalarWhereInput | OrganizationBillingPaymentScalarWhereInput[]
+  }
+
   export type OrganizationCreateNestedOneWithoutNotificationsInput = {
     create?: XOR<OrganizationCreateWithoutNotificationsInput, OrganizationUncheckedCreateWithoutNotificationsInput>
     connectOrCreate?: OrganizationCreateOrConnectWithoutNotificationsInput
@@ -20302,6 +21755,44 @@ export namespace Prisma {
     upsert?: OrganizationUpsertWithoutNotificationsInput
     connect?: OrganizationWhereUniqueInput
     update?: XOR<XOR<OrganizationUpdateToOneWithWhereWithoutNotificationsInput, OrganizationUpdateWithoutNotificationsInput>, OrganizationUncheckedUpdateWithoutNotificationsInput>
+  }
+
+  export type OrganizationCreateNestedOneWithoutBillingPaymentsInput = {
+    create?: XOR<OrganizationCreateWithoutBillingPaymentsInput, OrganizationUncheckedCreateWithoutBillingPaymentsInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutBillingPaymentsInput
+    connect?: OrganizationWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutBillingPaymentsRecordedInput = {
+    create?: XOR<UserCreateWithoutBillingPaymentsRecordedInput, UserUncheckedCreateWithoutBillingPaymentsRecordedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutBillingPaymentsRecordedInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type NullableIntFieldUpdateOperationsInput = {
+    set?: number | null
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type OrganizationUpdateOneRequiredWithoutBillingPaymentsNestedInput = {
+    create?: XOR<OrganizationCreateWithoutBillingPaymentsInput, OrganizationUncheckedCreateWithoutBillingPaymentsInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutBillingPaymentsInput
+    upsert?: OrganizationUpsertWithoutBillingPaymentsInput
+    connect?: OrganizationWhereUniqueInput
+    update?: XOR<XOR<OrganizationUpdateToOneWithWhereWithoutBillingPaymentsInput, OrganizationUpdateWithoutBillingPaymentsInput>, OrganizationUncheckedUpdateWithoutBillingPaymentsInput>
+  }
+
+  export type UserUpdateOneWithoutBillingPaymentsRecordedNestedInput = {
+    create?: XOR<UserCreateWithoutBillingPaymentsRecordedInput, UserUncheckedCreateWithoutBillingPaymentsRecordedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutBillingPaymentsRecordedInput
+    upsert?: UserUpsertWithoutBillingPaymentsRecordedInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutBillingPaymentsRecordedInput, UserUpdateWithoutBillingPaymentsRecordedInput>, UserUncheckedUpdateWithoutBillingPaymentsRecordedInput>
   }
 
   export type OrganizationCreateNestedOneWithoutStoresInput = {
@@ -20632,6 +22123,13 @@ export namespace Prisma {
     connect?: UserStoreWhereUniqueInput | UserStoreWhereUniqueInput[]
   }
 
+  export type OrganizationBillingPaymentCreateNestedManyWithoutRecordedByInput = {
+    create?: XOR<OrganizationBillingPaymentCreateWithoutRecordedByInput, OrganizationBillingPaymentUncheckedCreateWithoutRecordedByInput> | OrganizationBillingPaymentCreateWithoutRecordedByInput[] | OrganizationBillingPaymentUncheckedCreateWithoutRecordedByInput[]
+    connectOrCreate?: OrganizationBillingPaymentCreateOrConnectWithoutRecordedByInput | OrganizationBillingPaymentCreateOrConnectWithoutRecordedByInput[]
+    createMany?: OrganizationBillingPaymentCreateManyRecordedByInputEnvelope
+    connect?: OrganizationBillingPaymentWhereUniqueInput | OrganizationBillingPaymentWhereUniqueInput[]
+  }
+
   export type SaleUncheckedCreateNestedManyWithoutCashierInput = {
     create?: XOR<SaleCreateWithoutCashierInput, SaleUncheckedCreateWithoutCashierInput> | SaleCreateWithoutCashierInput[] | SaleUncheckedCreateWithoutCashierInput[]
     connectOrCreate?: SaleCreateOrConnectWithoutCashierInput | SaleCreateOrConnectWithoutCashierInput[]
@@ -20644,6 +22142,13 @@ export namespace Prisma {
     connectOrCreate?: UserStoreCreateOrConnectWithoutUserInput | UserStoreCreateOrConnectWithoutUserInput[]
     createMany?: UserStoreCreateManyUserInputEnvelope
     connect?: UserStoreWhereUniqueInput | UserStoreWhereUniqueInput[]
+  }
+
+  export type OrganizationBillingPaymentUncheckedCreateNestedManyWithoutRecordedByInput = {
+    create?: XOR<OrganizationBillingPaymentCreateWithoutRecordedByInput, OrganizationBillingPaymentUncheckedCreateWithoutRecordedByInput> | OrganizationBillingPaymentCreateWithoutRecordedByInput[] | OrganizationBillingPaymentUncheckedCreateWithoutRecordedByInput[]
+    connectOrCreate?: OrganizationBillingPaymentCreateOrConnectWithoutRecordedByInput | OrganizationBillingPaymentCreateOrConnectWithoutRecordedByInput[]
+    createMany?: OrganizationBillingPaymentCreateManyRecordedByInputEnvelope
+    connect?: OrganizationBillingPaymentWhereUniqueInput | OrganizationBillingPaymentWhereUniqueInput[]
   }
 
   export type OrganizationUpdateOneWithoutUsersNestedInput = {
@@ -20684,6 +22189,20 @@ export namespace Prisma {
     deleteMany?: UserStoreScalarWhereInput | UserStoreScalarWhereInput[]
   }
 
+  export type OrganizationBillingPaymentUpdateManyWithoutRecordedByNestedInput = {
+    create?: XOR<OrganizationBillingPaymentCreateWithoutRecordedByInput, OrganizationBillingPaymentUncheckedCreateWithoutRecordedByInput> | OrganizationBillingPaymentCreateWithoutRecordedByInput[] | OrganizationBillingPaymentUncheckedCreateWithoutRecordedByInput[]
+    connectOrCreate?: OrganizationBillingPaymentCreateOrConnectWithoutRecordedByInput | OrganizationBillingPaymentCreateOrConnectWithoutRecordedByInput[]
+    upsert?: OrganizationBillingPaymentUpsertWithWhereUniqueWithoutRecordedByInput | OrganizationBillingPaymentUpsertWithWhereUniqueWithoutRecordedByInput[]
+    createMany?: OrganizationBillingPaymentCreateManyRecordedByInputEnvelope
+    set?: OrganizationBillingPaymentWhereUniqueInput | OrganizationBillingPaymentWhereUniqueInput[]
+    disconnect?: OrganizationBillingPaymentWhereUniqueInput | OrganizationBillingPaymentWhereUniqueInput[]
+    delete?: OrganizationBillingPaymentWhereUniqueInput | OrganizationBillingPaymentWhereUniqueInput[]
+    connect?: OrganizationBillingPaymentWhereUniqueInput | OrganizationBillingPaymentWhereUniqueInput[]
+    update?: OrganizationBillingPaymentUpdateWithWhereUniqueWithoutRecordedByInput | OrganizationBillingPaymentUpdateWithWhereUniqueWithoutRecordedByInput[]
+    updateMany?: OrganizationBillingPaymentUpdateManyWithWhereWithoutRecordedByInput | OrganizationBillingPaymentUpdateManyWithWhereWithoutRecordedByInput[]
+    deleteMany?: OrganizationBillingPaymentScalarWhereInput | OrganizationBillingPaymentScalarWhereInput[]
+  }
+
   export type SaleUncheckedUpdateManyWithoutCashierNestedInput = {
     create?: XOR<SaleCreateWithoutCashierInput, SaleUncheckedCreateWithoutCashierInput> | SaleCreateWithoutCashierInput[] | SaleUncheckedCreateWithoutCashierInput[]
     connectOrCreate?: SaleCreateOrConnectWithoutCashierInput | SaleCreateOrConnectWithoutCashierInput[]
@@ -20710,6 +22229,20 @@ export namespace Prisma {
     update?: UserStoreUpdateWithWhereUniqueWithoutUserInput | UserStoreUpdateWithWhereUniqueWithoutUserInput[]
     updateMany?: UserStoreUpdateManyWithWhereWithoutUserInput | UserStoreUpdateManyWithWhereWithoutUserInput[]
     deleteMany?: UserStoreScalarWhereInput | UserStoreScalarWhereInput[]
+  }
+
+  export type OrganizationBillingPaymentUncheckedUpdateManyWithoutRecordedByNestedInput = {
+    create?: XOR<OrganizationBillingPaymentCreateWithoutRecordedByInput, OrganizationBillingPaymentUncheckedCreateWithoutRecordedByInput> | OrganizationBillingPaymentCreateWithoutRecordedByInput[] | OrganizationBillingPaymentUncheckedCreateWithoutRecordedByInput[]
+    connectOrCreate?: OrganizationBillingPaymentCreateOrConnectWithoutRecordedByInput | OrganizationBillingPaymentCreateOrConnectWithoutRecordedByInput[]
+    upsert?: OrganizationBillingPaymentUpsertWithWhereUniqueWithoutRecordedByInput | OrganizationBillingPaymentUpsertWithWhereUniqueWithoutRecordedByInput[]
+    createMany?: OrganizationBillingPaymentCreateManyRecordedByInputEnvelope
+    set?: OrganizationBillingPaymentWhereUniqueInput | OrganizationBillingPaymentWhereUniqueInput[]
+    disconnect?: OrganizationBillingPaymentWhereUniqueInput | OrganizationBillingPaymentWhereUniqueInput[]
+    delete?: OrganizationBillingPaymentWhereUniqueInput | OrganizationBillingPaymentWhereUniqueInput[]
+    connect?: OrganizationBillingPaymentWhereUniqueInput | OrganizationBillingPaymentWhereUniqueInput[]
+    update?: OrganizationBillingPaymentUpdateWithWhereUniqueWithoutRecordedByInput | OrganizationBillingPaymentUpdateWithWhereUniqueWithoutRecordedByInput[]
+    updateMany?: OrganizationBillingPaymentUpdateManyWithWhereWithoutRecordedByInput | OrganizationBillingPaymentUpdateManyWithWhereWithoutRecordedByInput[]
+    deleteMany?: OrganizationBillingPaymentScalarWhereInput | OrganizationBillingPaymentScalarWhereInput[]
   }
 
   export type UserCreateNestedOneWithoutStoreAccessInput = {
@@ -20841,14 +22374,6 @@ export namespace Prisma {
   }
 
   export type NullableFloatFieldUpdateOperationsInput = {
-    set?: number | null
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
-  }
-
-  export type NullableIntFieldUpdateOperationsInput = {
     set?: number | null
     increment?: number
     decrement?: number
@@ -21520,9 +23045,20 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
-  export type NestedBoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
+  export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedIntNullableFilter<$PrismaModel>
+    _max?: NestedIntNullableFilter<$PrismaModel>
   }
 
   export type NestedFloatNullableFilter<$PrismaModel = never> = {
@@ -21534,6 +23070,11 @@ export namespace Prisma {
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
   export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
@@ -21558,22 +23099,6 @@ export namespace Prisma {
     _sum?: NestedFloatNullableFilter<$PrismaModel>
     _min?: NestedFloatNullableFilter<$PrismaModel>
     _max?: NestedFloatNullableFilter<$PrismaModel>
-  }
-
-  export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedFloatNullableFilter<$PrismaModel>
-    _sum?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedIntNullableFilter<$PrismaModel>
-    _max?: NestedIntNullableFilter<$PrismaModel>
   }
 
   export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
@@ -21628,6 +23153,7 @@ export namespace Prisma {
     createdAt?: Date | string
     sales?: SaleCreateNestedManyWithoutCashierInput
     storeAccess?: UserStoreCreateNestedManyWithoutUserInput
+    billingPaymentsRecorded?: OrganizationBillingPaymentCreateNestedManyWithoutRecordedByInput
   }
 
   export type UserUncheckedCreateWithoutOrganizationInput = {
@@ -21639,6 +23165,7 @@ export namespace Prisma {
     createdAt?: Date | string
     sales?: SaleUncheckedCreateNestedManyWithoutCashierInput
     storeAccess?: UserStoreUncheckedCreateNestedManyWithoutUserInput
+    billingPaymentsRecorded?: OrganizationBillingPaymentUncheckedCreateNestedManyWithoutRecordedByInput
   }
 
   export type UserCreateOrConnectWithoutOrganizationInput = {
@@ -21716,6 +23243,36 @@ export namespace Prisma {
 
   export type OrganizationNotificationCreateManyOrganizationInputEnvelope = {
     data: OrganizationNotificationCreateManyOrganizationInput | OrganizationNotificationCreateManyOrganizationInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type OrganizationBillingPaymentCreateWithoutOrganizationInput = {
+    id?: string
+    period: string
+    amountCents?: number | null
+    method?: string | null
+    note?: string | null
+    createdAt?: Date | string
+    recordedBy?: UserCreateNestedOneWithoutBillingPaymentsRecordedInput
+  }
+
+  export type OrganizationBillingPaymentUncheckedCreateWithoutOrganizationInput = {
+    id?: string
+    period: string
+    amountCents?: number | null
+    method?: string | null
+    note?: string | null
+    recordedById?: string | null
+    createdAt?: Date | string
+  }
+
+  export type OrganizationBillingPaymentCreateOrConnectWithoutOrganizationInput = {
+    where: OrganizationBillingPaymentWhereUniqueInput
+    create: XOR<OrganizationBillingPaymentCreateWithoutOrganizationInput, OrganizationBillingPaymentUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type OrganizationBillingPaymentCreateManyOrganizationInputEnvelope = {
+    data: OrganizationBillingPaymentCreateManyOrganizationInput | OrganizationBillingPaymentCreateManyOrganizationInput[]
     skipDuplicates?: boolean
   }
 
@@ -21805,6 +23362,36 @@ export namespace Prisma {
     expiresAt?: DateTimeNullableFilter<"OrganizationNotification"> | Date | string | null
   }
 
+  export type OrganizationBillingPaymentUpsertWithWhereUniqueWithoutOrganizationInput = {
+    where: OrganizationBillingPaymentWhereUniqueInput
+    update: XOR<OrganizationBillingPaymentUpdateWithoutOrganizationInput, OrganizationBillingPaymentUncheckedUpdateWithoutOrganizationInput>
+    create: XOR<OrganizationBillingPaymentCreateWithoutOrganizationInput, OrganizationBillingPaymentUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type OrganizationBillingPaymentUpdateWithWhereUniqueWithoutOrganizationInput = {
+    where: OrganizationBillingPaymentWhereUniqueInput
+    data: XOR<OrganizationBillingPaymentUpdateWithoutOrganizationInput, OrganizationBillingPaymentUncheckedUpdateWithoutOrganizationInput>
+  }
+
+  export type OrganizationBillingPaymentUpdateManyWithWhereWithoutOrganizationInput = {
+    where: OrganizationBillingPaymentScalarWhereInput
+    data: XOR<OrganizationBillingPaymentUpdateManyMutationInput, OrganizationBillingPaymentUncheckedUpdateManyWithoutOrganizationInput>
+  }
+
+  export type OrganizationBillingPaymentScalarWhereInput = {
+    AND?: OrganizationBillingPaymentScalarWhereInput | OrganizationBillingPaymentScalarWhereInput[]
+    OR?: OrganizationBillingPaymentScalarWhereInput[]
+    NOT?: OrganizationBillingPaymentScalarWhereInput | OrganizationBillingPaymentScalarWhereInput[]
+    id?: StringFilter<"OrganizationBillingPayment"> | string
+    organizationId?: StringFilter<"OrganizationBillingPayment"> | string
+    period?: StringFilter<"OrganizationBillingPayment"> | string
+    amountCents?: IntNullableFilter<"OrganizationBillingPayment"> | number | null
+    method?: StringNullableFilter<"OrganizationBillingPayment"> | string | null
+    note?: StringNullableFilter<"OrganizationBillingPayment"> | string | null
+    recordedById?: StringNullableFilter<"OrganizationBillingPayment"> | string | null
+    createdAt?: DateTimeFilter<"OrganizationBillingPayment"> | Date | string
+  }
+
   export type OrganizationCreateWithoutNotificationsInput = {
     id?: string
     name: string
@@ -21818,6 +23405,7 @@ export namespace Prisma {
     createdAt?: Date | string
     users?: UserCreateNestedManyWithoutOrganizationInput
     stores?: StoreCreateNestedManyWithoutOrganizationInput
+    billingPayments?: OrganizationBillingPaymentCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutNotificationsInput = {
@@ -21833,6 +23421,7 @@ export namespace Prisma {
     createdAt?: Date | string
     users?: UserUncheckedCreateNestedManyWithoutOrganizationInput
     stores?: StoreUncheckedCreateNestedManyWithoutOrganizationInput
+    billingPayments?: OrganizationBillingPaymentUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutNotificationsInput = {
@@ -21864,6 +23453,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     users?: UserUpdateManyWithoutOrganizationNestedInput
     stores?: StoreUpdateManyWithoutOrganizationNestedInput
+    billingPayments?: OrganizationBillingPaymentUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutNotificationsInput = {
@@ -21879,6 +23469,151 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     users?: UserUncheckedUpdateManyWithoutOrganizationNestedInput
     stores?: StoreUncheckedUpdateManyWithoutOrganizationNestedInput
+    billingPayments?: OrganizationBillingPaymentUncheckedUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type OrganizationCreateWithoutBillingPaymentsInput = {
+    id?: string
+    name: string
+    plan?: string
+    phone?: string | null
+    email?: string | null
+    address?: string | null
+    stripeCustomerId?: string | null
+    billingDueDate?: Date | string | null
+    trialEndsAt?: Date | string | null
+    createdAt?: Date | string
+    users?: UserCreateNestedManyWithoutOrganizationInput
+    stores?: StoreCreateNestedManyWithoutOrganizationInput
+    notifications?: OrganizationNotificationCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationUncheckedCreateWithoutBillingPaymentsInput = {
+    id?: string
+    name: string
+    plan?: string
+    phone?: string | null
+    email?: string | null
+    address?: string | null
+    stripeCustomerId?: string | null
+    billingDueDate?: Date | string | null
+    trialEndsAt?: Date | string | null
+    createdAt?: Date | string
+    users?: UserUncheckedCreateNestedManyWithoutOrganizationInput
+    stores?: StoreUncheckedCreateNestedManyWithoutOrganizationInput
+    notifications?: OrganizationNotificationUncheckedCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationCreateOrConnectWithoutBillingPaymentsInput = {
+    where: OrganizationWhereUniqueInput
+    create: XOR<OrganizationCreateWithoutBillingPaymentsInput, OrganizationUncheckedCreateWithoutBillingPaymentsInput>
+  }
+
+  export type UserCreateWithoutBillingPaymentsRecordedInput = {
+    id?: string
+    name: string
+    email: string
+    password: string
+    role: string
+    createdAt?: Date | string
+    organization?: OrganizationCreateNestedOneWithoutUsersInput
+    sales?: SaleCreateNestedManyWithoutCashierInput
+    storeAccess?: UserStoreCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutBillingPaymentsRecordedInput = {
+    id?: string
+    organizationId?: string | null
+    name: string
+    email: string
+    password: string
+    role: string
+    createdAt?: Date | string
+    sales?: SaleUncheckedCreateNestedManyWithoutCashierInput
+    storeAccess?: UserStoreUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutBillingPaymentsRecordedInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutBillingPaymentsRecordedInput, UserUncheckedCreateWithoutBillingPaymentsRecordedInput>
+  }
+
+  export type OrganizationUpsertWithoutBillingPaymentsInput = {
+    update: XOR<OrganizationUpdateWithoutBillingPaymentsInput, OrganizationUncheckedUpdateWithoutBillingPaymentsInput>
+    create: XOR<OrganizationCreateWithoutBillingPaymentsInput, OrganizationUncheckedCreateWithoutBillingPaymentsInput>
+    where?: OrganizationWhereInput
+  }
+
+  export type OrganizationUpdateToOneWithWhereWithoutBillingPaymentsInput = {
+    where?: OrganizationWhereInput
+    data: XOR<OrganizationUpdateWithoutBillingPaymentsInput, OrganizationUncheckedUpdateWithoutBillingPaymentsInput>
+  }
+
+  export type OrganizationUpdateWithoutBillingPaymentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    plan?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
+    billingDueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    trialEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    users?: UserUpdateManyWithoutOrganizationNestedInput
+    stores?: StoreUpdateManyWithoutOrganizationNestedInput
+    notifications?: OrganizationNotificationUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type OrganizationUncheckedUpdateWithoutBillingPaymentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    plan?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    stripeCustomerId?: NullableStringFieldUpdateOperationsInput | string | null
+    billingDueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    trialEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    users?: UserUncheckedUpdateManyWithoutOrganizationNestedInput
+    stores?: StoreUncheckedUpdateManyWithoutOrganizationNestedInput
+    notifications?: OrganizationNotificationUncheckedUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type UserUpsertWithoutBillingPaymentsRecordedInput = {
+    update: XOR<UserUpdateWithoutBillingPaymentsRecordedInput, UserUncheckedUpdateWithoutBillingPaymentsRecordedInput>
+    create: XOR<UserCreateWithoutBillingPaymentsRecordedInput, UserUncheckedCreateWithoutBillingPaymentsRecordedInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutBillingPaymentsRecordedInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutBillingPaymentsRecordedInput, UserUncheckedUpdateWithoutBillingPaymentsRecordedInput>
+  }
+
+  export type UserUpdateWithoutBillingPaymentsRecordedInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    role?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneWithoutUsersNestedInput
+    sales?: SaleUpdateManyWithoutCashierNestedInput
+    storeAccess?: UserStoreUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutBillingPaymentsRecordedInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
+    role?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sales?: SaleUncheckedUpdateManyWithoutCashierNestedInput
+    storeAccess?: UserStoreUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutStoresInput = {
@@ -21894,6 +23629,7 @@ export namespace Prisma {
     createdAt?: Date | string
     users?: UserCreateNestedManyWithoutOrganizationInput
     notifications?: OrganizationNotificationCreateNestedManyWithoutOrganizationInput
+    billingPayments?: OrganizationBillingPaymentCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutStoresInput = {
@@ -21909,6 +23645,7 @@ export namespace Prisma {
     createdAt?: Date | string
     users?: UserUncheckedCreateNestedManyWithoutOrganizationInput
     notifications?: OrganizationNotificationUncheckedCreateNestedManyWithoutOrganizationInput
+    billingPayments?: OrganizationBillingPaymentUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutStoresInput = {
@@ -22162,6 +23899,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     users?: UserUpdateManyWithoutOrganizationNestedInput
     notifications?: OrganizationNotificationUpdateManyWithoutOrganizationNestedInput
+    billingPayments?: OrganizationBillingPaymentUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutStoresInput = {
@@ -22177,6 +23915,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     users?: UserUncheckedUpdateManyWithoutOrganizationNestedInput
     notifications?: OrganizationNotificationUncheckedUpdateManyWithoutOrganizationNestedInput
+    billingPayments?: OrganizationBillingPaymentUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type CategoryUpsertWithWhereUniqueWithoutStoreInput = {
@@ -22400,6 +24139,7 @@ export namespace Prisma {
     createdAt?: Date | string
     stores?: StoreCreateNestedManyWithoutOrganizationInput
     notifications?: OrganizationNotificationCreateNestedManyWithoutOrganizationInput
+    billingPayments?: OrganizationBillingPaymentCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutUsersInput = {
@@ -22415,6 +24155,7 @@ export namespace Prisma {
     createdAt?: Date | string
     stores?: StoreUncheckedCreateNestedManyWithoutOrganizationInput
     notifications?: OrganizationNotificationUncheckedCreateNestedManyWithoutOrganizationInput
+    billingPayments?: OrganizationBillingPaymentUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutUsersInput = {
@@ -22480,6 +24221,36 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type OrganizationBillingPaymentCreateWithoutRecordedByInput = {
+    id?: string
+    period: string
+    amountCents?: number | null
+    method?: string | null
+    note?: string | null
+    createdAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutBillingPaymentsInput
+  }
+
+  export type OrganizationBillingPaymentUncheckedCreateWithoutRecordedByInput = {
+    id?: string
+    organizationId: string
+    period: string
+    amountCents?: number | null
+    method?: string | null
+    note?: string | null
+    createdAt?: Date | string
+  }
+
+  export type OrganizationBillingPaymentCreateOrConnectWithoutRecordedByInput = {
+    where: OrganizationBillingPaymentWhereUniqueInput
+    create: XOR<OrganizationBillingPaymentCreateWithoutRecordedByInput, OrganizationBillingPaymentUncheckedCreateWithoutRecordedByInput>
+  }
+
+  export type OrganizationBillingPaymentCreateManyRecordedByInputEnvelope = {
+    data: OrganizationBillingPaymentCreateManyRecordedByInput | OrganizationBillingPaymentCreateManyRecordedByInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OrganizationUpsertWithoutUsersInput = {
     update: XOR<OrganizationUpdateWithoutUsersInput, OrganizationUncheckedUpdateWithoutUsersInput>
     create: XOR<OrganizationCreateWithoutUsersInput, OrganizationUncheckedCreateWithoutUsersInput>
@@ -22504,6 +24275,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     stores?: StoreUpdateManyWithoutOrganizationNestedInput
     notifications?: OrganizationNotificationUpdateManyWithoutOrganizationNestedInput
+    billingPayments?: OrganizationBillingPaymentUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutUsersInput = {
@@ -22519,6 +24291,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     stores?: StoreUncheckedUpdateManyWithoutOrganizationNestedInput
     notifications?: OrganizationNotificationUncheckedUpdateManyWithoutOrganizationNestedInput
+    billingPayments?: OrganizationBillingPaymentUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type SaleUpsertWithWhereUniqueWithoutCashierInput = {
@@ -22553,6 +24326,22 @@ export namespace Prisma {
     data: XOR<UserStoreUpdateManyMutationInput, UserStoreUncheckedUpdateManyWithoutUserInput>
   }
 
+  export type OrganizationBillingPaymentUpsertWithWhereUniqueWithoutRecordedByInput = {
+    where: OrganizationBillingPaymentWhereUniqueInput
+    update: XOR<OrganizationBillingPaymentUpdateWithoutRecordedByInput, OrganizationBillingPaymentUncheckedUpdateWithoutRecordedByInput>
+    create: XOR<OrganizationBillingPaymentCreateWithoutRecordedByInput, OrganizationBillingPaymentUncheckedCreateWithoutRecordedByInput>
+  }
+
+  export type OrganizationBillingPaymentUpdateWithWhereUniqueWithoutRecordedByInput = {
+    where: OrganizationBillingPaymentWhereUniqueInput
+    data: XOR<OrganizationBillingPaymentUpdateWithoutRecordedByInput, OrganizationBillingPaymentUncheckedUpdateWithoutRecordedByInput>
+  }
+
+  export type OrganizationBillingPaymentUpdateManyWithWhereWithoutRecordedByInput = {
+    where: OrganizationBillingPaymentScalarWhereInput
+    data: XOR<OrganizationBillingPaymentUpdateManyMutationInput, OrganizationBillingPaymentUncheckedUpdateManyWithoutRecordedByInput>
+  }
+
   export type UserCreateWithoutStoreAccessInput = {
     id?: string
     name: string
@@ -22562,6 +24351,7 @@ export namespace Prisma {
     createdAt?: Date | string
     organization?: OrganizationCreateNestedOneWithoutUsersInput
     sales?: SaleCreateNestedManyWithoutCashierInput
+    billingPaymentsRecorded?: OrganizationBillingPaymentCreateNestedManyWithoutRecordedByInput
   }
 
   export type UserUncheckedCreateWithoutStoreAccessInput = {
@@ -22573,6 +24363,7 @@ export namespace Prisma {
     role: string
     createdAt?: Date | string
     sales?: SaleUncheckedCreateNestedManyWithoutCashierInput
+    billingPaymentsRecorded?: OrganizationBillingPaymentUncheckedCreateNestedManyWithoutRecordedByInput
   }
 
   export type UserCreateOrConnectWithoutStoreAccessInput = {
@@ -22637,6 +24428,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneWithoutUsersNestedInput
     sales?: SaleUpdateManyWithoutCashierNestedInput
+    billingPaymentsRecorded?: OrganizationBillingPaymentUpdateManyWithoutRecordedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutStoreAccessInput = {
@@ -22648,6 +24440,7 @@ export namespace Prisma {
     role?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sales?: SaleUncheckedUpdateManyWithoutCashierNestedInput
+    billingPaymentsRecorded?: OrganizationBillingPaymentUncheckedUpdateManyWithoutRecordedByNestedInput
   }
 
   export type StoreUpsertWithoutUserAccessInput = {
@@ -23276,6 +25069,7 @@ export namespace Prisma {
     createdAt?: Date | string
     organization?: OrganizationCreateNestedOneWithoutUsersInput
     storeAccess?: UserStoreCreateNestedManyWithoutUserInput
+    billingPaymentsRecorded?: OrganizationBillingPaymentCreateNestedManyWithoutRecordedByInput
   }
 
   export type UserUncheckedCreateWithoutSalesInput = {
@@ -23287,6 +25081,7 @@ export namespace Prisma {
     role: string
     createdAt?: Date | string
     storeAccess?: UserStoreUncheckedCreateNestedManyWithoutUserInput
+    billingPaymentsRecorded?: OrganizationBillingPaymentUncheckedCreateNestedManyWithoutRecordedByInput
   }
 
   export type UserCreateOrConnectWithoutSalesInput = {
@@ -23391,6 +25186,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneWithoutUsersNestedInput
     storeAccess?: UserStoreUpdateManyWithoutUserNestedInput
+    billingPaymentsRecorded?: OrganizationBillingPaymentUpdateManyWithoutRecordedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSalesInput = {
@@ -23402,6 +25198,7 @@ export namespace Prisma {
     role?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     storeAccess?: UserStoreUncheckedUpdateManyWithoutUserNestedInput
+    billingPaymentsRecorded?: OrganizationBillingPaymentUncheckedUpdateManyWithoutRecordedByNestedInput
   }
 
   export type SaleItemUpsertWithWhereUniqueWithoutSaleInput = {
@@ -24333,6 +26130,16 @@ export namespace Prisma {
     expiresAt?: Date | string | null
   }
 
+  export type OrganizationBillingPaymentCreateManyOrganizationInput = {
+    id?: string
+    period: string
+    amountCents?: number | null
+    method?: string | null
+    note?: string | null
+    recordedById?: string | null
+    createdAt?: Date | string
+  }
+
   export type UserUpdateWithoutOrganizationInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -24342,6 +26149,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sales?: SaleUpdateManyWithoutCashierNestedInput
     storeAccess?: UserStoreUpdateManyWithoutUserNestedInput
+    billingPaymentsRecorded?: OrganizationBillingPaymentUpdateManyWithoutRecordedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOrganizationInput = {
@@ -24353,6 +26161,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sales?: SaleUncheckedUpdateManyWithoutCashierNestedInput
     storeAccess?: UserStoreUncheckedUpdateManyWithoutUserNestedInput
+    billingPaymentsRecorded?: OrganizationBillingPaymentUncheckedUpdateManyWithoutRecordedByNestedInput
   }
 
   export type UserUncheckedUpdateManyWithoutOrganizationInput = {
@@ -24427,6 +26236,36 @@ export namespace Prisma {
     type?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type OrganizationBillingPaymentUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    period?: StringFieldUpdateOperationsInput | string
+    amountCents?: NullableIntFieldUpdateOperationsInput | number | null
+    method?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    recordedBy?: UserUpdateOneWithoutBillingPaymentsRecordedNestedInput
+  }
+
+  export type OrganizationBillingPaymentUncheckedUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    period?: StringFieldUpdateOperationsInput | string
+    amountCents?: NullableIntFieldUpdateOperationsInput | number | null
+    method?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedById?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type OrganizationBillingPaymentUncheckedUpdateManyWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    period?: StringFieldUpdateOperationsInput | string
+    amountCents?: NullableIntFieldUpdateOperationsInput | number | null
+    method?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedById?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CategoryCreateManyStoreInput = {
@@ -24735,6 +26574,16 @@ export namespace Prisma {
     storeId: string
   }
 
+  export type OrganizationBillingPaymentCreateManyRecordedByInput = {
+    id?: string
+    organizationId: string
+    period: string
+    amountCents?: number | null
+    method?: string | null
+    note?: string | null
+    createdAt?: Date | string
+  }
+
   export type SaleUpdateWithoutCashierInput = {
     id?: StringFieldUpdateOperationsInput | string
     ticketNumber?: NullableStringFieldUpdateOperationsInput | string | null
@@ -24789,6 +26638,36 @@ export namespace Prisma {
 
   export type UserStoreUncheckedUpdateManyWithoutUserInput = {
     storeId?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type OrganizationBillingPaymentUpdateWithoutRecordedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    period?: StringFieldUpdateOperationsInput | string
+    amountCents?: NullableIntFieldUpdateOperationsInput | number | null
+    method?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutBillingPaymentsNestedInput
+  }
+
+  export type OrganizationBillingPaymentUncheckedUpdateWithoutRecordedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    period?: StringFieldUpdateOperationsInput | string
+    amountCents?: NullableIntFieldUpdateOperationsInput | number | null
+    method?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type OrganizationBillingPaymentUncheckedUpdateManyWithoutRecordedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    period?: StringFieldUpdateOperationsInput | string
+    amountCents?: NullableIntFieldUpdateOperationsInput | number | null
+    method?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ProductCreateManyCategoryInput = {
@@ -25246,6 +27125,10 @@ export namespace Prisma {
      * @deprecated Use OrganizationNotificationDefaultArgs instead
      */
     export type OrganizationNotificationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = OrganizationNotificationDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use OrganizationBillingPaymentDefaultArgs instead
+     */
+    export type OrganizationBillingPaymentArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = OrganizationBillingPaymentDefaultArgs<ExtArgs>
     /**
      * @deprecated Use StoreDefaultArgs instead
      */

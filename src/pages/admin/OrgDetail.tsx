@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "@/lib/saasAdminApi";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -35,8 +35,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Trash2, Plus, UserMinus, Pencil, Bell } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ArrowLeft, Trash2, Plus, UserMinus, Pencil, Bell, Banknote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { formatCurrency } from "@/lib/currency";
 
 const OrgDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -81,11 +91,24 @@ const OrgDetail = () => {
     address?: string | null;
   } | null>(null);
   const [editStoreForm, setEditStoreForm] = useState({ name: "", address: "" });
+  const [billingPaymentOpen, setBillingPaymentOpen] = useState(false);
+  const [billingPaymentForm, setBillingPaymentForm] = useState({
+    period: format(new Date(), "yyyy-MM"),
+    amount: "",
+    method: "",
+    note: "",
+  });
   const [deletingStore, setDeletingStore] = useState<{ id: string; name: string } | null>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin", "organization", id],
     queryFn: () => adminApi.getOrganization(id!),
+    enabled: !!id,
+  });
+
+  const { data: billingPayments = [] } = useQuery({
+    queryKey: ["admin", "organization", id, "billing-payments"],
+    queryFn: () => adminApi.getOrganizationBillingPayments(id!),
     enabled: !!id,
   });
 
@@ -102,6 +125,7 @@ const OrgDetail = () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "organization", id] });
       queryClient.invalidateQueries({ queryKey: ["admin", "organizations"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "payment-monitoring"] });
       toast({ title: "Organization updated" });
     },
     onError: (err: Error) => {
@@ -133,6 +157,7 @@ const OrgDetail = () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "organization", id] });
       queryClient.invalidateQueries({ queryKey: ["admin", "organizations"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "payment-monitoring"] });
       setAddUserOpen(false);
       setAddUserForm({ name: "", email: "", password: "", role: "cashier", storeIds: [] });
       toast({ title: "User added" });
@@ -148,6 +173,7 @@ const OrgDetail = () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "organization", id] });
       queryClient.invalidateQueries({ queryKey: ["admin", "organizations"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "payment-monitoring"] });
       toast({ title: "User removed" });
     },
     onError: (err: Error) => {
@@ -168,6 +194,7 @@ const OrgDetail = () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "organization", id] });
       queryClient.invalidateQueries({ queryKey: ["admin", "organizations"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "payment-monitoring"] });
       setEditUserOpen(false);
       setEditingUser(null);
       setEditUserForm({ name: "", email: "", password: "", role: "cashier", storeIds: [] });
@@ -249,6 +276,7 @@ const OrgDetail = () => {
     onSuccess: () => {
       setNotificationOpen(false);
       setNotificationForm({ message: "", type: "info", expiresAt: "" });
+      queryClient.invalidateQueries({ queryKey: ["admin", "payment-monitoring"] });
       toast({ title: "Notification sent" });
     },
     onError: (err: Error) => {
@@ -265,6 +293,55 @@ const OrgDetail = () => {
     sendNotificationMutation.mutate();
   };
 
+  const recordBillingPaymentMutation = useMutation({
+    mutationFn: () => {
+      const amountTrim = billingPaymentForm.amount.trim();
+      let amountCents: number | null | undefined;
+      if (amountTrim) {
+        const n = Number.parseFloat(amountTrim);
+        if (!Number.isFinite(n) || n < 0) {
+          throw new Error("Amount must be a valid non-negative number");
+        }
+        amountCents = Math.round(n * 100);
+      } else {
+        amountCents = null;
+      }
+      return adminApi.recordOrganizationBillingPayment(id!, {
+        period: billingPaymentForm.period,
+        amountCents: amountCents ?? null,
+        method: billingPaymentForm.method.trim() || undefined,
+        note: billingPaymentForm.note.trim() || undefined,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "organization", id] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "organization", id, "billing-payments"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "organizations"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "payment-monitoring"] });
+      setBillingPaymentOpen(false);
+      setBillingPaymentForm({
+        period: format(new Date(), "yyyy-MM"),
+        amount: "",
+        method: "",
+        note: "",
+      });
+      toast({ title: "Payment recorded", description: "Billing due date updated and reminders expired." });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", title: "Could not record payment", description: err.message });
+    },
+  });
+
+  const handleRecordBillingPayment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!billingPaymentForm.period) {
+      toast({ variant: "destructive", title: "Select a month" });
+      return;
+    }
+    recordBillingPaymentMutation.mutate();
+  };
+
   const addStoreMutation = useMutation({
     mutationFn: () =>
       adminApi.createOrganizationStore(id!, {
@@ -275,6 +352,7 @@ const OrgDetail = () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "organization", id] });
       queryClient.invalidateQueries({ queryKey: ["admin", "organizations"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "payment-monitoring"] });
       setAddStoreOpen(false);
       setAddStoreForm({ name: "", address: "" });
       toast({ title: "Store added" });
@@ -294,6 +372,7 @@ const OrgDetail = () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "organization", id] });
       queryClient.invalidateQueries({ queryKey: ["admin", "organizations"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "payment-monitoring"] });
       setEditStoreOpen(false);
       setEditingStore(null);
       setEditStoreForm({ name: "", address: "" });
@@ -310,6 +389,7 @@ const OrgDetail = () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "organization", id] });
       queryClient.invalidateQueries({ queryKey: ["admin", "organizations"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "payment-monitoring"] });
       setDeletingStore(null);
       toast({ title: "Store deleted" });
     },
@@ -711,6 +791,144 @@ const OrgDetail = () => {
           </DialogContent>
         </Dialog>
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1.5">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <Banknote className="h-5 w-5" />
+              Billing payments
+            </CardTitle>
+            <CardDescription>
+              Record payment for a calendar month. Sets the next billing due date to the last day of the
+              month after the paid month, and expires billing-related in-app notifications (warning/urgent
+              and info banners matching payment or billing keywords).
+            </CardDescription>
+          </div>
+          <Dialog
+            open={billingPaymentOpen}
+            onOpenChange={(open) => {
+              setBillingPaymentOpen(open);
+              if (open) {
+                setBillingPaymentForm((f) => ({ ...f, period: format(new Date(), "yyyy-MM") }));
+              }
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-2 shrink-0">
+                <Banknote className="h-4 w-4" />
+                Record payment
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <form onSubmit={handleRecordBillingPayment}>
+                <DialogHeader>
+                  <DialogTitle>Record billing payment</DialogTitle>
+                  <DialogDescription>
+                    One entry per organization per month (YYYY-MM). Duplicates return an error.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bill-period">Paid month</Label>
+                    <Input
+                      id="bill-period"
+                      type="month"
+                      value={billingPaymentForm.period}
+                      onChange={(e) =>
+                        setBillingPaymentForm((f) => ({ ...f, period: e.target.value }))
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bill-amount">Amount (₱, optional)</Label>
+                    <Input
+                      id="bill-amount"
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      value={billingPaymentForm.amount}
+                      onChange={(e) =>
+                        setBillingPaymentForm((f) => ({ ...f, amount: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bill-method">Method (optional)</Label>
+                    <Input
+                      id="bill-method"
+                      placeholder="GCash, bank transfer, card…"
+                      value={billingPaymentForm.method}
+                      onChange={(e) =>
+                        setBillingPaymentForm((f) => ({ ...f, method: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bill-note">Note (optional)</Label>
+                    <Textarea
+                      id="bill-note"
+                      rows={2}
+                      placeholder="Reference number, internal note…"
+                      value={billingPaymentForm.note}
+                      onChange={(e) =>
+                        setBillingPaymentForm((f) => ({ ...f, note: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setBillingPaymentOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={recordBillingPaymentMutation.isPending}>
+                    {recordBillingPaymentMutation.isPending ? "Saving…" : "Save"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent>
+          {billingPayments.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Month paid</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Method</TableHead>
+                  <TableHead>Recorded</TableHead>
+                  <TableHead>By</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {billingPayments.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell className="font-medium">
+                      {format(new Date(`${row.period}-01T12:00:00Z`), "MMMM yyyy")}
+                    </TableCell>
+                    <TableCell>
+                      {row.amountCents != null ? formatCurrency(row.amountCents / 100) : "—"}
+                    </TableCell>
+                    <TableCell>{row.method ?? "—"}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                      {format(new Date(row.createdAt), "MMM d, yyyy HH:mm")}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {row.recordedBy?.email ?? "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">

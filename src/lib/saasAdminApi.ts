@@ -39,10 +39,33 @@ async function adminRequest<T>(path: string, options?: RequestInit): Promise<T> 
 }
 
 export const adminApi = {
+  getPaymentMonitoring: () =>
+    adminRequest<{
+      asOf: string;
+      items: Array<{
+        id: string;
+        name: string;
+        plan: string;
+        email: string | null;
+        billingDueDate: string | null;
+        daysUntilDue: number;
+        status: "overdue" | "due_within_7" | "due_within_30" | "due_within_90";
+        recentNotifications: Array<{
+          id: string;
+          message: string;
+          type: string;
+          createdAt: string;
+          expiresAt: string | null;
+        }>;
+      }>;
+      missingBillingDate: Array<{ id: string; name: string; plan: string; email: string | null }>;
+    }>("/api/admin/payment-monitoring"),
+
   getOverview: () => adminRequest<{
     orgCount: number;
     userCount: number;
     storeCount: number;
+    overdueBillingCount: number;
     recentOrgs: Array<{
       id: string;
       name: string;
@@ -142,6 +165,37 @@ export const adminApi = {
 
   deleteOrganization: (id: string) =>
     adminRequest(`/api/admin/organizations/${id}`, { method: "DELETE" }),
+
+  getOrganizationBillingPayments: (orgId: string) =>
+    adminRequest<
+      Array<{
+        id: string;
+        period: string;
+        amountCents: number | null;
+        method: string | null;
+        note: string | null;
+        createdAt: string;
+        recordedBy: { id: string; name: string; email: string } | null;
+      }>
+    >(`/api/admin/organizations/${orgId}/billing-payments`),
+
+  recordOrganizationBillingPayment: (
+    orgId: string,
+    data: { period: string; amountCents?: number | null; method?: string; note?: string }
+  ) =>
+    adminRequest<{
+      id: string;
+      period: string;
+      amountCents: number | null;
+      method: string | null;
+      note: string | null;
+      createdAt: string;
+      recordedBy: { id: string; name: string; email: string } | null;
+      billingDueDate: string;
+    }>(`/api/admin/organizations/${orgId}/billing-payments`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
   createOrganizationUser: (
     orgId: string,
