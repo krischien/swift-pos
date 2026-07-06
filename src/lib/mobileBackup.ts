@@ -95,7 +95,7 @@ export async function exportMobileBackup(): Promise<void> {
     // Share the file
     await Share.share({
       title: "Database Backup",
-      text: "QuickScale Database Backup",
+      text: "SwiftPOS Database Backup",
       url: fileUri.uri,
       dialogTitle: "Share Database Backup",
     });

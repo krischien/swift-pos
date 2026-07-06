@@ -24,12 +24,19 @@ import { normalizeBusinessMode } from "./utils/businessMode.js";
 import * as fnbService from "./services/fnbService.js";
 import { FnbStoreError } from "./services/fnbService.js";
 import { ensureSqliteSaasDatabaseUrl } from "./validateDatabaseEnv.js";
+import { isProductionRuntime, validateSecurityEnv } from "./validateSecurityEnv.js";
+import { loginLimiter, signupLimiter, demoLimiter } from "./middleware/rateLimit.js";
+import { validateSignupBody } from "./utils/validateSignup.js";
+import { requireTrimString, optionalTrimString } from "./utils/sanitizeInput.js";
+import helmet from "helmet";
 
 const app = express();
 const port = process.env.SAAS_PORT || 4001;
 
-// CORS: SAAS_CORS_ORIGINS=* allows all. Otherwise listed origins — plus Capacitor / Ionic
-// WebView origins so mobile apps don't get "failed to fetch" when the VPS env omits them.
+/** Production / Vercel — permissive CORS (`*` or unset) is disabled (Phase 1.3). */
+
+// CORS: SAAS_CORS_ORIGINS=* allows all in local dev only. In production, set explicit origins
+// (your Vercel URL, etc.) — Capacitor / Ionic WebView origins are always merged in.
 const corsOriginsRaw = process.env.SAAS_CORS_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean) ?? [];
 const allowAllCors = corsOriginsRaw.includes("*");
 const corsOriginsExplicit = corsOriginsRaw.filter((o) => o !== "*");
@@ -42,8 +49,20 @@ const mobileWebViewOrigins = [
 const corsAllowedSet = new Set([...corsOriginsExplicit, ...mobileWebViewOrigins]);
 
 function corsOriginOption(): boolean | ((origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => void) {
-  if (allowAllCors || corsOriginsExplicit.length === 0) {
+  const permissiveDevCors =
+    !isProductionRuntime && (allowAllCors || corsOriginsExplicit.length === 0);
+  if (permissiveDevCors) {
     return true;
+  }
+  if (isProductionRuntime && allowAllCors) {
+    console.warn(
+      "[CORS] SAAS_CORS_ORIGINS=* is ignored in production. Set explicit origins (e.g. your Vercel URL).",
+    );
+  }
+  if (isProductionRuntime && corsOriginsExplicit.length === 0) {
+    console.warn(
+      "[CORS] SAAS_CORS_ORIGINS is empty in production. Only Capacitor/WebView origins are allowed besides same-origin.",
+    );
   }
   return (origin, callback) => {
     if (!origin) {
@@ -63,13 +82,14 @@ function corsOriginOption(): boolean | ((origin: string | undefined, cb: (err: E
   };
 }
 
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(
   cors({
     origin: corsOriginOption(),
     credentials: true,
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 
 app.use((req, _res, next) => {
   console.log(`[SAAS ${new Date().toISOString()}] ${req.method} ${req.path}`);
@@ -87,8 +107,11 @@ app.get("/api/health", async (_req, res) => {
   res.json({ status: "ok", mode: "saas", database });
 });
 
-// Reset demo user passwords (dev only - fixes "invalid credentials" when DB has stale hashes)
-app.post("/api/demo/reset-passwords", async (_req, res) => {
+// Reset demo user passwords (local dev only — blocked on Vercel/production)
+app.post("/api/demo/reset-passwords", demoLimiter, async (_req, res) => {
+  if (isProductionRuntime()) {
+    return res.status(404).json({ message: "Not found" });
+  }
   try {
     const DEMO_EMAILS = ["admin@demo.com", "owner@demo.com", "cashier@demo.com"];
     const hashedPassword = await bcrypt.hash("password123", 10);
@@ -133,20 +156,21 @@ app.get("/api/org/users", authMiddleware, suspendedCheckMiddleware, async (req: 
 
 // --- Auth (no auth middleware) ---
 
-app.post("/api/auth/signup", async (req, res) => {
+app.post("/api/auth/signup", signupLimiter, async (req, res) => {
   try {
-    const { organizationName, storeName, adminEmail, adminPassword, adminName, adminPhone } = req.body as {
-      organizationName?: string;
-      storeName?: string;
-      adminEmail?: string;
-      adminPassword?: string;
-      adminName?: string;
-      adminPhone?: string;
-    };
-
-    if (!organizationName?.trim() || !storeName?.trim() || !adminEmail?.trim() || !adminPassword) {
-      return res.status(400).json({ message: "Organization name, store name, email, and password are required" });
+    const validated = validateSignupBody(req.body);
+    if ("error" in validated) {
+      return res.status(400).json({ message: validated.error });
     }
+
+    const {
+      organizationName,
+      storeName,
+      adminEmail,
+      adminPassword,
+      adminName,
+      adminPhone,
+    } = validated;
 
     const existing = await userService.getUserByEmail(adminEmail);
     if (existing) {
@@ -157,16 +181,16 @@ app.post("/api/auth/signup", async (req, res) => {
     trialEndsAt.setDate(trialEndsAt.getDate() + 7);
     const org = await saasPrisma.organization.create({
       data: {
-        name: organizationName.trim(),
+        name: organizationName,
         trialEndsAt,
-        phone: adminPhone?.trim() || null,
+        phone: adminPhone,
       },
     });
 
     const store = await saasPrisma.store.create({
       data: {
         organizationId: org.id,
-        name: storeName.trim(),
+        name: storeName,
       },
     });
 
@@ -174,8 +198,8 @@ app.post("/api/auth/signup", async (req, res) => {
     const user = await saasPrisma.user.create({
       data: {
         organizationId: org.id,
-        name: (adminName || adminEmail).trim(),
-        email: adminEmail.trim().toLowerCase(),
+        name: adminName,
+        email: adminEmail,
         password: hashedPassword,
         role: "owner",
       },
@@ -210,7 +234,7 @@ app.post("/api/auth/signup", async (req, res) => {
   }
 });
 
-app.post("/api/auth/login", async (req, res) => {
+app.post("/api/auth/login", loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body as { email?: string; password?: string };
 
@@ -319,8 +343,8 @@ ownerRouter.post("/api/categories", async (req: AuthRequest, res) => {
     const storeId = (req as any).storeId;
     if (!storeId) return res.status(400).json({ message: "storeId is required" });
     const { name } = req.body as { name?: string };
-    if (!name?.trim()) return res.status(400).json({ message: "Category name is required" });
-    const category = await categoryService.createCategory(storeId, name.trim());
+    const safeName = requireTrimString(name, "Category name");
+    const category = await categoryService.createCategory(storeId, safeName);
     res.status(201).json(category);
   } catch (error: unknown) {
     console.error(error);
@@ -333,8 +357,8 @@ ownerRouter.put("/api/categories/:id", async (req: AuthRequest, res) => {
     const storeId = (req as any).storeId;
     if (!storeId) return res.status(400).json({ message: "storeId is required" });
     const { name } = req.body as { name?: string };
-    if (!name?.trim()) return res.status(400).json({ message: "Category name is required" });
-    const category = await categoryService.updateCategory(req.params.id, storeId, name.trim());
+    const safeName = requireTrimString(name, "Category name");
+    const category = await categoryService.updateCategory(req.params.id, storeId, safeName);
     res.json(category);
   } catch (error: unknown) {
     console.error(error);
@@ -367,8 +391,8 @@ ownerRouter.patch("/api/store", async (req: AuthRequest, res) => {
     const store = await saasPrisma.store.update({
       where: { id: storeId },
       data: {
-        ...(name !== undefined && { name: name.trim() }),
-        ...(address !== undefined && { address: address?.trim() || null }),
+        ...(name !== undefined && { name: requireTrimString(name, "Store name") }),
+        ...(address !== undefined && { address: optionalTrimString(address, 500) ?? null }),
       },
       select: { id: true, name: true, address: true, receiptLogoUrl: true, businessMode: true },
     });
@@ -411,6 +435,8 @@ ownerRouter.post("/api/users", async (req: AuthRequest, res) => {
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: "Name, email, password, and role are required" });
     }
+    const safeName = requireTrimString(name, "Name");
+    const safeEmail = requireTrimString(email, "Email").toLowerCase();
     if (role !== "owner" && role !== "cashier") {
       return res.status(400).json({ message: "Role must be owner or cashier" });
     }
@@ -426,7 +452,7 @@ ownerRouter.post("/api/users", async (req: AuthRequest, res) => {
     const user = await userService.createUser(
       organizationId,
       storesToAssign,
-      { name, email, password, role: role as "owner" | "cashier" }
+      { name: safeName, email: safeEmail, password, role: role as "owner" | "cashier" }
     );
     res.status(201).json(user);
   } catch (error: unknown) {
@@ -450,8 +476,8 @@ ownerRouter.put("/api/users/:id", async (req: AuthRequest, res) => {
       return res.status(400).json({ message: "Role must be owner or cashier" });
     }
     const user = await userService.updateUser(req.params.id, organizationId, {
-      name,
-      email,
+      name: name !== undefined ? requireTrimString(name, "Name") : undefined,
+      email: email !== undefined ? requireTrimString(email, "Email").toLowerCase() : undefined,
       password,
       role,
       storeIds,
@@ -653,7 +679,96 @@ ownerRouter.put("/api/menu-items/:id/recipe", async (req: AuthRequest, res) => {
   }
 });
 
-// Protected routes (auth + tenant) - POS, products, sales, etc. Owner + cashier can access.
+// Retail catalog writes — owner only (cashiers read via protectedRouter)
+ownerRouter.post("/api/products", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    const body = { ...req.body } as Record<string, unknown>;
+    if (body.name != null) {
+      body.name = requireTrimString(body.name, "Product name");
+    }
+    const product = await productService.createProduct(storeId, body as Parameters<typeof productService.createProduct>[1]);
+    res.status(201).json(product);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(400).json({ message: (error as Error).message ?? "Failed to create product" });
+  }
+});
+
+ownerRouter.put("/api/products/:id", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    const body = { ...req.body } as Record<string, unknown>;
+    if (body.name != null) {
+      body.name = requireTrimString(body.name, "Product name");
+    }
+    const product = await productService.updateProduct(req.params.id, storeId, body);
+    res.json(product);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(400).json({ message: (error as Error).message ?? "Failed to update product" });
+  }
+});
+
+ownerRouter.delete("/api/products/:id", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await productService.deleteProduct(req.params.id, storeId);
+    res.status(204).send();
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(400).json({ message: (error as Error).message ?? "Failed to delete product" });
+  }
+});
+
+ownerRouter.post("/api/products/:productId/variants", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    const { name, price, stock } = req.body as { name?: string; price?: number; stock?: number };
+    if (!name || price == null || stock == null) {
+      return res.status(400).json({ message: "name, price, and stock are required" });
+    }
+    const variant = await variantService.createVariant(
+      req.params.productId,
+      storeId,
+      { name, price, stock },
+    );
+    res.status(201).json(variant);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(400).json({ message: (error as Error).message ?? "Failed to create variant" });
+  }
+});
+
+ownerRouter.put("/api/variants/:id", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    const variant = await variantService.updateVariant(req.params.id, storeId, req.body);
+    res.json(variant);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(400).json({ message: (error as Error).message ?? "Failed to update variant" });
+  }
+});
+
+ownerRouter.delete("/api/variants/:id", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await variantService.deleteVariant(req.params.id, storeId);
+    res.status(204).send();
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(400).json({ message: (error as Error).message ?? "Failed to delete variant" });
+  }
+});
+
+// Protected routes (auth + tenant) - POS, products (read), sales, etc. Owner + cashier can access.
 const protectedRouter = express.Router();
 protectedRouter.use(authMiddleware);
 protectedRouter.use(suspendedCheckMiddleware);
@@ -774,42 +889,6 @@ protectedRouter.get("/api/products/:id", async (req: AuthRequest, res) => {
   }
 });
 
-protectedRouter.post("/api/products", async (req: AuthRequest, res) => {
-  try {
-    const storeId = (req as any).storeId;
-    if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    const product = await productService.createProduct(storeId, req.body);
-    res.status(201).json(product);
-  } catch (error: unknown) {
-    console.error(error);
-    res.status(400).json({ message: (error as Error).message ?? "Failed to create product" });
-  }
-});
-
-protectedRouter.put("/api/products/:id", async (req: AuthRequest, res) => {
-  try {
-    const storeId = (req as any).storeId;
-    if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    const product = await productService.updateProduct(req.params.id, storeId, req.body);
-    res.json(product);
-  } catch (error: unknown) {
-    console.error(error);
-    res.status(400).json({ message: (error as Error).message ?? "Failed to update product" });
-  }
-});
-
-protectedRouter.delete("/api/products/:id", async (req: AuthRequest, res) => {
-  try {
-    const storeId = (req as any).storeId;
-    if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    await productService.deleteProduct(req.params.id, storeId);
-    res.status(204).send();
-  } catch (error: unknown) {
-    console.error(error);
-    res.status(400).json({ message: (error as Error).message ?? "Failed to delete product" });
-  }
-});
-
 protectedRouter.get("/api/products/:productId/variants", async (req: AuthRequest, res) => {
   try {
     const storeId = (req as any).storeId;
@@ -819,50 +898,6 @@ protectedRouter.get("/api/products/:productId/variants", async (req: AuthRequest
   } catch (error: unknown) {
     console.error(error);
     res.status(500).json({ message: (error as Error).message ?? "Failed to fetch variants" });
-  }
-});
-
-protectedRouter.post("/api/products/:productId/variants", async (req: AuthRequest, res) => {
-  try {
-    const storeId = (req as any).storeId;
-    if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    const { name, price, stock } = req.body as { name?: string; price?: number; stock?: number };
-    if (!name || price == null || stock == null) {
-      return res.status(400).json({ message: "name, price, and stock are required" });
-    }
-    const variant = await variantService.createVariant(
-      req.params.productId,
-      storeId,
-      { name, price, stock }
-    );
-    res.status(201).json(variant);
-  } catch (error: unknown) {
-    console.error(error);
-    res.status(400).json({ message: (error as Error).message ?? "Failed to create variant" });
-  }
-});
-
-protectedRouter.put("/api/variants/:id", async (req: AuthRequest, res) => {
-  try {
-    const storeId = (req as any).storeId;
-    if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    const variant = await variantService.updateVariant(req.params.id, storeId, req.body);
-    res.json(variant);
-  } catch (error: unknown) {
-    console.error(error);
-    res.status(400).json({ message: (error as Error).message ?? "Failed to update variant" });
-  }
-});
-
-protectedRouter.delete("/api/variants/:id", async (req: AuthRequest, res) => {
-  try {
-    const storeId = (req as any).storeId;
-    if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    await variantService.deleteVariant(req.params.id, storeId);
-    res.status(204).send();
-  } catch (error: unknown) {
-    console.error(error);
-    res.status(400).json({ message: (error as Error).message ?? "Failed to delete variant" });
   }
 });
 
@@ -1092,15 +1127,16 @@ orgRouter.patch("/api/org", async (req: AuthRequest, res) => {
     const org = await saasPrisma.organization.update({
       where: { id: orgId },
       data: {
-        ...(phone !== undefined && { phone: phone?.trim() || null }),
-        ...(email !== undefined && { email: email?.trim() || null }),
-        ...(address !== undefined && { address: address?.trim() || null }),
+        ...(phone !== undefined && { phone: optionalTrimString(phone, 50) ?? null }),
+        ...(email !== undefined && { email: optionalTrimString(email, 255) ?? null }),
+        ...(address !== undefined && { address: optionalTrimString(address, 500) ?? null }),
       },
     });
     if (address !== undefined) {
+      const safeAddress = optionalTrimString(address, 500) ?? null;
       await saasPrisma.store.updateMany({
         where: { organizationId: orgId },
-        data: { address: address?.trim() || null },
+        data: { address: safeAddress },
       });
     }
     res.json(org);
@@ -1141,6 +1177,7 @@ orgRouter.post("/api/org/stores", async (req: AuthRequest, res) => {
       businessMode?: string;
     };
     if (!name?.trim()) return res.status(400).json({ message: "Store name is required" });
+    const safeName = requireTrimString(name, "Store name");
     const org = await saasPrisma.organization.findUnique({
       where: { id: orgId },
       select: { address: true },
@@ -1149,8 +1186,8 @@ orgRouter.post("/api/org/stores", async (req: AuthRequest, res) => {
     const store = await saasPrisma.store.create({
       data: {
         organizationId: orgId,
-        name: name.trim(),
-        address: address?.trim() || org?.address || null,
+        name: safeName,
+        address: optionalTrimString(address, 500) ?? org?.address ?? null,
         businessMode,
       },
       select: { id: true, name: true, address: true, createdAt: true, businessMode: true },
@@ -1183,8 +1220,8 @@ orgRouter.patch("/api/org/stores/:id", async (req: AuthRequest, res) => {
     const store = await saasPrisma.store.update({
       where: { id: req.params.id },
       data: {
-        ...(name !== undefined && { name: name.trim() }),
-        ...(address !== undefined && { address: address?.trim() || null }),
+        ...(name !== undefined && { name: requireTrimString(name, "Store name") }),
+        ...(address !== undefined && { address: optionalTrimString(address, 500) ?? null }),
       },
       select: { id: true, name: true, address: true, createdAt: true, businessMode: true },
     });
@@ -1234,8 +1271,11 @@ orgRouter.get("/api/notifications", async (req: AuthRequest, res) => {
   }
 });
 
-// Demo seed - owners and super_admins (for demo purposes)
-orgRouter.post("/api/demo/seed", async (req: AuthRequest, res) => {
+// Demo seed - owners and super_admins (for demo purposes; local dev only)
+orgRouter.post("/api/demo/seed", demoLimiter, async (req: AuthRequest, res) => {
+  if (isProductionRuntime()) {
+    return res.status(404).json({ message: "Not found" });
+  }
   try {
     const role = req.auth?.role;
     if (role !== "owner" && role !== "super_admin") {
@@ -1340,6 +1380,15 @@ async function runSeedDemoIfEmptyDev() {
 
 async function start() {
   ensureSqliteSaasDatabaseUrl();
+  validateSecurityEnv();
+
+  process.on("unhandledRejection", (reason) => {
+    console.error("[SaaS] Unhandled rejection:", reason);
+  });
+  process.on("uncaughtException", (err) => {
+    console.error("[SaaS] Uncaught exception:", err);
+  });
+
   try {
     await runBootstrapSeed();
     // Dev: full catalog seed when empty, then quick-login emails (after seed: cashier@demo.com), passwords, trial

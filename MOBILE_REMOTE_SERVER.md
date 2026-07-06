@@ -107,13 +107,20 @@ If this fails: server is down, firewall is blocking port 4001, or the IP is wron
 
 ### 2. Server CORS (required for Capacitor)
 
-The server at 57.129.115.42 must allow the Android app origin. Set this env var on the server:
+The server at 57.129.115.42 must allow the Android app origin. Copy the production template and set env on the host:
+
+```sh
+cp .env.vps.example .env.vps
+# Edit JWT_SECRET, SAAS_DATABASE_URL, SUPER_ADMIN_EMAILS
+```
+
+Minimum `SAAS_CORS_ORIGINS` in `.env.vps`:
 
 ```
-SAAS_CORS_ORIGINS=capacitor://localhost
+SAAS_CORS_ORIGINS=https://swiftpos.backbone.ph,capacitor://localhost,ionic://localhost
 ```
 
-If the server uses `cors()` with no options, it allows all origins and CORS is fine.
+`NODE_ENV=production` — never use `*` for CORS in production. Start API: `npm run start:api:vps` (after `npm run build:api` if using the bundle).
 
 ### 3. Clean rebuild
 
@@ -148,7 +155,7 @@ If the emulator can't reach `10.0.2.2:4001`:
 
 **Option A – Allow port 4001 in Windows Firewall (run as Administrator):**
 ```powershell
-New-NetFirewallRule -DisplayName "Swift POS API" -Direction Inbound -LocalPort 4001 -Protocol TCP -Action Allow
+New-NetFirewallRule -DisplayName "SwiftPOS API" -Direction Inbound -LocalPort 4001 -Protocol TCP -Action Allow
 ```
 
 **Option B – Use your PC's LAN IP instead of 10.0.2.2:**

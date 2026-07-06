@@ -491,7 +491,7 @@ const Settings = () => {
                 <Label htmlFor="store-name">Store name</Label>
                 <Input
                   id="store-name"
-                  placeholder="QuickScale"
+                  placeholder="SwiftPOS"
                   value={storeName}
                   onChange={(e) => setStoreName(e.target.value)}
                 />

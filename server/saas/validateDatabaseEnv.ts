@@ -9,7 +9,7 @@ export function ensureSqliteSaasDatabaseUrl(): void {
   if (!url) {
     const fallback = "file:./prisma-saas/saas-dev.db";
     console.warn(`[SaaS] SAAS_DATABASE_URL unset; defaulting to ${fallback} (see .env.example)`);
-    process.env.SAAS_DATABASE_URL = fallback;
+    process.env.SAAS_DATABASE_URL = withSqliteBusyTimeout(fallback);
     return;
   }
 
@@ -36,4 +36,13 @@ export function ensureSqliteSaasDatabaseUrl(): void {
     );
     process.exit(1);
   }
+
+  process.env.SAAS_DATABASE_URL = withSqliteBusyTimeout(url);
+}
+
+/** Reduce SQLITE_BUSY errors under concurrent dev API requests. */
+function withSqliteBusyTimeout(fileUrl: string): string {
+  if (/busy_timeout=/i.test(fileUrl)) return fileUrl;
+  const sep = fileUrl.includes("?") ? "&" : "?";
+  return `${fileUrl}${sep}busy_timeout=10000`;
 }

@@ -119,6 +119,7 @@ export const CheckoutModal = ({
                 variant={paymentMethod === "cash" ? "default" : "outline"}
                 onClick={() => setPaymentMethod("cash")}
                 className="h-12"
+                data-testid="checkout-cash"
               >
                 <DollarSign className="w-4 h-4 mr-2" />
                 Cash
@@ -128,6 +129,7 @@ export const CheckoutModal = ({
                 variant={paymentMethod === "gcash" ? "default" : "outline"}
                 onClick={() => setPaymentMethod("gcash")}
                 className="h-12"
+                data-testid="checkout-gcash"
               >
                 <Smartphone className="w-4 h-4 mr-2" />
                 GCash
@@ -209,6 +211,7 @@ export const CheckoutModal = ({
           className="w-full h-12 text-base font-bold"
           disabled={!canComplete}
           onClick={handleComplete}
+          data-testid="checkout-complete"
         >
           Complete Sale
         </Button>

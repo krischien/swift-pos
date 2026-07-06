@@ -1209,7 +1209,7 @@ const Inventory = () => {
             </DropdownMenuContent>
           </DropdownMenu>
           <Dialog open={formOpen} onOpenChange={setFormOpen}>
-            <Button className="gap-2 flex-1 md:flex-none" onClick={openAddDialog}>
+            <Button className="gap-2 flex-1 md:flex-none" onClick={openAddDialog} data-testid="inventory-add">
               <Plus className="w-4 h-4" />
               Add Product
             </Button>

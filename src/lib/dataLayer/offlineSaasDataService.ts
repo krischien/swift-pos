@@ -15,7 +15,13 @@ const storeId = (sid?: string) => sid ?? getActiveStoreId() ?? undefined;
 const generateId = () =>
   `${Date.now().toString(36)}${Math.random().toString(36).substr(2, 9)}`;
 
-function processSyncQueue(real: DataService): () => void {
+let syncQueueRegistered = false;
+let cachedOfflineService: DataService | null = null;
+
+function processSyncQueue(real: DataService): void {
+  if (syncQueueRegistered) return;
+  syncQueueRegistered = true;
+
   let processing = false;
 
   const process = async () => {
@@ -113,19 +119,15 @@ function processSyncQueue(real: DataService): () => void {
   if (typeof window !== "undefined") {
     window.addEventListener("online", handler);
   }
-
-  return () => {
-    if (typeof window !== "undefined") {
-      window.removeEventListener("online", handler);
-    }
-  };
 }
 
 export function createOfflineSaasDataService(): DataService {
+  if (cachedOfflineService) return cachedOfflineService;
+
   const real = createSaasDataService();
   processSyncQueue(real);
 
-  return {
+  cachedOfflineService = {
     login: real.login,
 
     getCategories: async (sid) => {
@@ -500,4 +502,6 @@ export function createOfflineSaasDataService(): DataService {
       return real.replaceMenuItemRecipe(menuItemId, payload, sid);
     },
   };
+
+  return cachedOfflineService;
 }

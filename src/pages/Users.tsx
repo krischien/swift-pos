@@ -229,7 +229,7 @@ const Users = () => {
           <h1 className="text-3xl font-bold">User Management</h1>
           <p className="text-muted-foreground">Manage system users and their roles</p>
         </div>
-        <Button onClick={openAddDialog} className="w-full md:w-auto">
+        <Button onClick={openAddDialog} className="w-full md:w-auto" data-testid="users-add">
           <UserPlus className="mr-2 h-4 w-4" />
           Add User
         </Button>

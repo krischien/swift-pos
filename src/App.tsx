@@ -44,9 +44,10 @@ const NavigateToDefault = () => {
 };
 
 const App = () => {
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(() => import.meta.env.VITE_E2E !== "true");
 
   useEffect(() => {
+    if (import.meta.env.VITE_E2E === "true") return;
     const timer = setTimeout(() => setShowSplash(false), 1800);
     return () => clearTimeout(timer);
   }, []);

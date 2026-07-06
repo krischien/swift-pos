@@ -1,4 +1,4 @@
-# QuickScale POS – Demo Credentials
+# SwiftPOS – Demo Credentials
 
 ## SaaS Mode (multi-store, `VITE_APP_MODE=saas`)
 

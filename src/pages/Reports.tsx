@@ -144,6 +144,10 @@ const Reports = () => {
   const showStoreFilter = isSaaS();
   const storesToUse = reportStores.length > 0 ? reportStores : stores;
   const isMultiStoreView = showStoreFilter && reportStoreId === "all" && storesToUse.length > 1;
+  const storeScopeKey = useMemo(
+    () => storesToUse.map((s) => s.id).sort().join(","),
+    [reportStores, stores],
+  );
 
   // Fetch store list for filter: owners get all org stores, cashiers get their assigned stores
   useEffect(() => {
@@ -163,7 +167,7 @@ const Reports = () => {
     return () => {
       cancelled = true;
     };
-  }, [showStoreFilter, stores]);
+  }, [showStoreFilter, storeScopeKey]);
 
   const getDateRange = useMemo(() => {
     const now = new Date();
@@ -281,17 +285,15 @@ const Reports = () => {
         return dataService.getVoidCount(params, storeId) ?? 0;
       };
 
-      const [main, voidCountResult, todaySales, yesterdaySales, thisMonthSales, lastMonthSales, thisYearSales, lastYearSales] =
-        await Promise.all([
-          mainFetch(),
-          fetchVoidCount(),
-          fetchSalesForRange(startOfDay(now), endOfDay(now)),
-          fetchSalesForRange(startOfDay(yesterday), endOfDay(yesterday)),
-          fetchSalesForRange(startOfMonth(now), endOfDay(now)),
-          fetchSalesForRange(startOfMonth(lastMonth), endOfMonth(lastMonth)),
-          fetchSalesForRange(startOfYear(now), endOfDay(now)),
-          fetchSalesForRange(startOfYear(lastYear), endOfYear(lastYear)),
-        ]);
+      const [main, voidCountResult] = await Promise.all([mainFetch(), fetchVoidCount()]);
+
+      // Sequential comparison fetches — avoids dozens of concurrent SQLite reads in dev.
+      const todaySales = await fetchSalesForRange(startOfDay(now), endOfDay(now));
+      const yesterdaySales = await fetchSalesForRange(startOfDay(yesterday), endOfDay(yesterday));
+      const thisMonthSales = await fetchSalesForRange(startOfMonth(now), endOfDay(now));
+      const lastMonthSales = await fetchSalesForRange(startOfMonth(lastMonth), endOfMonth(lastMonth));
+      const thisYearSales = await fetchSalesForRange(startOfYear(now), endOfDay(now));
+      const lastYearSales = await fetchSalesForRange(startOfYear(lastYear), endOfYear(lastYear));
 
       setSales(main.sales);
       setProducts(main.products);
@@ -314,7 +316,7 @@ const Reports = () => {
 
   useEffect(() => {
     void loadData();
-  }, [datePreset, fromDate, toDate, reportStoreId, reportStores, stores]);
+  }, [datePreset, fromDate, toDate, reportStoreId, storeScopeKey]);
 
   const stats = useMemo(() => {
     const total = sales.reduce((sum, s) => sum + (s.total ?? 0), 0);

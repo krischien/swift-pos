@@ -222,6 +222,7 @@ export const Cart = ({
           className="w-full h-12 text-base font-bold shadow-sm"
           disabled={items.length === 0}
           onClick={onCheckout}
+          data-testid="pos-checkout"
         >
           Checkout
         </Button>

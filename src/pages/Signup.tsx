@@ -53,7 +53,7 @@ const Signup = () => {
       }
       toast({
         title: "Account created",
-        description: "Welcome! You can now start using QuickScale.",
+        description: "Welcome! You can now start using SwiftPOS.",
       });
       navigate("/pos");
     } catch (error: unknown) {
@@ -71,7 +71,7 @@ const Signup = () => {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <img src="/favico.png" alt="QuickScale" className="w-24 h-24" />
+            <img src="/favico.png" alt="SwiftPOS" className="w-24 h-24" />
           </div>
           <CardTitle className="text-3xl font-bold">Create your account</CardTitle>
           <CardDescription>Set up your organization and first store</CardDescription>

@@ -180,7 +180,7 @@ const Categories = () => {
           <h1 className="text-3xl font-bold">Category Management</h1>
           <p className="text-muted-foreground">Organize your products by categories</p>
         </div>
-        <Button onClick={openAddDialog}>
+        <Button onClick={openAddDialog} data-testid="categories-add">
           <FolderPlus className="mr-2 h-4 w-4" />
           Add Category
         </Button>

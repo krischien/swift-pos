@@ -31,6 +31,8 @@ export const ProductCard = ({ product, onSelect, isOutOfStock }: ProductCardProp
     <Button
       variant="outline"
       disabled={isOutOfStock}
+      data-testid="product-card"
+      data-product-name={product.name}
       className={cn(
         "h-auto flex-col p-4 bg-pos-product hover:bg-accent hover:border-primary transition-all relative",
         isOutOfStock && "opacity-70 cursor-not-allowed"

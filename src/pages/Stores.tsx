@@ -207,7 +207,7 @@ const Stores = () => {
           <h1 className="text-3xl font-bold">Stores</h1>
           <p className="text-muted-foreground">Manage stores in your organization</p>
         </div>
-        <Button onClick={openAddDialog} className="w-full md:w-auto">
+        <Button onClick={openAddDialog} className="w-full md:w-auto" data-testid="stores-add">
           <Plus className="mr-2 h-4 w-4" />
           Add Store
         </Button>

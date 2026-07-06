@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useAuth } from "@/contexts/AuthContext";
 import { useStore } from "@/contexts/StoreContext";
 import { useToast } from "@/hooks/use-toast";
+import { APP_NAME } from "@/config/brand";
 import { isSaaS } from "@/config/appMode";
 import { Capacitor } from "@capacitor/core";
 import { getSaasApiBase } from "@/lib/saasApiConfig";
@@ -92,10 +93,10 @@ const Login = () => {
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
             {/* <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center"> */}
-              <img src="/favico.png" alt="QuickScale" className="w-24 h-24" />
+              <img src="/favico.png" alt={APP_NAME} className="w-24 h-24" />
             {/* </div> */}
           </div>
-          <CardTitle className="text-3xl font-bold">QuickScale</CardTitle>
+          <CardTitle className="text-3xl font-bold">{APP_NAME}</CardTitle>
           <CardDescription>Sign in to your account</CardDescription>
           {isSaaS() && Capacitor.isNativePlatform() && (
             <div className="mt-1 space-y-1 text-left">

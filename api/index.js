@@ -8293,7 +8293,7 @@ function ensureSqliteSaasDatabaseUrl() {
   if (!url) {
     const fallback = "file:./prisma-saas/saas-dev.db";
     console.warn(`[SaaS] SAAS_DATABASE_URL unset; defaulting to ${fallback} (see .env.example)`);
-    process.env.SAAS_DATABASE_URL = fallback;
+    process.env.SAAS_DATABASE_URL = withSqliteBusyTimeout(fallback);
     return;
   }
   if (/^postgres(ql)?:\/\//i.test(url)) {
@@ -8318,9 +8318,127 @@ function ensureSqliteSaasDatabaseUrl() {
     );
     process.exit(1);
   }
+  process.env.SAAS_DATABASE_URL = withSqliteBusyTimeout(url);
+}
+function withSqliteBusyTimeout(fileUrl) {
+  if (/busy_timeout=/i.test(fileUrl)) return fileUrl;
+  const sep = fileUrl.includes("?") ? "&" : "?";
+  return `${fileUrl}${sep}busy_timeout=10000`;
+}
+
+// server/saas/validateSecurityEnv.ts
+var DEFAULT_JWT_SECRETS = /* @__PURE__ */ new Set([
+  "change-me-in-production",
+  "change-me-in-production-use-long-random-string"
+]);
+function isProductionRuntime() {
+  return process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+}
+function parseCorsOrigins() {
+  const raw2 = process.env.SAAS_CORS_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean) ?? [];
+  return {
+    allowAll: raw2.includes("*"),
+    explicit: raw2.filter((o) => o !== "*")
+  };
+}
+function validateSecurityEnv() {
+  const jwtSecret = (process.env.JWT_SECRET ?? "").trim();
+  const { allowAll, explicit } = parseCorsOrigins();
+  if (isProductionRuntime()) {
+    if (!jwtSecret || DEFAULT_JWT_SECRETS.has(jwtSecret) || jwtSecret.length < 32) {
+      console.error(
+        "[Security] JWT_SECRET must be a random string of at least 32 characters in production (not the default)."
+      );
+      process.exit(1);
+    }
+    if (process.env.VERCEL === "1" && (allowAll || explicit.length === 0)) {
+      console.error(
+        "[Security] SAAS_CORS_ORIGINS must list explicit origins on Vercel (your app URL + capacitor://localhost). Do not use * or leave empty."
+      );
+      process.exit(1);
+    }
+    if (process.env.NODE_ENV === "production" && !process.env.VERCEL && (allowAll || explicit.length === 0)) {
+      console.warn(
+        "[Security] SAAS_CORS_ORIGINS is empty or * with NODE_ENV=production. Set explicit origins before exposing this server."
+      );
+    }
+    return;
+  }
+  if (!jwtSecret || [...DEFAULT_JWT_SECRETS].some((d) => jwtSecret.startsWith("change-me"))) {
+    console.warn("[Security] Using default JWT_SECRET \u2014 acceptable for local dev only.");
+  }
+}
+
+// server/saas/middleware/rateLimit.ts
+import rateLimit from "express-rate-limit";
+var disabled = process.env.RATE_LIMIT_DISABLED === "1";
+function limiter(windowMs, max) {
+  return rateLimit({
+    windowMs,
+    max: disabled ? 1e4 : max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many requests" }
+  });
+}
+var loginLimiter = limiter(15 * 60 * 1e3, 10);
+var signupLimiter = limiter(60 * 60 * 1e3, 5);
+var demoLimiter = limiter(60 * 60 * 1e3, 3);
+
+// server/saas/utils/sanitizeInput.ts
+function trimString(value, maxLen = 255) {
+  if (value == null || typeof value !== "string") return null;
+  const cleaned = value.replace(/\0/g, "").trim();
+  if (!cleaned) return null;
+  return cleaned.length > maxLen ? cleaned.slice(0, maxLen) : cleaned;
+}
+function requireTrimString(value, fieldLabel, maxLen = 255) {
+  const result = trimString(value, maxLen);
+  if (!result) {
+    throw new Error(`${fieldLabel} is required`);
+  }
+  return result;
+}
+function optionalTrimString(value, maxLen = 255) {
+  if (value == null) return void 0;
+  const result = trimString(value, maxLen);
+  return result ?? void 0;
+}
+
+// server/saas/utils/validateSignup.ts
+var MAX_EMAIL = 255;
+var MAX_NAME = 255;
+var MIN_PASSWORD = 8;
+function validateSignupBody(body) {
+  const organizationName = trimString(body.organizationName, MAX_NAME);
+  const storeName = trimString(body.storeName, MAX_NAME);
+  const adminEmail = trimString(body.adminEmail, MAX_EMAIL)?.toLowerCase() ?? null;
+  const adminPassword = typeof body.adminPassword === "string" ? body.adminPassword : "";
+  const adminName = trimString(body.adminName, MAX_NAME);
+  const adminPhone = trimString(body.adminPhone, 50);
+  if (!organizationName || !storeName || !adminEmail || !adminPassword) {
+    return {
+      error: "Organization name, store name, email, and password are required"
+    };
+  }
+  if (adminPassword.length < MIN_PASSWORD) {
+    return { error: `Password must be at least ${MIN_PASSWORD} characters` };
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)) {
+    return { error: "Invalid email address" };
+  }
+  return {
+    organizationName,
+    storeName,
+    adminEmail,
+    adminPassword,
+    adminName: adminName || adminEmail,
+    adminPhone: adminPhone ?? null
+  };
 }
 
 // server/saas/index.ts
+import helmet from "helmet";
 var app = express();
 var port = process.env.SAAS_PORT || 4001;
 var corsOriginsRaw = process.env.SAAS_CORS_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean) ?? [];
@@ -8334,8 +8452,19 @@ var mobileWebViewOrigins = [
 ];
 var corsAllowedSet = /* @__PURE__ */ new Set([...corsOriginsExplicit, ...mobileWebViewOrigins]);
 function corsOriginOption() {
-  if (allowAllCors || corsOriginsExplicit.length === 0) {
+  const permissiveDevCors = !isProductionRuntime && (allowAllCors || corsOriginsExplicit.length === 0);
+  if (permissiveDevCors) {
     return true;
+  }
+  if (isProductionRuntime && allowAllCors) {
+    console.warn(
+      "[CORS] SAAS_CORS_ORIGINS=* is ignored in production. Set explicit origins (e.g. your Vercel URL)."
+    );
+  }
+  if (isProductionRuntime && corsOriginsExplicit.length === 0) {
+    console.warn(
+      "[CORS] SAAS_CORS_ORIGINS is empty in production. Only Capacitor/WebView origins are allowed besides same-origin."
+    );
   }
   return (origin, callback) => {
     if (!origin) {
@@ -8353,13 +8482,14 @@ function corsOriginOption() {
     callback(null, false);
   };
 }
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(
   cors({
     origin: corsOriginOption(),
     credentials: true
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 app.use((req, _res, next) => {
   console.log(`[SAAS ${(/* @__PURE__ */ new Date()).toISOString()}] ${req.method} ${req.path}`);
   next();
@@ -8374,7 +8504,10 @@ app.get("/api/health", async (_req, res) => {
   }
   res.json({ status: "ok", mode: "saas", database });
 });
-app.post("/api/demo/reset-passwords", async (_req, res) => {
+app.post("/api/demo/reset-passwords", demoLimiter, async (_req, res) => {
+  if (isProductionRuntime()) {
+    return res.status(404).json({ message: "Not found" });
+  }
   try {
     const DEMO_EMAILS = ["admin@demo.com", "owner@demo.com", "cashier@demo.com"];
     const hashedPassword = await bcrypt5.hash("password123", 10);
@@ -8414,12 +8547,20 @@ app.get("/api/org/users", authMiddleware, suspendedCheckMiddleware, async (req, 
     res.status(500).json({ message: "Failed to fetch users" });
   }
 });
-app.post("/api/auth/signup", async (req, res) => {
+app.post("/api/auth/signup", signupLimiter, async (req, res) => {
   try {
-    const { organizationName, storeName, adminEmail, adminPassword, adminName, adminPhone } = req.body;
-    if (!organizationName?.trim() || !storeName?.trim() || !adminEmail?.trim() || !adminPassword) {
-      return res.status(400).json({ message: "Organization name, store name, email, and password are required" });
+    const validated = validateSignupBody(req.body);
+    if ("error" in validated) {
+      return res.status(400).json({ message: validated.error });
     }
+    const {
+      organizationName,
+      storeName,
+      adminEmail,
+      adminPassword,
+      adminName,
+      adminPhone
+    } = validated;
     const existing = await getUserByEmail(adminEmail);
     if (existing) {
       return res.status(400).json({ message: "Email already registered" });
@@ -8428,23 +8569,23 @@ app.post("/api/auth/signup", async (req, res) => {
     trialEndsAt.setDate(trialEndsAt.getDate() + 7);
     const org = await saasPrisma.organization.create({
       data: {
-        name: organizationName.trim(),
+        name: organizationName,
         trialEndsAt,
-        phone: adminPhone?.trim() || null
+        phone: adminPhone
       }
     });
     const store = await saasPrisma.store.create({
       data: {
         organizationId: org.id,
-        name: storeName.trim()
+        name: storeName
       }
     });
     const hashedPassword = await bcrypt5.hash(adminPassword, 10);
     const user = await saasPrisma.user.create({
       data: {
         organizationId: org.id,
-        name: (adminName || adminEmail).trim(),
-        email: adminEmail.trim().toLowerCase(),
+        name: adminName,
+        email: adminEmail,
         password: hashedPassword,
         role: "owner"
       }
@@ -8475,7 +8616,7 @@ app.post("/api/auth/signup", async (req, res) => {
     res.status(500).json({ message: "Signup failed" });
   }
 });
-app.post("/api/auth/login", async (req, res) => {
+app.post("/api/auth/login", loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email?.trim() || !password) {
@@ -8562,8 +8703,8 @@ ownerRouter.post("/api/categories", async (req, res) => {
     const storeId = req.storeId;
     if (!storeId) return res.status(400).json({ message: "storeId is required" });
     const { name } = req.body;
-    if (!name?.trim()) return res.status(400).json({ message: "Category name is required" });
-    const category = await createCategory(storeId, name.trim());
+    const safeName = requireTrimString(name, "Category name");
+    const category = await createCategory(storeId, safeName);
     res.status(201).json(category);
   } catch (error) {
     console.error(error);
@@ -8575,8 +8716,8 @@ ownerRouter.put("/api/categories/:id", async (req, res) => {
     const storeId = req.storeId;
     if (!storeId) return res.status(400).json({ message: "storeId is required" });
     const { name } = req.body;
-    if (!name?.trim()) return res.status(400).json({ message: "Category name is required" });
-    const category = await updateCategory(req.params.id, storeId, name.trim());
+    const safeName = requireTrimString(name, "Category name");
+    const category = await updateCategory(req.params.id, storeId, safeName);
     res.json(category);
   } catch (error) {
     console.error(error);
@@ -8607,8 +8748,8 @@ ownerRouter.patch("/api/store", async (req, res) => {
     const store = await saasPrisma.store.update({
       where: { id: storeId },
       data: {
-        ...name !== void 0 && { name: name.trim() },
-        ...address !== void 0 && { address: address?.trim() || null }
+        ...name !== void 0 && { name: requireTrimString(name, "Store name") },
+        ...address !== void 0 && { address: optionalTrimString(address, 500) ?? null }
       },
       select: { id: true, name: true, address: true, receiptLogoUrl: true, businessMode: true }
     });
@@ -8643,6 +8784,8 @@ ownerRouter.post("/api/users", async (req, res) => {
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: "Name, email, password, and role are required" });
     }
+    const safeName = requireTrimString(name, "Name");
+    const safeEmail = requireTrimString(email, "Email").toLowerCase();
     if (role !== "owner" && role !== "cashier") {
       return res.status(400).json({ message: "Role must be owner or cashier" });
     }
@@ -8657,7 +8800,7 @@ ownerRouter.post("/api/users", async (req, res) => {
     const user = await createUser(
       organizationId,
       storesToAssign,
-      { name, email, password, role }
+      { name: safeName, email: safeEmail, password, role }
     );
     res.status(201).json(user);
   } catch (error) {
@@ -8674,8 +8817,8 @@ ownerRouter.put("/api/users/:id", async (req, res) => {
       return res.status(400).json({ message: "Role must be owner or cashier" });
     }
     const user = await updateUser(req.params.id, organizationId, {
-      name,
-      email,
+      name: name !== void 0 ? requireTrimString(name, "Name") : void 0,
+      email: email !== void 0 ? requireTrimString(email, "Email").toLowerCase() : void 0,
       password,
       role,
       storeIds
@@ -8858,6 +9001,88 @@ ownerRouter.put("/api/menu-items/:id/recipe", async (req, res) => {
     res.status(fnbErrorStatus(error)).json({ message: error.message ?? "Failed" });
   }
 });
+ownerRouter.post("/api/products", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    const body = { ...req.body };
+    if (body.name != null) {
+      body.name = requireTrimString(body.name, "Product name");
+    }
+    const product = await createProduct(storeId, body);
+    res.status(201).json(product);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: error.message ?? "Failed to create product" });
+  }
+});
+ownerRouter.put("/api/products/:id", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    const body = { ...req.body };
+    if (body.name != null) {
+      body.name = requireTrimString(body.name, "Product name");
+    }
+    const product = await updateProduct(req.params.id, storeId, body);
+    res.json(product);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: error.message ?? "Failed to update product" });
+  }
+});
+ownerRouter.delete("/api/products/:id", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await deleteProduct(req.params.id, storeId);
+    res.status(204).send();
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: error.message ?? "Failed to delete product" });
+  }
+});
+ownerRouter.post("/api/products/:productId/variants", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    const { name, price, stock } = req.body;
+    if (!name || price == null || stock == null) {
+      return res.status(400).json({ message: "name, price, and stock are required" });
+    }
+    const variant = await createVariant(
+      req.params.productId,
+      storeId,
+      { name, price, stock }
+    );
+    res.status(201).json(variant);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: error.message ?? "Failed to create variant" });
+  }
+});
+ownerRouter.put("/api/variants/:id", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    const variant = await updateVariant(req.params.id, storeId, req.body);
+    res.json(variant);
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: error.message ?? "Failed to update variant" });
+  }
+});
+ownerRouter.delete("/api/variants/:id", async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    await deleteVariant(req.params.id, storeId);
+    res.status(204).send();
+  } catch (error) {
+    console.error(error);
+    res.status(400).json({ message: error.message ?? "Failed to delete variant" });
+  }
+});
 var protectedRouter = express.Router();
 protectedRouter.use(authMiddleware);
 protectedRouter.use(suspendedCheckMiddleware);
@@ -8965,39 +9190,6 @@ protectedRouter.get("/api/products/:id", async (req, res) => {
     res.status(500).json({ message: "Failed to fetch product" });
   }
 });
-protectedRouter.post("/api/products", async (req, res) => {
-  try {
-    const storeId = req.storeId;
-    if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    const product = await createProduct(storeId, req.body);
-    res.status(201).json(product);
-  } catch (error) {
-    console.error(error);
-    res.status(400).json({ message: error.message ?? "Failed to create product" });
-  }
-});
-protectedRouter.put("/api/products/:id", async (req, res) => {
-  try {
-    const storeId = req.storeId;
-    if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    const product = await updateProduct(req.params.id, storeId, req.body);
-    res.json(product);
-  } catch (error) {
-    console.error(error);
-    res.status(400).json({ message: error.message ?? "Failed to update product" });
-  }
-});
-protectedRouter.delete("/api/products/:id", async (req, res) => {
-  try {
-    const storeId = req.storeId;
-    if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    await deleteProduct(req.params.id, storeId);
-    res.status(204).send();
-  } catch (error) {
-    console.error(error);
-    res.status(400).json({ message: error.message ?? "Failed to delete product" });
-  }
-});
 protectedRouter.get("/api/products/:productId/variants", async (req, res) => {
   try {
     const storeId = req.storeId;
@@ -9007,47 +9199,6 @@ protectedRouter.get("/api/products/:productId/variants", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: error.message ?? "Failed to fetch variants" });
-  }
-});
-protectedRouter.post("/api/products/:productId/variants", async (req, res) => {
-  try {
-    const storeId = req.storeId;
-    if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    const { name, price, stock } = req.body;
-    if (!name || price == null || stock == null) {
-      return res.status(400).json({ message: "name, price, and stock are required" });
-    }
-    const variant = await createVariant(
-      req.params.productId,
-      storeId,
-      { name, price, stock }
-    );
-    res.status(201).json(variant);
-  } catch (error) {
-    console.error(error);
-    res.status(400).json({ message: error.message ?? "Failed to create variant" });
-  }
-});
-protectedRouter.put("/api/variants/:id", async (req, res) => {
-  try {
-    const storeId = req.storeId;
-    if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    const variant = await updateVariant(req.params.id, storeId, req.body);
-    res.json(variant);
-  } catch (error) {
-    console.error(error);
-    res.status(400).json({ message: error.message ?? "Failed to update variant" });
-  }
-});
-protectedRouter.delete("/api/variants/:id", async (req, res) => {
-  try {
-    const storeId = req.storeId;
-    if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    await deleteVariant(req.params.id, storeId);
-    res.status(204).send();
-  } catch (error) {
-    console.error(error);
-    res.status(400).json({ message: error.message ?? "Failed to delete variant" });
   }
 });
 protectedRouter.get("/api/sales", async (req, res) => {
@@ -9243,15 +9394,16 @@ orgRouter.patch("/api/org", async (req, res) => {
     const org = await saasPrisma.organization.update({
       where: { id: orgId },
       data: {
-        ...phone !== void 0 && { phone: phone?.trim() || null },
-        ...email !== void 0 && { email: email?.trim() || null },
-        ...address !== void 0 && { address: address?.trim() || null }
+        ...phone !== void 0 && { phone: optionalTrimString(phone, 50) ?? null },
+        ...email !== void 0 && { email: optionalTrimString(email, 255) ?? null },
+        ...address !== void 0 && { address: optionalTrimString(address, 500) ?? null }
       }
     });
     if (address !== void 0) {
+      const safeAddress = optionalTrimString(address, 500) ?? null;
       await saasPrisma.store.updateMany({
         where: { organizationId: orgId },
-        data: { address: address?.trim() || null }
+        data: { address: safeAddress }
       });
     }
     res.json(org);
@@ -9285,6 +9437,7 @@ orgRouter.post("/api/org/stores", async (req, res) => {
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
     const { name, address, businessMode: rawMode } = req.body;
     if (!name?.trim()) return res.status(400).json({ message: "Store name is required" });
+    const safeName = requireTrimString(name, "Store name");
     const org = await saasPrisma.organization.findUnique({
       where: { id: orgId },
       select: { address: true }
@@ -9293,8 +9446,8 @@ orgRouter.post("/api/org/stores", async (req, res) => {
     const store = await saasPrisma.store.create({
       data: {
         organizationId: orgId,
-        name: name.trim(),
-        address: address?.trim() || org?.address || null,
+        name: safeName,
+        address: optionalTrimString(address, 500) ?? org?.address ?? null,
         businessMode
       },
       select: { id: true, name: true, address: true, createdAt: true, businessMode: true }
@@ -9326,8 +9479,8 @@ orgRouter.patch("/api/org/stores/:id", async (req, res) => {
     const store = await saasPrisma.store.update({
       where: { id: req.params.id },
       data: {
-        ...name !== void 0 && { name: name.trim() },
-        ...address !== void 0 && { address: address?.trim() || null }
+        ...name !== void 0 && { name: requireTrimString(name, "Store name") },
+        ...address !== void 0 && { address: optionalTrimString(address, 500) ?? null }
       },
       select: { id: true, name: true, address: true, createdAt: true, businessMode: true }
     });
@@ -9374,7 +9527,10 @@ orgRouter.get("/api/notifications", async (req, res) => {
     res.status(500).json({ message: "Failed to fetch notifications" });
   }
 });
-orgRouter.post("/api/demo/seed", async (req, res) => {
+orgRouter.post("/api/demo/seed", demoLimiter, async (req, res) => {
+  if (isProductionRuntime()) {
+    return res.status(404).json({ message: "Not found" });
+  }
   try {
     const role = req.auth?.role;
     if (role !== "owner" && role !== "super_admin") {
@@ -9455,6 +9611,13 @@ async function runSeedDemoIfEmptyDev() {
 }
 async function start() {
   ensureSqliteSaasDatabaseUrl();
+  validateSecurityEnv();
+  process.on("unhandledRejection", (reason) => {
+    console.error("[SaaS] Unhandled rejection:", reason);
+  });
+  process.on("uncaughtException", (err) => {
+    console.error("[SaaS] Uncaught exception:", err);
+  });
   try {
     await runBootstrapSeed();
     if (process.env.NODE_ENV !== "production") {

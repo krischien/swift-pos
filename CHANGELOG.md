@@ -7,9 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security (Phase 1.4)
+
+- **Production startup checks** (`server/saas/validateSecurityEnv.ts`): fail fast on weak/missing `JWT_SECRET` in production; exit on Vercel when `SAAS_CORS_ORIGINS` is empty or `*`.
+- **Demo endpoints:** `POST /api/demo/seed` returns 404 in production (same as reset-passwords).
+- **Rate limiting:** `express-rate-limit` on login (10/15min), signup (5/hour), demo routes (3/hour); disable locally with `RATE_LIMIT_DISABLED=1`.
+- **Request bounds:** JSON body limit 1mb; signup min password 8 chars + email/name length validation.
+- **Headers:** `helmet` on API; security headers on Vercel SPA (`vercel.json`).
+- **Input sanitization:** `trimString` / `requireTrimString` on category, product, user, store, and org write paths.
+- **Dev QA:** `npm run saas:seed-second-org` creates Org B (`owner@orgb.demo.com`) for cross-tenant manual testing.
+- **Scripts:** `npm run security:audit` for dependency scanning.
+
 ### Application features (reference)
 
-Capabilities present in **QuickScale** today (see also [`README.md`](README.md)); not every item below is new in this release—this section documents the product surface for readers of the changelog.
+Capabilities present in **SwiftPOS** today (see also [`README.md`](README.md)); not every item below is new in this release—this section documents the product surface for readers of the changelog.
 
 - **Inventory — OCR menu import:** Photo of a menu → Tesseract.js (`src/lib/ocrService.ts`) extracts text → `parseMenuItems` maps lines to name/price → `OCRScanDialog` lets you review rows and import into the catalog.
 - **Inventory — exports:** BIR inventory report (XLSX/PDF), barcode list (Word/docx with embedded barcodes), low-stock list, and spreadsheet-oriented exports where implemented.

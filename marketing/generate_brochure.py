@@ -77,7 +77,7 @@ def main() -> None:
 
     c.setFillColor(colors.white)
     c.setFont("Helvetica-Bold", 22)
-    c.drawString(margin, height - 0.75 * inch, "Swift POS")
+    c.drawString(margin, height - 0.75 * inch, "SwiftPOS")
     c.setFont("Helvetica", 12)
     c.drawString(margin, height - 1.05 * inch, "Smart, simple, and fast point-of-sale for modern retail teams")
 
@@ -92,7 +92,7 @@ def main() -> None:
     draw_heading(c, "What it is", intro_x, intro_y)
     intro_y = draw_paragraph(
         c,
-        "Swift POS is an all-in-one retail system that helps stores sell faster, track inventory accurately, "
+        "SwiftPOS is an all-in-one retail system that helps stores sell faster, track inventory accurately, "
         "and view real-time performance with clean, easy-to-use dashboards. It is designed for day-to-day "
         "operations with a focus on speed at checkout, clear reporting, and dependable inventory control.",
         intro_x,
@@ -118,7 +118,7 @@ def main() -> None:
     draw_heading(c, "Features & Value", margin, page1_feature_top)
     draw_paragraph(
         c,
-        "Swift POS connects sales, inventory, and reporting into one workflow so teams can focus on customers. "
+        "SwiftPOS connects sales, inventory, and reporting into one workflow so teams can focus on customers. "
         "Managers get quick visibility into trends, while staff get a simple interface that reduces training time.",
         margin,
         page1_feature_top - 16,
@@ -301,7 +301,7 @@ def main() -> None:
     # Call to action footer
     c.setFillColor(colors.HexColor("#0f172a"))
     c.setFont("Helvetica-Bold", 12)
-    c.drawString(margin, 0.95 * inch, "See how Swift POS can simplify your sales today.")
+    c.drawString(margin, 0.95 * inch, "See how SwiftPOS can simplify your sales today.")
     c.setFont("Helvetica", 10.5)
     c.setFillColor(colors.HexColor("#334155"))
     c.drawString(

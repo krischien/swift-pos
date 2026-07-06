@@ -105,6 +105,7 @@ const POS = () => {
   const [productBrowseExpanded, setProductBrowseExpanded] = useState(false);
 
   const { activeStoreId, stores, storesLoading } = useStore();
+  const storeIdsKey = stores.map((s) => s.id).join(",");
   const activeStore = stores.find((s) => s.id === activeStoreId);
   const isFnb = !!activeStore && activeStore.businessMode === "fnb";
 
@@ -151,6 +152,7 @@ const POS = () => {
       );
       return;
     }
+    let cancelled = false;
     const load = async () => {
       try {
         setLoading(true);
@@ -160,6 +162,7 @@ const POS = () => {
             dataService.getMenuCategories(activeStoreId),
             dataService.getMenuItems(undefined, activeStoreId),
           ]);
+          if (cancelled) return;
           setCategories((mcats as MenuCategory[]).map((c) => ({ id: c.id, name: c.name })));
           setProducts((mitems as MenuItem[]).map(menuItemToProduct));
         } else {
@@ -167,17 +170,22 @@ const POS = () => {
             dataService.getCategories(activeStoreId),
             dataService.getProducts(undefined, activeStoreId),
           ]);
+          if (cancelled) return;
           setCategories(cats as Category[]);
           setProducts(prods as Product[]);
         }
       } catch (e: any) {
+        if (cancelled) return;
         setError(e.message ?? "Failed to load products");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-    load();
-  }, [activeStoreId, stores, dataService, storesLoading, isFnb]);
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeStoreId, storesLoading, isFnb, storeIdsKey]);
 
   const filteredProducts = products.filter((product) => {
     const matchesCategory = !selectedCategory || product.categoryId === selectedCategory;
@@ -496,7 +504,7 @@ const POS = () => {
       )
       .join("") || `<tr><td colspan="4" style="text-align:center;padding:8px 0;">No items</td></tr>`;
 
-    const headerName = storeName || "QuickScale";
+    const headerName = storeName || "SwiftPOS";
     const headerAddress = storeAddress || "";
     const showLogo = showLogoOnReceipt && receiptLogoUrl;
     const totalDisplay = typeof sale?.total === "number" ? sale.total : fallbackTotals.total;
