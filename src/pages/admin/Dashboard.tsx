@@ -135,13 +135,13 @@ const Dashboard = () => {
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-sky-950/90 dark:text-sky-100/90">
-              Free plan
+              Tindahan
             </CardTitle>
             <Gift className="h-4 w-4 text-sky-600 dark:text-sky-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold tabular-nums text-sky-800 dark:text-sky-200">
-              {data.freeCount ?? 0}
+              {data.tindahanCount ?? data.freeCount ?? 0}
             </div>
           </CardContent>
         </Card>
@@ -150,13 +150,13 @@ const Dashboard = () => {
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-violet-950/90 dark:text-violet-100/90">
-              Pro plan
+              Negosyo
             </CardTitle>
             <Zap className="h-4 w-4 text-violet-600 dark:text-violet-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold tabular-nums text-violet-800 dark:text-violet-200">
-              {data.proCount ?? 0}
+              {data.negosyoCount ?? data.proCount ?? 0}
             </div>
           </CardContent>
         </Card>
@@ -165,13 +165,13 @@ const Dashboard = () => {
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-indigo-950/90 dark:text-indigo-100/90">
-              Enterprise
+              Kumpanya
             </CardTitle>
             <Building className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold tabular-nums text-indigo-800 dark:text-indigo-200">
-              {data.enterpriseCount ?? 0}
+              {data.kumpanyaCount ?? data.enterpriseCount ?? 0}
             </div>
           </CardContent>
         </Card>

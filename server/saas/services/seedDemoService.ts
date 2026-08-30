@@ -85,11 +85,22 @@ export async function runSeedDemo(): Promise<SeedDemoResult> {
   const org = await saasPrisma.organization.create({
     data: {
       name: "Demo Organization",
-      plan: "free",
+      plan: "tindahan",
       trialEndsAt,
       phone: "+63 912 345 6789",
       email: "demo@example.com",
       address: "123 Demo St, Manila",
+    },
+  });
+
+  await saasPrisma.organizationSubscription.create({
+    data: {
+      organizationId: org.id,
+      tier: "tindahan",
+      status: "trialing",
+      trialStart: new Date(),
+      trialEnd: trialEndsAt,
+      monthlyPriceCentavos: 49900,
     },
   });
 

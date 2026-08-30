@@ -34,9 +34,20 @@ export async function runBootstrapSeed(): Promise<boolean> {
   const org = await saasPrisma.organization.create({
     data: {
       name: "Demo Organization",
-      plan: "free",
+      plan: "tindahan",
       trialEndsAt,
       email: "demo@example.com",
+    },
+  });
+
+  await saasPrisma.organizationSubscription.create({
+    data: {
+      organizationId: org.id,
+      tier: "tindahan",
+      status: "trialing",
+      trialStart: new Date(),
+      trialEnd: trialEndsAt,
+      monthlyPriceCentavos: 49900,
     },
   });
 
@@ -123,9 +134,19 @@ export async function ensureDemoQuickLoginUsers(): Promise<void> {
     org = await saasPrisma.organization.create({
       data: {
         name: "Demo Organization",
-        plan: "free",
+        plan: "tindahan",
         trialEndsAt,
         email: "demo@example.com",
+      },
+    });
+    await saasPrisma.organizationSubscription.create({
+      data: {
+        organizationId: org.id,
+        tier: "tindahan",
+        status: "trialing",
+        trialStart: new Date(),
+        trialEnd: trialEndsAt,
+        monthlyPriceCentavos: 49900,
       },
     });
   }

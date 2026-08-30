@@ -29,6 +29,21 @@ import { loginLimiter, signupLimiter, demoLimiter } from "./middleware/rateLimit
 import { validateSignupBody } from "./utils/validateSignup.js";
 import { requireTrimString, optionalTrimString } from "./utils/sanitizeInput.js";
 import helmet from "helmet";
+import {
+  createTrialSubscription,
+  requestPlan,
+  cancelSubscription,
+  assertCanAddBranch,
+  assertCanAddUser,
+  expireTrialIfNeeded,
+  ensureOrgSubscription,
+  buildSubscriptionPublicPayload,
+  getOrgUsage,
+  isTierId,
+  getTierFeatures,
+  TIERS,
+} from "./services/subscriptionService.js";
+import { getBillingContact, TRIAL_DAYS } from "./config/tiers.js";
 
 const app = express();
 const port = process.env.SAAS_PORT || 4001;
@@ -178,14 +193,17 @@ app.post("/api/auth/signup", signupLimiter, async (req, res) => {
     }
 
     const trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + 7);
+    trialEndsAt.setDate(trialEndsAt.getDate() + TRIAL_DAYS);
     const org = await saasPrisma.organization.create({
       data: {
         name: organizationName,
+        plan: "tindahan",
         trialEndsAt,
         phone: adminPhone,
       },
     });
+
+    await createTrialSubscription(org.id);
 
     const store = await saasPrisma.store.create({
       data: {
@@ -269,29 +287,13 @@ app.post("/api/auth/login", loginLimiter, async (req, res) => {
         where: { id: user.organizationId },
         select: { id: true, name: true, plan: true, trialEndsAt: true },
       });
-      // Block access for suspended orgs or expired free trials (suspend instead of delete)
+      // Expire trial in DB if needed; still issue JWT so owner can open /pricing while locked
       if (organization) {
-        const plan = organization.plan?.toLowerCase();
-        const trialEndsAt = organization.trialEndsAt
-          ? new Date(organization.trialEndsAt)
-          : null;
-        const trialExpired =
-          plan === "free" && trialEndsAt && trialEndsAt < new Date();
-        if (plan === "suspended") {
-          return res.status(403).json({
-            message: "Account suspended. Please contact support to restore access.",
-          });
-        }
-        if (trialExpired) {
-          // Auto-suspend expired free trials
-          await saasPrisma.organization.update({
-            where: { id: organization.id },
-            data: { plan: "suspended" },
-          });
-          return res.status(403).json({
-            message: "Trial expired. Please upgrade to continue using the service.",
-          });
-        }
+        await expireTrialIfNeeded(organization.id);
+        organization = await saasPrisma.organization.findUnique({
+          where: { id: user.organizationId },
+          select: { id: true, name: true, plan: true, trialEndsAt: true },
+        });
       }
     } else if (isSuperAdmin(user.email)) {
       // Super admin: no org, no stores by default
@@ -425,6 +427,19 @@ ownerRouter.post("/api/users", async (req: AuthRequest, res) => {
     const storeId = (req as any).storeId;
     const organizationId = (req as any).organizationId;
     if (!storeId || !organizationId) return res.status(400).json({ message: "storeId is required" });
+
+    const limitCheck = await assertCanAddUser(organizationId);
+    if (!limitCheck.ok) {
+      return res.status(403).json({
+        message: limitCheck.message,
+        code: limitCheck.code,
+        upgradeTo: limitCheck.upgradeTo,
+        current: limitCheck.current,
+        max: limitCheck.max,
+        tier: limitCheck.tier,
+      });
+    }
+
     const { name, email, password, role, storeIds } = req.body as {
       name?: string;
       email?: string;
@@ -1045,14 +1060,92 @@ orgRouter.get("/api/org", async (req: AuthRequest, res) => {
     if (!orgId) {
       return res.json(null);
     }
+    await expireTrialIfNeeded(orgId);
     const org = await saasPrisma.organization.findUnique({
       where: { id: orgId },
       select: { id: true, name: true, plan: true, trialEndsAt: true, phone: true, email: true, address: true },
     });
-    res.json(org);
+    if (!org) return res.json(null);
+    const sub = await ensureOrgSubscription(orgId);
+    const usage = await getOrgUsage(orgId);
+    const subscription = buildSubscriptionPublicPayload(org, sub, usage);
+    res.json({
+      ...org,
+      subscription,
+      features: getTierFeatures(sub?.tier ?? org.plan),
+    });
   } catch (error: unknown) {
     console.error(error);
     res.status(500).json({ message: "Failed to fetch organization" });
+  }
+});
+
+orgRouter.get("/api/org/subscription", async (req: AuthRequest, res) => {
+  try {
+    const orgId = req.auth?.organizationId;
+    if (!orgId) return res.status(400).json({ message: "No organization" });
+    await expireTrialIfNeeded(orgId);
+    const org = await saasPrisma.organization.findUnique({
+      where: { id: orgId },
+      select: { id: true, name: true, plan: true, trialEndsAt: true },
+    });
+    if (!org) return res.status(404).json({ message: "Organization not found" });
+    const sub = await ensureOrgSubscription(orgId);
+    const usage = await getOrgUsage(orgId);
+    res.json({
+      ...buildSubscriptionPublicPayload(org, sub, usage),
+      tiers: Object.values(TIERS),
+      billingContact: getBillingContact(),
+      setupFeeCentavos: Number(process.env.SETUP_FEE ?? 149_900),
+    });
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch subscription" });
+  }
+});
+
+orgRouter.post("/api/org/subscription/request", async (req: AuthRequest, res) => {
+  try {
+    const orgId = req.auth?.organizationId;
+    if (!orgId) return res.status(400).json({ message: "No organization" });
+    if (req.auth?.role !== "owner") {
+      return res.status(403).json({ message: "Owner access required" });
+    }
+    const { tier } = req.body as { tier?: string };
+    if (!tier || !isTierId(tier)) {
+      return res.status(400).json({ message: "Invalid tier. Use tindahan, negosyo, or kumpanya." });
+    }
+    const sub = await requestPlan(orgId, tier);
+    const org = await saasPrisma.organization.findUnique({
+      where: { id: orgId },
+      select: { id: true, name: true, plan: true, trialEndsAt: true },
+    });
+    const usage = await getOrgUsage(orgId);
+    res.json({
+      ...buildSubscriptionPublicPayload(org!, sub, usage),
+      billingContact: getBillingContact(),
+      paymentReference: `${(org?.name ?? "Org").replace(/\s+/g, "")}-${TIERS[tier].name}`,
+      setupFeeCentavos: Number(process.env.SETUP_FEE ?? 149_900),
+    });
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to request plan" });
+  }
+});
+
+orgRouter.post("/api/org/subscription/cancel-request", async (req: AuthRequest, res) => {
+  try {
+    const orgId = req.auth?.organizationId;
+    if (!orgId) return res.status(400).json({ message: "No organization" });
+    if (req.auth?.role !== "owner") {
+      return res.status(403).json({ message: "Owner access required" });
+    }
+    await ensureOrgSubscription(orgId);
+    await cancelSubscription(orgId);
+    res.json({ ok: true, message: "Subscription cancel requested. Access is locked." });
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to cancel subscription" });
   }
 });
 
@@ -1171,6 +1264,19 @@ orgRouter.post("/api/org/stores", async (req: AuthRequest, res) => {
     if (req.auth?.role !== "owner") return res.status(403).json({ message: "Owner access required" });
     const userId = req.auth?.userId;
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+    const limitCheck = await assertCanAddBranch(orgId);
+    if (!limitCheck.ok) {
+      return res.status(403).json({
+        message: limitCheck.message,
+        code: limitCheck.code,
+        upgradeTo: limitCheck.upgradeTo,
+        current: limitCheck.current,
+        max: limitCheck.max,
+        tier: limitCheck.tier,
+      });
+    }
+
     const { name, address, businessMode: rawMode } = req.body as {
       name?: string;
       address?: string;
@@ -1341,7 +1447,26 @@ async function unsuspendDemoOrg() {
   const trialEndsAt = addDays(new Date(), DEMO_TRIAL_DAYS);
   await saasPrisma.organization.update({
     where: { id: owner.organizationId },
-    data: { plan: "free", trialEndsAt },
+    data: { plan: "tindahan", trialEndsAt },
+  });
+  await saasPrisma.organizationSubscription.upsert({
+    where: { organizationId: owner.organizationId },
+    create: {
+      organizationId: owner.organizationId,
+      tier: "tindahan",
+      status: "trialing",
+      trialStart: new Date(),
+      trialEnd: trialEndsAt,
+      monthlyPriceCentavos: 49900,
+    },
+    update: {
+      tier: "tindahan",
+      status: "trialing",
+      trialStart: new Date(),
+      trialEnd: trialEndsAt,
+      monthlyPriceCentavos: 49900,
+      requestedTier: null,
+    },
   });
   console.log(`[Demo] Demo organization active. Trial ends ${trialEndsAt.toISOString().slice(0, 10)}.`);
 }

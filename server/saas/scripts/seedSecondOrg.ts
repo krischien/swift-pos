@@ -24,8 +24,20 @@ async function main() {
   const org = await saasPrisma.organization.create({
     data: {
       name: "Org B (Security QA)",
+      plan: "tindahan",
       email: "orgb@demo.example.com",
       trialEndsAt,
+    },
+  });
+
+  await saasPrisma.organizationSubscription.create({
+    data: {
+      organizationId: org.id,
+      tier: "tindahan",
+      status: "trialing",
+      trialStart: new Date(),
+      trialEnd: trialEndsAt,
+      monthlyPriceCentavos: 49900,
     },
   });
 

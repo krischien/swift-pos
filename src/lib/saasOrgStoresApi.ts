@@ -44,7 +44,31 @@ export async function createOrgStore(data: {
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(text || "Failed to create store");
+    try {
+      const json = JSON.parse(text) as {
+        message?: string;
+        code?: string;
+        upgradeTo?: string;
+        max?: number;
+        tier?: string;
+      };
+      const err = new Error(json.message || text || "Failed to create store") as Error & {
+        code?: string;
+        upgradeTo?: string;
+        max?: number;
+        tier?: string;
+      };
+      err.code = json.code;
+      err.upgradeTo = json.upgradeTo;
+      err.max = json.max;
+      err.tier = json.tier;
+      throw err;
+    } catch (e) {
+      if (e instanceof SyntaxError) {
+        throw new Error(text || "Failed to create store");
+      }
+      throw e;
+    }
   }
   return res.json();
 }

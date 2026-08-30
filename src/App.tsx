@@ -32,7 +32,10 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminOrganizations from "./pages/admin/Organizations";
 import AdminOrgDetail from "./pages/admin/OrgDetail";
 import ProductRanking from "./pages/admin/ProductRanking";
-import PaymentMonitoring from "./pages/admin/PaymentMonitoring";
+import Pricing from "./pages/Pricing";
+import PaymentInstructions from "./pages/PaymentInstructions";
+import HQDashboard from "./pages/HQDashboard";
+import { SubscriptionGuard } from "./components/SubscriptionGuard";
 
 const queryClient = new QueryClient();
 
@@ -83,13 +86,47 @@ const App = () => {
                 </Route>
                 <Route path="/" element={<NavigateToDefault />} />
                 <Route
+                  path="/pricing"
                   element={
                     <ProtectedRoute>
-                      <AppLayout />
+                      <Pricing />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/choose-plan"
+                  element={
+                    <ProtectedRoute>
+                      <Pricing locked />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/payment-instructions"
+                  element={
+                    <ProtectedRoute>
+                      <PaymentInstructions />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  element={
+                    <ProtectedRoute>
+                      <SubscriptionGuard>
+                        <AppLayout />
+                      </SubscriptionGuard>
                     </ProtectedRoute>
                   }
                 >
                   <Route path="/pos" element={<POS />} />
+                  <Route
+                    path="/hq"
+                    element={
+                      <ProtectedRoute allowedRoles={["owner"]}>
+                        <HQDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route
                     path="/sticker-generator"
                     element={

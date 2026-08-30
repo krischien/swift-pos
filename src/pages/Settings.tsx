@@ -41,6 +41,7 @@ import {
 } from "@/lib/mobileBackup";
 import { useAuth } from "@/contexts/AuthContext";
 import { adminApi } from "@/lib/saasAdminApi";
+import { SubscriptionSettingsCard } from "@/components/SubscriptionSettingsCard";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -441,6 +442,8 @@ const Settings = () => {
         <h1 className="text-3xl font-bold">Settings</h1>
         <p className="text-muted-foreground">Manage your POS system preferences</p>
       </div>
+
+      {isSaaS() && user?.role === "owner" && <SubscriptionSettingsCard />}
 
       {isSaaS() && (user?.role === "super_admin" || user?.role === "owner") && (
         <Card>

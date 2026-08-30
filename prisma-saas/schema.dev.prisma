@@ -15,7 +15,8 @@ datasource db {
 model Organization {
   id               String    @id @default(cuid())
   name             String
-  plan             String    @default("free")
+  /// Denormalized: tindahan | negosyo | kumpanya | suspended
+  plan             String    @default("tindahan")
   phone            String?
   email            String?
   address          String?
@@ -28,6 +29,29 @@ model Organization {
   stores          Store[]
   notifications   OrganizationNotification[]
   billingPayments OrganizationBillingPayment[]
+  subscription    OrganizationSubscription?
+}
+
+/// Org-level subscription (one per organization)
+model OrganizationSubscription {
+  id                   String    @id @default(cuid())
+  organizationId       String    @unique
+  /// tindahan | negosyo | kumpanya
+  tier                 String    @default("tindahan")
+  /// trialing | active | pending_payment | past_due | cancelled | expired
+  status               String    @default("trialing")
+  trialStart           DateTime?
+  trialEnd             DateTime?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  monthlyPriceCentavos Int       @default(49900)
+  setupFeePaid         Boolean   @default(false)
+  /// Last plan chosen on /pricing while awaiting admin activation
+  requestedTier        String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 model OrganizationNotification {

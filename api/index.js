@@ -5491,6 +5491,21 @@ var require_saas_client = __commonJS({
       trialEndsAt: "trialEndsAt",
       createdAt: "createdAt"
     };
+    exports2.Prisma.OrganizationSubscriptionScalarFieldEnum = {
+      id: "id",
+      organizationId: "organizationId",
+      tier: "tier",
+      status: "status",
+      trialStart: "trialStart",
+      trialEnd: "trialEnd",
+      currentPeriodStart: "currentPeriodStart",
+      currentPeriodEnd: "currentPeriodEnd",
+      monthlyPriceCentavos: "monthlyPriceCentavos",
+      setupFeePaid: "setupFeePaid",
+      requestedTier: "requestedTier",
+      createdAt: "createdAt",
+      updatedAt: "updatedAt"
+    };
     exports2.Prisma.OrganizationNotificationScalarFieldEnum = {
       id: "id",
       organizationId: "organizationId",
@@ -5631,6 +5646,7 @@ var require_saas_client = __commonJS({
     };
     exports2.Prisma.ModelName = {
       Organization: "Organization",
+      OrganizationSubscription: "OrganizationSubscription",
       OrganizationNotification: "OrganizationNotification",
       OrganizationBillingPayment: "OrganizationBillingPayment",
       Store: "Store",
@@ -5682,7 +5698,6 @@ var require_saas_client = __commonJS({
         "db"
       ],
       "activeProvider": "sqlite",
-      "postinstall": false,
       "inlineDatasources": {
         "db": {
           "url": {
@@ -5691,8 +5706,8 @@ var require_saas_client = __commonJS({
           }
         }
       },
-      "inlineSchema": '// SaaS multi-tenant schema\n// Dev: SQLite (SAAS_DATABASE_URL=file:./prisma-saas/saas-dev.db or omit to use default)\n// Prod: PostgreSQL (SAAS_DATABASE_URL=postgresql://...)\n// Run: npx prisma generate --schema=prisma-saas/schema.prisma\n// Migrate: npx prisma migrate dev --schema=prisma-saas/schema.prisma\n\ngenerator client {\n  provider = "prisma-client-js"\n  output   = "../node_modules/.prisma/saas-client"\n}\n\ndatasource db {\n  provider = "sqlite"\n  url      = env("SAAS_DATABASE_URL")\n}\n\nmodel Organization {\n  id               String    @id @default(cuid())\n  name             String\n  plan             String    @default("free")\n  phone            String?\n  email            String?\n  address          String?\n  stripeCustomerId String?\n  billingDueDate   DateTime?\n  trialEndsAt      DateTime?\n  createdAt        DateTime  @default(now())\n\n  users           User[]\n  stores          Store[]\n  notifications   OrganizationNotification[]\n  billingPayments OrganizationBillingPayment[]\n}\n\nmodel OrganizationNotification {\n  id             String    @id @default(cuid())\n  organizationId String\n  message        String\n  type           String    @default("info") // "info" | "warning" | "urgent"\n  createdAt      DateTime  @default(now())\n  expiresAt      DateTime?\n\n  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)\n}\n\nmodel OrganizationBillingPayment {\n  id             String   @id @default(cuid())\n  organizationId String\n  /// Calendar month paid for, YYYY-MM\n  period         String\n  amountCents    Int?\n  method         String?\n  note           String?\n  recordedById   String?\n  createdAt      DateTime @default(now())\n\n  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)\n  recordedBy   User?        @relation("BillingPaymentRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)\n\n  @@unique([organizationId, period])\n}\n\nmodel Store {\n  id             String   @id @default(cuid())\n  organizationId String\n  name           String\n  address        String?\n  receiptLogoUrl String?\n  /// "retail" | "fnb" \u2014 immutable after create (enforced in API)\n  businessMode   String   @default("retail")\n  createdAt      DateTime @default(now())\n\n  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)\n  categories     Category[]\n  products       Product[]\n  sales          Sale[]\n  userAccess     UserStore[]\n  ingredients    Ingredient[]\n  menuCategories MenuCategory[]\n  menuItems      MenuItem[]\n}\n\nmodel User {\n  id             String   @id @default(cuid())\n  organizationId String?\n  name           String\n  email          String   @unique\n  password       String\n  role           String // "super_admin" | "owner" | "admin" | "cashier"\n  createdAt      DateTime @default(now())\n\n  organization            Organization?                @relation(fields: [organizationId], references: [id], onDelete: Cascade)\n  sales                   Sale[]\n  storeAccess             UserStore[]\n  billingPaymentsRecorded OrganizationBillingPayment[] @relation("BillingPaymentRecordedBy")\n}\n\nmodel UserStore {\n  userId  String\n  storeId String\n  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)\n  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)\n\n  @@id([userId, storeId])\n}\n\nmodel Category {\n  id      String @id @default(cuid())\n  storeId String\n  name    String\n\n  store    Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  products Product[]\n}\n\nmodel Product {\n  id                String  @id @default(cuid())\n  storeId           String\n  name              String\n  categoryId        String\n  itemCode          String?\n  sku               String?\n  hasVariants       Boolean @default(false)\n  basePrice         Float?\n  price             Float?\n  stock             Int?\n  lowStockThreshold Int     @default(0)\n  marginPercentage  Float?\n  status            String  @default("active")\n  image             String?\n  barcode           String?\n  qrCode            String?\n  unitOfMeasure     String? @default("PCS")\n\n  store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  category  Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)\n  variants  Variant[]\n  saleItems SaleItem[]\n}\n\nmodel Variant {\n  id        String @id @default(cuid())\n  productId String\n  name      String\n  price     Float\n  stock     Int\n\n  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)\n  saleItems SaleItem[]\n}\n\nmodel Sale {\n  id                 String   @id @default(cuid())\n  storeId            String\n  ticketNumber       String?\n  cashierId          String?\n  cashierName        String\n  total              Float\n  paymentMethod      String   @default("cash")\n  amountReceived     Float\n  change             Float\n  status             String   @default("completed")\n  gcashTransactionId String?\n  createdAt          DateTime @default(now())\n\n  store   Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  cashier User?      @relation(fields: [cashierId], references: [id], onDelete: SetNull)\n  items   SaleItem[]\n}\n\nmodel Ingredient {\n  id                String  @id @default(cuid())\n  storeId           String\n  name              String\n  sku               String?\n  barcode           String?\n  stock             Int     @default(0)\n  lowStockThreshold Int     @default(0)\n  unitOfMeasure     String? @default("PCS")\n  status            String  @default("active")\n\n  store       Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  recipeLines RecipeLine[]\n}\n\nmodel MenuCategory {\n  id      String @id @default(cuid())\n  storeId String\n  name    String\n\n  store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  menuItems MenuItem[]\n}\n\nmodel MenuItem {\n  id             String  @id @default(cuid())\n  storeId        String\n  menuCategoryId String\n  name           String\n  price          Float\n  status         String  @default("active")\n  image          String?\n  barcode        String?\n\n  store        Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  menuCategory MenuCategory @relation(fields: [menuCategoryId], references: [id], onDelete: Cascade)\n  recipeLines  RecipeLine[]\n  saleItems    SaleItem[]\n}\n\nmodel RecipeLine {\n  id             String @id @default(cuid())\n  menuItemId     String\n  ingredientId   String\n  quantity       Float\n  wastagePercent Float?\n\n  menuItem   MenuItem   @relation(fields: [menuItemId], references: [id], onDelete: Cascade)\n  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)\n\n  @@unique([menuItemId, ingredientId])\n}\n\nmodel SaleItem {\n  id          String  @id @default(cuid())\n  saleId      String\n  productId   String?\n  menuItemId  String?\n  variantId   String?\n  productName String\n  variantName String?\n  quantity    Int\n  price       Float\n  subtotal    Float\n\n  sale     Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade)\n  product  Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)\n  menuItem MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: Restrict)\n  variant  Variant?  @relation(fields: [variantId], references: [id], onDelete: SetNull)\n}\n',
-      "inlineSchemaHash": "085ac78adc89627f130ac5ffd92b0f94121deeb41b89f24247a0dd54c9f05b6c",
+      "inlineSchema": '// SaaS multi-tenant schema\n// Dev: SQLite (SAAS_DATABASE_URL=file:./prisma-saas/saas-dev.db or omit to use default)\n// Prod: PostgreSQL (SAAS_DATABASE_URL=postgresql://...)\n// Run: npx prisma generate --schema=prisma-saas/schema.prisma\n// Migrate: npx prisma migrate dev --schema=prisma-saas/schema.prisma\n\ngenerator client {\n  provider = "prisma-client-js"\n  output   = "../node_modules/.prisma/saas-client"\n}\n\ndatasource db {\n  provider = "sqlite"\n  url      = env("SAAS_DATABASE_URL")\n}\n\nmodel Organization {\n  id               String    @id @default(cuid())\n  name             String\n  /// Denormalized: tindahan | negosyo | kumpanya | suspended\n  plan             String    @default("tindahan")\n  phone            String?\n  email            String?\n  address          String?\n  stripeCustomerId String?\n  billingDueDate   DateTime?\n  trialEndsAt      DateTime?\n  createdAt        DateTime  @default(now())\n\n  users           User[]\n  stores          Store[]\n  notifications   OrganizationNotification[]\n  billingPayments OrganizationBillingPayment[]\n  subscription    OrganizationSubscription?\n}\n\n/// Org-level subscription (one per organization)\nmodel OrganizationSubscription {\n  id                   String    @id @default(cuid())\n  organizationId       String    @unique\n  /// tindahan | negosyo | kumpanya\n  tier                 String    @default("tindahan")\n  /// trialing | active | pending_payment | past_due | cancelled | expired\n  status               String    @default("trialing")\n  trialStart           DateTime?\n  trialEnd             DateTime?\n  currentPeriodStart   DateTime?\n  currentPeriodEnd     DateTime?\n  monthlyPriceCentavos Int       @default(49900)\n  setupFeePaid         Boolean   @default(false)\n  /// Last plan chosen on /pricing while awaiting admin activation\n  requestedTier        String?\n  createdAt            DateTime  @default(now())\n  updatedAt            DateTime  @updatedAt\n\n  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)\n}\n\nmodel OrganizationNotification {\n  id             String    @id @default(cuid())\n  organizationId String\n  message        String\n  type           String    @default("info") // "info" | "warning" | "urgent"\n  createdAt      DateTime  @default(now())\n  expiresAt      DateTime?\n\n  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)\n}\n\nmodel OrganizationBillingPayment {\n  id             String   @id @default(cuid())\n  organizationId String\n  /// Calendar month paid for, YYYY-MM\n  period         String\n  amountCents    Int?\n  method         String?\n  note           String?\n  recordedById   String?\n  createdAt      DateTime @default(now())\n\n  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)\n  recordedBy   User?        @relation("BillingPaymentRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)\n\n  @@unique([organizationId, period])\n}\n\nmodel Store {\n  id             String   @id @default(cuid())\n  organizationId String\n  name           String\n  address        String?\n  receiptLogoUrl String?\n  /// "retail" | "fnb" \u2014 immutable after create (enforced in API)\n  businessMode   String   @default("retail")\n  createdAt      DateTime @default(now())\n\n  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)\n  categories     Category[]\n  products       Product[]\n  sales          Sale[]\n  userAccess     UserStore[]\n  ingredients    Ingredient[]\n  menuCategories MenuCategory[]\n  menuItems      MenuItem[]\n}\n\nmodel User {\n  id             String   @id @default(cuid())\n  organizationId String?\n  name           String\n  email          String   @unique\n  password       String\n  role           String // "super_admin" | "owner" | "admin" | "cashier"\n  createdAt      DateTime @default(now())\n\n  organization            Organization?                @relation(fields: [organizationId], references: [id], onDelete: Cascade)\n  sales                   Sale[]\n  storeAccess             UserStore[]\n  billingPaymentsRecorded OrganizationBillingPayment[] @relation("BillingPaymentRecordedBy")\n}\n\nmodel UserStore {\n  userId  String\n  storeId String\n  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)\n  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)\n\n  @@id([userId, storeId])\n}\n\nmodel Category {\n  id      String @id @default(cuid())\n  storeId String\n  name    String\n\n  store    Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  products Product[]\n}\n\nmodel Product {\n  id                String  @id @default(cuid())\n  storeId           String\n  name              String\n  categoryId        String\n  itemCode          String?\n  sku               String?\n  hasVariants       Boolean @default(false)\n  basePrice         Float?\n  price             Float?\n  stock             Int?\n  lowStockThreshold Int     @default(0)\n  marginPercentage  Float?\n  status            String  @default("active")\n  image             String?\n  barcode           String?\n  qrCode            String?\n  unitOfMeasure     String? @default("PCS")\n\n  store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  category  Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)\n  variants  Variant[]\n  saleItems SaleItem[]\n}\n\nmodel Variant {\n  id        String @id @default(cuid())\n  productId String\n  name      String\n  price     Float\n  stock     Int\n\n  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)\n  saleItems SaleItem[]\n}\n\nmodel Sale {\n  id                 String   @id @default(cuid())\n  storeId            String\n  ticketNumber       String?\n  cashierId          String?\n  cashierName        String\n  total              Float\n  paymentMethod      String   @default("cash")\n  amountReceived     Float\n  change             Float\n  status             String   @default("completed")\n  gcashTransactionId String?\n  createdAt          DateTime @default(now())\n\n  store   Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  cashier User?      @relation(fields: [cashierId], references: [id], onDelete: SetNull)\n  items   SaleItem[]\n}\n\nmodel Ingredient {\n  id                String  @id @default(cuid())\n  storeId           String\n  name              String\n  sku               String?\n  barcode           String?\n  stock             Int     @default(0)\n  lowStockThreshold Int     @default(0)\n  unitOfMeasure     String? @default("PCS")\n  status            String  @default("active")\n\n  store       Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  recipeLines RecipeLine[]\n}\n\nmodel MenuCategory {\n  id      String @id @default(cuid())\n  storeId String\n  name    String\n\n  store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  menuItems MenuItem[]\n}\n\nmodel MenuItem {\n  id             String  @id @default(cuid())\n  storeId        String\n  menuCategoryId String\n  name           String\n  price          Float\n  status         String  @default("active")\n  image          String?\n  barcode        String?\n\n  store        Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)\n  menuCategory MenuCategory @relation(fields: [menuCategoryId], references: [id], onDelete: Cascade)\n  recipeLines  RecipeLine[]\n  saleItems    SaleItem[]\n}\n\nmodel RecipeLine {\n  id             String @id @default(cuid())\n  menuItemId     String\n  ingredientId   String\n  quantity       Float\n  wastagePercent Float?\n\n  menuItem   MenuItem   @relation(fields: [menuItemId], references: [id], onDelete: Cascade)\n  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)\n\n  @@unique([menuItemId, ingredientId])\n}\n\nmodel SaleItem {\n  id          String  @id @default(cuid())\n  saleId      String\n  productId   String?\n  menuItemId  String?\n  variantId   String?\n  productName String\n  variantName String?\n  quantity    Int\n  price       Float\n  subtotal    Float\n\n  sale     Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade)\n  product  Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)\n  menuItem MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: Restrict)\n  variant  Variant?  @relation(fields: [variantId], references: [id], onDelete: SetNull)\n}\n',
+      "inlineSchemaHash": "724ac1d2d697e9b4f886e1ddc984757232b792b25188b4cb22d73a3a11a9dbb9",
       "copyEngine": true
     };
     var fs2 = __require("fs");
@@ -5708,7 +5723,7 @@ var require_saas_client = __commonJS({
       config2.dirname = path.join(process.cwd(), alternativePath);
       config2.isBundled = true;
     }
-    config2.runtimeDataModel = JSON.parse('{"models":{"Organization":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"plan","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"free","isGenerated":false,"isUpdatedAt":false},{"name":"phone","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"email","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"address","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"stripeCustomerId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"billingDueDate","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":false},{"name":"trialEndsAt","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"users","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"User","relationName":"OrganizationToUser","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"stores","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"OrganizationToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"notifications","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"OrganizationNotification","relationName":"OrganizationToOrganizationNotification","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"billingPayments","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"OrganizationBillingPayment","relationName":"OrganizationToOrganizationBillingPayment","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"OrganizationNotification":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organizationId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"message","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"type","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"info","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"expiresAt","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":false},{"name":"organization","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Organization","relationName":"OrganizationToOrganizationNotification","relationFromFields":["organizationId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"OrganizationBillingPayment":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organizationId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"period","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false,"documentation":"Calendar month paid for, YYYY-MM"},{"name":"amountCents","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"method","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"note","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"recordedById","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organization","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Organization","relationName":"OrganizationToOrganizationBillingPayment","relationFromFields":["organizationId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"recordedBy","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"User","relationName":"BillingPaymentRecordedBy","relationFromFields":["recordedById"],"relationToFields":["id"],"relationOnDelete":"SetNull","isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[["organizationId","period"]],"uniqueIndexes":[{"name":null,"fields":["organizationId","period"]}],"isGenerated":false},"Store":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organizationId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"address","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"receiptLogoUrl","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"businessMode","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"retail","isGenerated":false,"isUpdatedAt":false,"documentation":"\\"retail\\" | \\"fnb\\" \u2014 immutable after create (enforced in API)"},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organization","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Organization","relationName":"OrganizationToStore","relationFromFields":["organizationId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"categories","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Category","relationName":"CategoryToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"products","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Product","relationName":"ProductToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"sales","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Sale","relationName":"SaleToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"userAccess","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"UserStore","relationName":"StoreToUserStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"ingredients","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Ingredient","relationName":"IngredientToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"menuCategories","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"MenuCategory","relationName":"MenuCategoryToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"menuItems","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"MenuItem","relationName":"MenuItemToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"User":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organizationId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"email","kind":"scalar","isList":false,"isRequired":true,"isUnique":true,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"password","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"role","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organization","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Organization","relationName":"OrganizationToUser","relationFromFields":["organizationId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"sales","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Sale","relationName":"SaleToUser","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"storeAccess","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"UserStore","relationName":"UserToUserStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"billingPaymentsRecorded","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"OrganizationBillingPayment","relationName":"BillingPaymentRecordedBy","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"UserStore":{"dbName":null,"fields":[{"name":"userId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"user","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"User","relationName":"UserToUserStore","relationFromFields":["userId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"StoreToUserStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false}],"primaryKey":{"name":null,"fields":["userId","storeId"]},"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Category":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"CategoryToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"products","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Product","relationName":"CategoryToProduct","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Product":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"categoryId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"itemCode","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"sku","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"hasVariants","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"basePrice","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"price","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"stock","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"lowStockThreshold","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Int","default":0,"isGenerated":false,"isUpdatedAt":false},{"name":"marginPercentage","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"status","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"active","isGenerated":false,"isUpdatedAt":false},{"name":"image","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"barcode","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"qrCode","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"unitOfMeasure","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"PCS","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"ProductToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"category","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Category","relationName":"CategoryToProduct","relationFromFields":["categoryId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"variants","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Variant","relationName":"ProductToVariant","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"saleItems","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"SaleItem","relationName":"ProductToSaleItem","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Variant":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"productId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"price","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"stock","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"product","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Product","relationName":"ProductToVariant","relationFromFields":["productId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"saleItems","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"SaleItem","relationName":"SaleItemToVariant","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Sale":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"ticketNumber","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"cashierId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"cashierName","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"total","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"paymentMethod","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"cash","isGenerated":false,"isUpdatedAt":false},{"name":"amountReceived","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"change","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"status","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"completed","isGenerated":false,"isUpdatedAt":false},{"name":"gcashTransactionId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"SaleToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"cashier","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"User","relationName":"SaleToUser","relationFromFields":["cashierId"],"relationToFields":["id"],"relationOnDelete":"SetNull","isGenerated":false,"isUpdatedAt":false},{"name":"items","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"SaleItem","relationName":"SaleToSaleItem","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Ingredient":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"sku","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"barcode","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"stock","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Int","default":0,"isGenerated":false,"isUpdatedAt":false},{"name":"lowStockThreshold","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Int","default":0,"isGenerated":false,"isUpdatedAt":false},{"name":"unitOfMeasure","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"PCS","isGenerated":false,"isUpdatedAt":false},{"name":"status","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"active","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"IngredientToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"recipeLines","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"RecipeLine","relationName":"IngredientToRecipeLine","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"MenuCategory":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"MenuCategoryToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"menuItems","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"MenuItem","relationName":"MenuCategoryToMenuItem","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"MenuItem":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"menuCategoryId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"price","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"status","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"active","isGenerated":false,"isUpdatedAt":false},{"name":"image","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"barcode","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"MenuItemToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"menuCategory","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"MenuCategory","relationName":"MenuCategoryToMenuItem","relationFromFields":["menuCategoryId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"recipeLines","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"RecipeLine","relationName":"MenuItemToRecipeLine","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"saleItems","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"SaleItem","relationName":"MenuItemToSaleItem","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"RecipeLine":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"menuItemId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"ingredientId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"quantity","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"wastagePercent","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"menuItem","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"MenuItem","relationName":"MenuItemToRecipeLine","relationFromFields":["menuItemId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"ingredient","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Ingredient","relationName":"IngredientToRecipeLine","relationFromFields":["ingredientId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[["menuItemId","ingredientId"]],"uniqueIndexes":[{"name":null,"fields":["menuItemId","ingredientId"]}],"isGenerated":false},"SaleItem":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"saleId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"productId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"menuItemId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"variantId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"productName","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"variantName","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"quantity","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"price","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"subtotal","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"sale","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Sale","relationName":"SaleToSaleItem","relationFromFields":["saleId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"product","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Product","relationName":"ProductToSaleItem","relationFromFields":["productId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"menuItem","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"MenuItem","relationName":"MenuItemToSaleItem","relationFromFields":["menuItemId"],"relationToFields":["id"],"relationOnDelete":"Restrict","isGenerated":false,"isUpdatedAt":false},{"name":"variant","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Variant","relationName":"SaleItemToVariant","relationFromFields":["variantId"],"relationToFields":["id"],"relationOnDelete":"SetNull","isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false}},"enums":{},"types":{}}');
+    config2.runtimeDataModel = JSON.parse('{"models":{"Organization":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"plan","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"tindahan","isGenerated":false,"isUpdatedAt":false,"documentation":"Denormalized: tindahan | negosyo | kumpanya | suspended"},{"name":"phone","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"email","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"address","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"stripeCustomerId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"billingDueDate","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":false},{"name":"trialEndsAt","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"users","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"User","relationName":"OrganizationToUser","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"stores","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"OrganizationToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"notifications","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"OrganizationNotification","relationName":"OrganizationToOrganizationNotification","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"billingPayments","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"OrganizationBillingPayment","relationName":"OrganizationToOrganizationBillingPayment","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"subscription","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"OrganizationSubscription","relationName":"OrganizationToOrganizationSubscription","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"OrganizationSubscription":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organizationId","kind":"scalar","isList":false,"isRequired":true,"isUnique":true,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"tier","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"tindahan","isGenerated":false,"isUpdatedAt":false,"documentation":"tindahan | negosyo | kumpanya"},{"name":"status","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"trialing","isGenerated":false,"isUpdatedAt":false,"documentation":"trialing | active | pending_payment | past_due | cancelled | expired"},{"name":"trialStart","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":false},{"name":"trialEnd","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":false},{"name":"currentPeriodStart","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":false},{"name":"currentPeriodEnd","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":false},{"name":"monthlyPriceCentavos","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Int","default":49900,"isGenerated":false,"isUpdatedAt":false},{"name":"setupFeePaid","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"requestedTier","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false,"documentation":"Last plan chosen on /pricing while awaiting admin activation"},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"updatedAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":true},{"name":"organization","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Organization","relationName":"OrganizationToOrganizationSubscription","relationFromFields":["organizationId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false,"documentation":"Org-level subscription (one per organization)"},"OrganizationNotification":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organizationId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"message","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"type","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"info","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"expiresAt","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"DateTime","isGenerated":false,"isUpdatedAt":false},{"name":"organization","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Organization","relationName":"OrganizationToOrganizationNotification","relationFromFields":["organizationId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"OrganizationBillingPayment":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organizationId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"period","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false,"documentation":"Calendar month paid for, YYYY-MM"},{"name":"amountCents","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"method","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"note","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"recordedById","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organization","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Organization","relationName":"OrganizationToOrganizationBillingPayment","relationFromFields":["organizationId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"recordedBy","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"User","relationName":"BillingPaymentRecordedBy","relationFromFields":["recordedById"],"relationToFields":["id"],"relationOnDelete":"SetNull","isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[["organizationId","period"]],"uniqueIndexes":[{"name":null,"fields":["organizationId","period"]}],"isGenerated":false},"Store":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organizationId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"address","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"receiptLogoUrl","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"businessMode","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"retail","isGenerated":false,"isUpdatedAt":false,"documentation":"\\"retail\\" | \\"fnb\\" \u2014 immutable after create (enforced in API)"},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organization","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Organization","relationName":"OrganizationToStore","relationFromFields":["organizationId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"categories","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Category","relationName":"CategoryToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"products","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Product","relationName":"ProductToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"sales","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Sale","relationName":"SaleToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"userAccess","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"UserStore","relationName":"StoreToUserStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"ingredients","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Ingredient","relationName":"IngredientToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"menuCategories","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"MenuCategory","relationName":"MenuCategoryToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"menuItems","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"MenuItem","relationName":"MenuItemToStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"User":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organizationId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"email","kind":"scalar","isList":false,"isRequired":true,"isUnique":true,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"password","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"role","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"organization","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Organization","relationName":"OrganizationToUser","relationFromFields":["organizationId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"sales","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Sale","relationName":"SaleToUser","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"storeAccess","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"UserStore","relationName":"UserToUserStore","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"billingPaymentsRecorded","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"OrganizationBillingPayment","relationName":"BillingPaymentRecordedBy","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"UserStore":{"dbName":null,"fields":[{"name":"userId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"user","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"User","relationName":"UserToUserStore","relationFromFields":["userId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"StoreToUserStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false}],"primaryKey":{"name":null,"fields":["userId","storeId"]},"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Category":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"CategoryToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"products","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Product","relationName":"CategoryToProduct","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Product":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"categoryId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"itemCode","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"sku","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"hasVariants","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Boolean","default":false,"isGenerated":false,"isUpdatedAt":false},{"name":"basePrice","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"price","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"stock","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"lowStockThreshold","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Int","default":0,"isGenerated":false,"isUpdatedAt":false},{"name":"marginPercentage","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"status","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"active","isGenerated":false,"isUpdatedAt":false},{"name":"image","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"barcode","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"qrCode","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"unitOfMeasure","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"PCS","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"ProductToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"category","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Category","relationName":"CategoryToProduct","relationFromFields":["categoryId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"variants","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Variant","relationName":"ProductToVariant","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"saleItems","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"SaleItem","relationName":"ProductToSaleItem","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Variant":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"productId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"price","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"stock","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"product","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Product","relationName":"ProductToVariant","relationFromFields":["productId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"saleItems","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"SaleItem","relationName":"SaleItemToVariant","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Sale":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"ticketNumber","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"cashierId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"cashierName","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"total","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"paymentMethod","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"cash","isGenerated":false,"isUpdatedAt":false},{"name":"amountReceived","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"change","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"status","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"completed","isGenerated":false,"isUpdatedAt":false},{"name":"gcashTransactionId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"createdAt","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"DateTime","default":{"name":"now","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"SaleToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"cashier","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"User","relationName":"SaleToUser","relationFromFields":["cashierId"],"relationToFields":["id"],"relationOnDelete":"SetNull","isGenerated":false,"isUpdatedAt":false},{"name":"items","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"SaleItem","relationName":"SaleToSaleItem","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"Ingredient":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"sku","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"barcode","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"stock","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Int","default":0,"isGenerated":false,"isUpdatedAt":false},{"name":"lowStockThreshold","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"Int","default":0,"isGenerated":false,"isUpdatedAt":false},{"name":"unitOfMeasure","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"PCS","isGenerated":false,"isUpdatedAt":false},{"name":"status","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"active","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"IngredientToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"recipeLines","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"RecipeLine","relationName":"IngredientToRecipeLine","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"MenuCategory":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"MenuCategoryToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"menuItems","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"MenuItem","relationName":"MenuCategoryToMenuItem","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"MenuItem":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"storeId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"menuCategoryId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"name","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"price","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"status","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":"active","isGenerated":false,"isUpdatedAt":false},{"name":"image","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"barcode","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"store","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Store","relationName":"MenuItemToStore","relationFromFields":["storeId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"menuCategory","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"MenuCategory","relationName":"MenuCategoryToMenuItem","relationFromFields":["menuCategoryId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"recipeLines","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"RecipeLine","relationName":"MenuItemToRecipeLine","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false},{"name":"saleItems","kind":"object","isList":true,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"SaleItem","relationName":"MenuItemToSaleItem","relationFromFields":[],"relationToFields":[],"isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false},"RecipeLine":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"menuItemId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"ingredientId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"quantity","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"wastagePercent","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"menuItem","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"MenuItem","relationName":"MenuItemToRecipeLine","relationFromFields":["menuItemId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"ingredient","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Ingredient","relationName":"IngredientToRecipeLine","relationFromFields":["ingredientId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[["menuItemId","ingredientId"]],"uniqueIndexes":[{"name":null,"fields":["menuItemId","ingredientId"]}],"isGenerated":false},"SaleItem":{"dbName":null,"fields":[{"name":"id","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":true,"isReadOnly":false,"hasDefaultValue":true,"type":"String","default":{"name":"cuid","args":[]},"isGenerated":false,"isUpdatedAt":false},{"name":"saleId","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"productId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"menuItemId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"variantId","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":true,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"productName","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"variantName","kind":"scalar","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"String","isGenerated":false,"isUpdatedAt":false},{"name":"quantity","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Int","isGenerated":false,"isUpdatedAt":false},{"name":"price","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"subtotal","kind":"scalar","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Float","isGenerated":false,"isUpdatedAt":false},{"name":"sale","kind":"object","isList":false,"isRequired":true,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Sale","relationName":"SaleToSaleItem","relationFromFields":["saleId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"product","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Product","relationName":"ProductToSaleItem","relationFromFields":["productId"],"relationToFields":["id"],"relationOnDelete":"Cascade","isGenerated":false,"isUpdatedAt":false},{"name":"menuItem","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"MenuItem","relationName":"MenuItemToSaleItem","relationFromFields":["menuItemId"],"relationToFields":["id"],"relationOnDelete":"Restrict","isGenerated":false,"isUpdatedAt":false},{"name":"variant","kind":"object","isList":false,"isRequired":false,"isUnique":false,"isId":false,"isReadOnly":false,"hasDefaultValue":false,"type":"Variant","relationName":"SaleItemToVariant","relationFromFields":["variantId"],"relationToFields":["id"],"relationOnDelete":"SetNull","isGenerated":false,"isUpdatedAt":false}],"primaryKey":null,"uniqueFields":[],"uniqueIndexes":[],"isGenerated":false}},"enums":{},"types":{}}');
     defineDmmfProperty2(exports2.Prisma, config2.runtimeDataModel);
     config2.engineWasm = void 0;
     var { warnEnvConflicts: warnEnvConflicts2 } = require_library();
@@ -5824,7 +5839,346 @@ async function tenantMiddleware(req, res, next) {
   return res.status(403).json({ message: "Access denied to this store" });
 }
 
+// server/saas/config/tiers.ts
+var TIER_ORDER = ["tindahan", "negosyo", "kumpanya"];
+var SETUP_FEE_CENTAVOS = Number(process.env.SETUP_FEE ?? 149900);
+var TRIAL_DAYS = Number(process.env.TRIAL_DAYS ?? 7);
+var TIERS = {
+  tindahan: {
+    id: "tindahan",
+    name: "Tindahan",
+    tagline: "Para sa iyong tindahan",
+    priceMonthlyCentavos: Number(process.env.TINDAHAN_PRICE ?? 49900),
+    maxBranches: Number(process.env.TINDAHAN_MAX_BRANCHES ?? 3),
+    maxUsers: Number(process.env.TINDAHAN_MAX_USERS ?? 5),
+    features: [
+      "Full POS & checkout",
+      "Inventory management",
+      "Sales reports & dashboard",
+      "Receipt printing",
+      "Email support"
+    ]
+  },
+  negosyo: {
+    id: "negosyo",
+    name: "Negosyo",
+    tagline: "Para sa lumalaking negosyo",
+    priceMonthlyCentavos: Number(process.env.NEGOSYO_PRICE ?? 99900),
+    maxBranches: Number(process.env.NEGOSYO_MAX_BRANCHES ?? 8),
+    maxUsers: Number(process.env.NEGOSYO_MAX_USERS ?? 15),
+    popular: true,
+    features: [
+      "Everything in Tindahan",
+      "Multi-branch sales comparison",
+      "Advanced low-stock alerts",
+      "Excel export",
+      "Priority support"
+    ]
+  },
+  kumpanya: {
+    id: "kumpanya",
+    name: "Kumpanya",
+    tagline: "Para sa iyong kumpanya",
+    priceMonthlyCentavos: Number(process.env.KUMPANYA_PRICE ?? 199900),
+    maxBranches: null,
+    maxUsers: null,
+    features: [
+      "Everything in Negosyo",
+      "Centralized HQ dashboard",
+      "Dedicated account manager",
+      "Custom onboarding",
+      "Direct phone support"
+    ]
+  }
+};
+function isTierId(value) {
+  return value === "tindahan" || value === "negosyo" || value === "kumpanya";
+}
+function tierRank(tier) {
+  const id2 = (tier ?? "").toLowerCase();
+  const idx = TIER_ORDER.indexOf(id2);
+  return idx >= 0 ? idx : -1;
+}
+function normalizeLegacyPlan(plan) {
+  const p = (plan ?? "tindahan").toLowerCase();
+  if (p === "pro") return { tier: "negosyo", plan: "negosyo" };
+  if (p === "enterprise") return { tier: "kumpanya", plan: "kumpanya" };
+  if (p === "free") return { tier: "tindahan", plan: "tindahan" };
+  if (p === "tindahan" || p === "negosyo" || p === "kumpanya") {
+    return { tier: p, plan: p };
+  }
+  if (p === "suspended") return { tier: "tindahan", plan: "suspended" };
+  return { tier: "tindahan", plan: p };
+}
+function getTierFeatures(tier) {
+  const id2 = normalizeLegacyPlan(tier).tier;
+  const rank = tierRank(id2);
+  return {
+    excelExport: rank >= tierRank("negosyo"),
+    multiBranchComparison: rank >= tierRank("negosyo"),
+    advancedLowStock: rank >= tierRank("negosyo"),
+    hqDashboard: rank >= tierRank("kumpanya"),
+    prioritySupport: rank >= tierRank("negosyo"),
+    dedicatedAccountManager: rank >= tierRank("kumpanya"),
+    directPhoneSupport: rank >= tierRank("kumpanya")
+  };
+}
+function getBillingContact() {
+  return {
+    gcash: process.env.BILLING_GCASH ?? "0923 835 1690",
+    bank: process.env.BILLING_BANK ?? "BDO \u2014 Account details on request",
+    phone: process.env.BILLING_CONTACT_PHONE ?? "+63 923 835 1690",
+    email: process.env.BILLING_CONTACT_EMAIL ?? "hello@backbone.ph"
+  };
+}
+function getTierLimits(tier) {
+  const id2 = normalizeLegacyPlan(tier).tier;
+  const def = TIERS[id2];
+  return {
+    tier: id2,
+    maxBranches: def.maxBranches,
+    maxUsers: def.maxUsers,
+    priceMonthlyCentavos: def.priceMonthlyCentavos
+  };
+}
+
+// server/saas/services/subscriptionService.ts
+function subscriptionAllowsAccess(status, trialEnd) {
+  const s = status.toLowerCase();
+  if (s === "active") return { access: true };
+  if (s === "trialing") {
+    if (trialEnd && new Date(trialEnd) < /* @__PURE__ */ new Date()) {
+      return { access: false, reason: "trial_expired" };
+    }
+    return { access: true };
+  }
+  if (s === "pending_payment") return { access: false, reason: "pending_payment" };
+  if (s === "past_due") return { access: false, reason: "past_due" };
+  if (s === "cancelled") return { access: false, reason: "cancelled" };
+  if (s === "expired") return { access: false, reason: "expired" };
+  return { access: false, reason: "no_active_subscription" };
+}
+async function ensureOrgSubscription(organizationId) {
+  const existing = await saasPrisma.organizationSubscription.findUnique({
+    where: { organizationId }
+  });
+  if (existing) return existing;
+  const org = await saasPrisma.organization.findUnique({
+    where: { id: organizationId }
+  });
+  if (!org) return null;
+  const { tier, plan } = normalizeLegacyPlan(org.plan);
+  const now = /* @__PURE__ */ new Date();
+  const trialEnd = org.trialEndsAt ? new Date(org.trialEndsAt) : null;
+  let status = "trialing";
+  let denormPlan = plan;
+  if (plan === "suspended") {
+    status = "expired";
+    denormPlan = "suspended";
+  } else if (plan === "negosyo" || plan === "kumpanya") {
+    status = "active";
+    denormPlan = plan;
+  } else if (trialEnd && trialEnd < now) {
+    status = "expired";
+    denormPlan = "suspended";
+  } else {
+    status = "trialing";
+    denormPlan = "tindahan";
+  }
+  return saasPrisma.organizationSubscription.create({
+    data: {
+      organizationId,
+      tier: denormPlan === "suspended" ? "tindahan" : tier,
+      status,
+      trialStart: status === "trialing" ? now : null,
+      trialEnd: status === "trialing" ? trialEnd ?? new Date(now.getTime() + TRIAL_DAYS * 864e5) : trialEnd,
+      monthlyPriceCentavos: TIERS[tier].priceMonthlyCentavos
+    }
+  });
+}
+async function expireTrialIfNeeded(organizationId) {
+  const sub = await ensureOrgSubscription(organizationId);
+  if (!sub) return null;
+  if (sub.status === "trialing" && sub.trialEnd && new Date(sub.trialEnd) < /* @__PURE__ */ new Date()) {
+    await saasPrisma.$transaction([
+      saasPrisma.organizationSubscription.update({
+        where: { organizationId },
+        data: { status: "expired" }
+      }),
+      saasPrisma.organization.update({
+        where: { id: organizationId },
+        data: { plan: "suspended" }
+      })
+    ]);
+    return saasPrisma.organizationSubscription.findUnique({
+      where: { organizationId }
+    });
+  }
+  return sub;
+}
+async function createTrialSubscription(organizationId) {
+  const now = /* @__PURE__ */ new Date();
+  const trialEnd = new Date(now.getTime() + TRIAL_DAYS * 864e5);
+  return saasPrisma.organizationSubscription.create({
+    data: {
+      organizationId,
+      tier: "tindahan",
+      status: "trialing",
+      trialStart: now,
+      trialEnd,
+      monthlyPriceCentavos: TIERS.tindahan.priceMonthlyCentavos
+    }
+  });
+}
+async function requestPlan(organizationId, tier) {
+  await ensureOrgSubscription(organizationId);
+  return saasPrisma.organizationSubscription.update({
+    where: { organizationId },
+    data: {
+      requestedTier: tier,
+      status: "pending_payment",
+      monthlyPriceCentavos: TIERS[tier].priceMonthlyCentavos
+    }
+  });
+}
+async function activateSubscription(organizationId, tier, opts) {
+  const now = /* @__PURE__ */ new Date();
+  const periodEnd = new Date(now.getTime() + 30 * 864e5);
+  const billingDue = opts?.extendDays ? new Date(now.getTime() + opts.extendDays * 864e5) : periodEnd;
+  await saasPrisma.$transaction([
+    saasPrisma.organizationSubscription.update({
+      where: { organizationId },
+      data: {
+        tier,
+        status: "active",
+        requestedTier: null,
+        monthlyPriceCentavos: TIERS[tier].priceMonthlyCentavos,
+        currentPeriodStart: now,
+        currentPeriodEnd: periodEnd,
+        ...opts?.setupFeePaid !== void 0 ? { setupFeePaid: opts.setupFeePaid } : {}
+      }
+    }),
+    saasPrisma.organization.update({
+      where: { id: organizationId },
+      data: {
+        plan: tier,
+        billingDueDate: billingDue,
+        trialEndsAt: null
+      }
+    })
+  ]);
+  return saasPrisma.organizationSubscription.findUnique({
+    where: { organizationId }
+  });
+}
+async function cancelSubscription(organizationId) {
+  await saasPrisma.$transaction([
+    saasPrisma.organizationSubscription.update({
+      where: { organizationId },
+      data: { status: "cancelled" }
+    }),
+    saasPrisma.organization.update({
+      where: { id: organizationId },
+      data: { plan: "suspended" }
+    })
+  ]);
+}
+async function getOrgUsage(organizationId) {
+  const [storeCount, userCount] = await Promise.all([
+    saasPrisma.store.count({ where: { organizationId } }),
+    saasPrisma.user.count({ where: { organizationId } })
+  ]);
+  return { storeCount, userCount };
+}
+async function assertCanAddBranch(organizationId) {
+  const sub = await expireTrialIfNeeded(organizationId);
+  if (!sub) return { ok: false, code: "NO_SUBSCRIPTION", message: "No subscription" };
+  const access = subscriptionAllowsAccess(sub.status, sub.trialEnd);
+  if (!access.access) {
+    return {
+      ok: false,
+      code: "SUBSCRIPTION_LOCKED",
+      message: "Subscription inactive. Choose a plan to continue."
+    };
+  }
+  const limits = getTierLimits(sub.tier);
+  const { storeCount } = await getOrgUsage(organizationId);
+  if (limits.maxBranches !== null && storeCount >= limits.maxBranches) {
+    const upgradeTo = limits.tier === "tindahan" ? "negosyo" : limits.tier === "negosyo" ? "kumpanya" : null;
+    return {
+      ok: false,
+      code: "TIER_LIMIT_BRANCH",
+      message: `Naabot mo na ang limitasyon ng iyong ${TIERS[limits.tier].name} plan (${limits.maxBranches} branches).`,
+      upgradeTo,
+      current: storeCount,
+      max: limits.maxBranches,
+      tier: limits.tier
+    };
+  }
+  return { ok: true, current: storeCount, max: limits.maxBranches, tier: limits.tier };
+}
+async function assertCanAddUser(organizationId) {
+  const sub = await expireTrialIfNeeded(organizationId);
+  if (!sub) return { ok: false, code: "NO_SUBSCRIPTION", message: "No subscription" };
+  const access = subscriptionAllowsAccess(sub.status, sub.trialEnd);
+  if (!access.access) {
+    return {
+      ok: false,
+      code: "SUBSCRIPTION_LOCKED",
+      message: "Subscription inactive. Choose a plan to continue."
+    };
+  }
+  const limits = getTierLimits(sub.tier);
+  const { userCount } = await getOrgUsage(organizationId);
+  if (limits.maxUsers !== null && userCount >= limits.maxUsers) {
+    const upgradeTo = limits.tier === "tindahan" ? "negosyo" : limits.tier === "negosyo" ? "kumpanya" : null;
+    return {
+      ok: false,
+      code: "TIER_LIMIT_USER",
+      message: `Naabot mo na ang limitasyon ng iyong ${TIERS[limits.tier].name} plan (${limits.maxUsers} users).`,
+      upgradeTo,
+      current: userCount,
+      max: limits.maxUsers,
+      tier: limits.tier
+    };
+  }
+  return { ok: true, current: userCount, max: limits.maxUsers, tier: limits.tier };
+}
+function buildSubscriptionPublicPayload(org, sub, usage) {
+  const tier = sub?.tier ?? normalizeLegacyPlan(org.plan).tier;
+  const limits = getTierLimits(tier);
+  const features = getTierFeatures(tier);
+  return {
+    organizationId: org.id,
+    organizationName: org.name,
+    plan: org.plan,
+    tier,
+    status: sub?.status ?? (org.plan === "suspended" ? "expired" : "trialing"),
+    trialEndsAt: sub?.trialEnd?.toISOString() ?? org.trialEndsAt?.toISOString() ?? null,
+    currentPeriodEnd: sub?.currentPeriodEnd?.toISOString() ?? null,
+    monthlyPriceCentavos: sub?.monthlyPriceCentavos ?? limits.priceMonthlyCentavos,
+    setupFeePaid: sub?.setupFeePaid ?? false,
+    requestedTier: sub?.requestedTier ?? null,
+    limits: {
+      maxBranches: limits.maxBranches,
+      maxUsers: limits.maxUsers
+    },
+    usage,
+    features
+  };
+}
+
 // server/saas/middleware/suspendedCheck.ts
+function isSubscriptionAllowlisted(path, method) {
+  const p = path.split("?")[0];
+  if (p === "/api/org" && method === "GET") return true;
+  if (p === "/api/org/subscription" && method === "GET") return true;
+  if (p === "/api/org/subscription/request" && method === "POST") return true;
+  if (p === "/api/org/subscription/cancel-request" && method === "POST") return true;
+  if (p === "/api/auth/me" || p === "/api/auth/logout") return true;
+  if (p.startsWith("/api/health")) return true;
+  return false;
+}
 async function suspendedCheckMiddleware(req, res, next) {
   const auth = req.auth;
   if (!auth) return next();
@@ -5832,23 +6186,39 @@ async function suspendedCheckMiddleware(req, res, next) {
     return next();
   }
   if (!auth.organizationId) return next();
-  let plan;
-  try {
-    const org = await saasPrisma.organization.findUnique({
-      where: { id: auth.organizationId },
-      select: { plan: true }
-    });
-    if (!org) return next();
-    plan = org.plan?.toLowerCase();
-  } catch {
+  if (isSubscriptionAllowlisted(req.path, req.method)) {
     return next();
   }
-  if (plan === "suspended") {
-    return res.status(403).json({
-      message: "Account suspended. Please contact support to restore access."
-    });
+  try {
+    const sub = await expireTrialIfNeeded(auth.organizationId);
+    if (!sub) {
+      return res.status(403).json({
+        message: "No subscription found. Please choose a plan.",
+        code: "NO_SUBSCRIPTION",
+        reason: "no_active_subscription"
+      });
+    }
+    const { access, reason } = subscriptionAllowsAccess(sub.status, sub.trialEnd);
+    if (!access) {
+      return res.status(403).json({
+        message: reason === "trial_expired" ? "Trial expired. Please choose a plan to continue." : "Subscription inactive. Please choose a plan or contact support.",
+        code: "SUBSCRIPTION_LOCKED",
+        reason: reason ?? "no_active_subscription",
+        status: sub.status,
+        requestedTier: sub.requestedTier
+      });
+    }
+    if (sub.status === "cancelled") {
+      return res.status(403).json({
+        message: "Account suspended. Please contact support to restore access.",
+        code: "SUBSCRIPTION_LOCKED",
+        reason: "cancelled"
+      });
+    }
+    next();
+  } catch {
+    next();
   }
-  next();
 }
 
 // server/saas/middleware/superAdmin.ts
@@ -6303,11 +6673,21 @@ async function runSeedDemo() {
   const org = await saasPrisma.organization.create({
     data: {
       name: "Demo Organization",
-      plan: "free",
+      plan: "tindahan",
       trialEndsAt,
       phone: "+63 912 345 6789",
       email: "demo@example.com",
       address: "123 Demo St, Manila"
+    }
+  });
+  await saasPrisma.organizationSubscription.create({
+    data: {
+      organizationId: org.id,
+      tier: "tindahan",
+      status: "trialing",
+      trialStart: /* @__PURE__ */ new Date(),
+      trialEnd: trialEndsAt,
+      monthlyPriceCentavos: 49900
     }
   });
   const store1 = await saasPrisma.store.create({
@@ -6706,6 +7086,13 @@ function looksBillingRelatedMessage(message) {
 }
 
 // server/saas/routes/admin.ts
+var PAID_PLAN_FILTERS = ["tindahan", "negosyo", "kumpanya", "suspended"];
+var LEGACY_NON_BILLING_PLANS = [
+  "free",
+  "Free",
+  "suspended",
+  "Suspended"
+];
 var router = Router();
 function parseAdminStoreIdQuery(raw2) {
   const v = Array.isArray(raw2) ? raw2[0] : raw2;
@@ -6727,16 +7114,18 @@ router.post("/organizations", async (req, res) => {
       return res.status(400).json({ message: "Organization name is required" });
     }
     const trialEndsAt = /* @__PURE__ */ new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + 7);
+    trialEndsAt.setDate(trialEndsAt.getDate() + TRIAL_DAYS);
     const org = await saasPrisma.organization.create({
       data: {
         name: name.trim(),
+        plan: "tindahan",
         trialEndsAt,
         phone: phone?.trim() || null,
         email: email?.trim() || null,
         address: address?.trim() || null
       }
     });
+    await createTrialSubscription(org.id);
     let storeId = null;
     if (storeName?.trim()) {
       const store = await saasPrisma.store.create({
@@ -6957,7 +7346,7 @@ router.get("/payment-monitoring", async (_req, res) => {
         where: {
           billingDueDate: null,
           NOT: {
-            plan: { in: ["free", "Free", "suspended", "Suspended"] }
+            plan: { in: LEGACY_NON_BILLING_PLANS }
           }
         },
         take: 50,
@@ -7045,7 +7434,7 @@ router.get("/payment-monitoring", async (_req, res) => {
       where: {
         billingDueDate: null,
         NOT: {
-          plan: { in: ["free", "Free", "suspended", "Suspended"] }
+          plan: { in: LEGACY_NON_BILLING_PLANS }
         }
       },
       take: 50,
@@ -7098,16 +7487,23 @@ router.get("/overview", async (_req, res) => {
       }),
       saasPrisma.$queryRaw`
         SELECT
+          SUM(CASE WHEN LOWER(plan) = 'tindahan' THEN 1 ELSE 0 END) as tindahanCount,
+          SUM(CASE WHEN LOWER(plan) = 'negosyo' THEN 1 ELSE 0 END) as negosyoCount,
+          SUM(CASE WHEN LOWER(plan) = 'kumpanya' THEN 1 ELSE 0 END) as kumpanyaCount,
+          SUM(CASE WHEN LOWER(plan) = 'suspended' THEN 1 ELSE 0 END) as suspendedCount,
           SUM(CASE WHEN LOWER(plan) = 'free' THEN 1 ELSE 0 END) as freeCount,
           SUM(CASE WHEN LOWER(plan) = 'pro' THEN 1 ELSE 0 END) as proCount,
-          SUM(CASE WHEN LOWER(plan) = 'enterprise' THEN 1 ELSE 0 END) as enterpriseCount,
-          SUM(CASE WHEN LOWER(plan) = 'suspended' THEN 1 ELSE 0 END) as suspendedCount
+          SUM(CASE WHEN LOWER(plan) = 'enterprise' THEN 1 ELSE 0 END) as enterpriseCount
         FROM "Organization"
       `.then((r) => ({
-        freeCount: Number(r[0]?.freeCount ?? 0),
-        proCount: Number(r[0]?.proCount ?? 0),
-        enterpriseCount: Number(r[0]?.enterpriseCount ?? 0),
-        suspendedCount: Number(r[0]?.suspendedCount ?? 0)
+        tindahanCount: Number(r[0]?.tindahanCount ?? 0) + Number(r[0]?.freeCount ?? 0),
+        negosyoCount: Number(r[0]?.negosyoCount ?? 0) + Number(r[0]?.proCount ?? 0),
+        kumpanyaCount: Number(r[0]?.kumpanyaCount ?? 0) + Number(r[0]?.enterpriseCount ?? 0),
+        suspendedCount: Number(r[0]?.suspendedCount ?? 0),
+        // legacy aliases for older admin UI during rollout
+        freeCount: Number(r[0]?.tindahanCount ?? 0) + Number(r[0]?.freeCount ?? 0),
+        proCount: Number(r[0]?.negosyoCount ?? 0) + Number(r[0]?.proCount ?? 0),
+        enterpriseCount: Number(r[0]?.kumpanyaCount ?? 0) + Number(r[0]?.enterpriseCount ?? 0)
       }))
     ]);
     res.json({
@@ -7150,7 +7546,7 @@ router.get("/organizations", async (req, res) => {
         ]
       });
     }
-    if (plan && ["free", "pro", "enterprise", "suspended"].includes(plan.toLowerCase())) {
+    if (plan && PAID_PLAN_FILTERS.includes(plan.toLowerCase())) {
       const planLower = plan.toLowerCase();
       where.push({
         OR: [
@@ -7192,6 +7588,7 @@ router.get("/organizations/:id", async (req, res) => {
       where: { id: req.params.id },
       include: {
         stores: true,
+        subscription: true,
         users: {
           select: {
             id: true,
@@ -7207,9 +7604,15 @@ router.get("/organizations/:id", async (req, res) => {
     if (!org) {
       return res.status(404).json({ message: "Organization not found" });
     }
+    await ensureOrgSubscription(org.id);
+    const refreshed = await saasPrisma.organizationSubscription.findUnique({
+      where: { organizationId: org.id }
+    });
     const { users, ...rest } = org;
     res.json({
       ...rest,
+      subscription: refreshed,
+      tierLimits: TIERS,
       users: users.map((u) => {
         const { password: _p2, storeAccess, ...uRest } = u;
         return { ...uRest, storeIds: storeAccess.map((a) => a.storeId) };
@@ -7341,11 +7744,86 @@ router.post("/organizations/:orgId/billing-payments", async (req, res) => {
 });
 router.patch("/organizations/:id", async (req, res) => {
   try {
-    const { name, plan, suspended, billingDueDate, phone, email, address } = req.body;
+    const {
+      name,
+      plan,
+      suspended,
+      billingDueDate,
+      phone,
+      email,
+      address,
+      subscriptionStatus,
+      setupFeePaid,
+      activateTier,
+      extendTrialDays
+    } = req.body;
+    await ensureOrgSubscription(req.params.id);
+    if (activateTier && isTierId(activateTier)) {
+      await activateSubscription(req.params.id, activateTier, {
+        setupFeePaid: setupFeePaid === true
+      });
+    } else if (suspended === true) {
+      await cancelSubscription(req.params.id);
+    } else if (plan !== void 0 && isTierId(plan)) {
+      await activateSubscription(req.params.id, plan, {
+        setupFeePaid
+      });
+    } else if (suspended === false) {
+      const trialEndsAt = /* @__PURE__ */ new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + (extendTrialDays ?? TRIAL_DAYS));
+      await saasPrisma.organization.update({
+        where: { id: req.params.id },
+        data: { plan: "tindahan", trialEndsAt }
+      });
+      await saasPrisma.organizationSubscription.update({
+        where: { organizationId: req.params.id },
+        data: {
+          tier: "tindahan",
+          status: "trialing",
+          trialStart: /* @__PURE__ */ new Date(),
+          trialEnd: trialEndsAt,
+          monthlyPriceCentavos: TIERS.tindahan.priceMonthlyCentavos,
+          requestedTier: null
+        }
+      });
+    }
+    if (extendTrialDays && !activateTier && suspended !== true) {
+      const trialEndsAt = /* @__PURE__ */ new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + extendTrialDays);
+      await saasPrisma.organization.update({
+        where: { id: req.params.id },
+        data: { plan: "tindahan", trialEndsAt }
+      });
+      await saasPrisma.organizationSubscription.update({
+        where: { organizationId: req.params.id },
+        data: {
+          status: "trialing",
+          tier: "tindahan",
+          trialEnd: trialEndsAt,
+          trialStart: /* @__PURE__ */ new Date()
+        }
+      });
+    }
+    if (setupFeePaid !== void 0 && !activateTier && plan === void 0) {
+      await saasPrisma.organizationSubscription.update({
+        where: { organizationId: req.params.id },
+        data: { setupFeePaid }
+      });
+    }
+    if (subscriptionStatus) {
+      await saasPrisma.organizationSubscription.update({
+        where: { organizationId: req.params.id },
+        data: { status: subscriptionStatus }
+      });
+      if (subscriptionStatus === "cancelled" || subscriptionStatus === "expired") {
+        await saasPrisma.organization.update({
+          where: { id: req.params.id },
+          data: { plan: "suspended" }
+        });
+      }
+    }
     const updateData = {};
     if (name !== void 0) updateData.name = name.trim();
-    if (plan !== void 0) updateData.plan = plan;
-    if (suspended !== void 0) updateData.plan = suspended ? "suspended" : "free";
     if (billingDueDate !== void 0)
       updateData.billingDueDate = billingDueDate && billingDueDate.trim() ? new Date(billingDueDate) : null;
     if (phone !== void 0) updateData.phone = phone?.trim() || null;
@@ -7357,9 +7835,15 @@ router.patch("/organizations/:id", async (req, res) => {
         data: { address: address?.trim() || null }
       });
     }
-    const org = await saasPrisma.organization.update({
+    if (Object.keys(updateData).length > 0) {
+      await saasPrisma.organization.update({
+        where: { id: req.params.id },
+        data: updateData
+      });
+    }
+    const org = await saasPrisma.organization.findUnique({
       where: { id: req.params.id },
-      data: updateData
+      include: { subscription: true }
     });
     res.json(org);
   } catch (error) {
@@ -7391,6 +7875,17 @@ router.post("/api/admin/organizations/:id/users", async (req, res) => {
     });
     if (!org) {
       return res.status(404).json({ message: "Organization not found" });
+    }
+    const limitCheck = await assertCanAddUser(orgId);
+    if (!limitCheck.ok) {
+      return res.status(403).json({
+        message: limitCheck.message,
+        code: limitCheck.code,
+        upgradeTo: limitCheck.upgradeTo,
+        current: limitCheck.current,
+        max: limitCheck.max,
+        tier: limitCheck.tier
+      });
     }
     const existing = await saasPrisma.user.findUnique({
       where: { email: email.trim().toLowerCase() }
@@ -7509,6 +8004,17 @@ router.post("/organizations/:orgId/stores", async (req, res) => {
       select: { id: true, address: true }
     });
     if (!org) return res.status(404).json({ message: "Organization not found" });
+    const limitCheck = await assertCanAddBranch(orgId);
+    if (!limitCheck.ok) {
+      return res.status(403).json({
+        message: limitCheck.message,
+        code: limitCheck.code,
+        upgradeTo: limitCheck.upgradeTo,
+        current: limitCheck.current,
+        max: limitCheck.max,
+        tier: limitCheck.tier
+      });
+    }
     const businessMode = rawMode === "fnb" ? "fnb" : "retail";
     const store = await saasPrisma.store.create({
       data: {
@@ -7988,9 +8494,19 @@ async function runBootstrapSeed() {
   const org = await saasPrisma.organization.create({
     data: {
       name: "Demo Organization",
-      plan: "free",
+      plan: "tindahan",
       trialEndsAt,
       email: "demo@example.com"
+    }
+  });
+  await saasPrisma.organizationSubscription.create({
+    data: {
+      organizationId: org.id,
+      tier: "tindahan",
+      status: "trialing",
+      trialStart: /* @__PURE__ */ new Date(),
+      trialEnd: trialEndsAt,
+      monthlyPriceCentavos: 49900
     }
   });
   const store = await saasPrisma.store.create({
@@ -8060,9 +8576,19 @@ async function ensureDemoQuickLoginUsers() {
     org = await saasPrisma.organization.create({
       data: {
         name: "Demo Organization",
-        plan: "free",
+        plan: "tindahan",
         trialEndsAt,
         email: "demo@example.com"
+      }
+    });
+    await saasPrisma.organizationSubscription.create({
+      data: {
+        organizationId: org.id,
+        tier: "tindahan",
+        status: "trialing",
+        trialStart: /* @__PURE__ */ new Date(),
+        trialEnd: trialEndsAt,
+        monthlyPriceCentavos: 49900
       }
     });
   }
@@ -8566,14 +9092,16 @@ app.post("/api/auth/signup", signupLimiter, async (req, res) => {
       return res.status(400).json({ message: "Email already registered" });
     }
     const trialEndsAt = /* @__PURE__ */ new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + 7);
+    trialEndsAt.setDate(trialEndsAt.getDate() + TRIAL_DAYS);
     const org = await saasPrisma.organization.create({
       data: {
         name: organizationName,
+        plan: "tindahan",
         trialEndsAt,
         phone: adminPhone
       }
     });
+    await createTrialSubscription(org.id);
     const store = await saasPrisma.store.create({
       data: {
         organizationId: org.id,
@@ -8646,23 +9174,11 @@ app.post("/api/auth/login", loginLimiter, async (req, res) => {
         select: { id: true, name: true, plan: true, trialEndsAt: true }
       });
       if (organization) {
-        const plan = organization.plan?.toLowerCase();
-        const trialEndsAt = organization.trialEndsAt ? new Date(organization.trialEndsAt) : null;
-        const trialExpired = plan === "free" && trialEndsAt && trialEndsAt < /* @__PURE__ */ new Date();
-        if (plan === "suspended") {
-          return res.status(403).json({
-            message: "Account suspended. Please contact support to restore access."
-          });
-        }
-        if (trialExpired) {
-          await saasPrisma.organization.update({
-            where: { id: organization.id },
-            data: { plan: "suspended" }
-          });
-          return res.status(403).json({
-            message: "Trial expired. Please upgrade to continue using the service."
-          });
-        }
+        await expireTrialIfNeeded(organization.id);
+        organization = await saasPrisma.organization.findUnique({
+          where: { id: user.organizationId },
+          select: { id: true, name: true, plan: true, trialEndsAt: true }
+        });
       }
     } else if (isSuperAdmin(user.email)) {
       storeIds = [];
@@ -8780,6 +9296,17 @@ ownerRouter.post("/api/users", async (req, res) => {
     const storeId = req.storeId;
     const organizationId = req.organizationId;
     if (!storeId || !organizationId) return res.status(400).json({ message: "storeId is required" });
+    const limitCheck = await assertCanAddUser(organizationId);
+    if (!limitCheck.ok) {
+      return res.status(403).json({
+        message: limitCheck.message,
+        code: limitCheck.code,
+        upgradeTo: limitCheck.upgradeTo,
+        current: limitCheck.current,
+        max: limitCheck.max,
+        tier: limitCheck.tier
+      });
+    }
     const { name, email, password, role, storeIds } = req.body;
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: "Name, email, password, and role are required" });
@@ -9321,14 +9848,89 @@ orgRouter.get("/api/org", async (req, res) => {
     if (!orgId) {
       return res.json(null);
     }
+    await expireTrialIfNeeded(orgId);
     const org = await saasPrisma.organization.findUnique({
       where: { id: orgId },
       select: { id: true, name: true, plan: true, trialEndsAt: true, phone: true, email: true, address: true }
     });
-    res.json(org);
+    if (!org) return res.json(null);
+    const sub = await ensureOrgSubscription(orgId);
+    const usage = await getOrgUsage(orgId);
+    const subscription = buildSubscriptionPublicPayload(org, sub, usage);
+    res.json({
+      ...org,
+      subscription,
+      features: getTierFeatures(sub?.tier ?? org.plan)
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to fetch organization" });
+  }
+});
+orgRouter.get("/api/org/subscription", async (req, res) => {
+  try {
+    const orgId = req.auth?.organizationId;
+    if (!orgId) return res.status(400).json({ message: "No organization" });
+    await expireTrialIfNeeded(orgId);
+    const org = await saasPrisma.organization.findUnique({
+      where: { id: orgId },
+      select: { id: true, name: true, plan: true, trialEndsAt: true }
+    });
+    if (!org) return res.status(404).json({ message: "Organization not found" });
+    const sub = await ensureOrgSubscription(orgId);
+    const usage = await getOrgUsage(orgId);
+    res.json({
+      ...buildSubscriptionPublicPayload(org, sub, usage),
+      tiers: Object.values(TIERS),
+      billingContact: getBillingContact(),
+      setupFeeCentavos: Number(process.env.SETUP_FEE ?? 149900)
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch subscription" });
+  }
+});
+orgRouter.post("/api/org/subscription/request", async (req, res) => {
+  try {
+    const orgId = req.auth?.organizationId;
+    if (!orgId) return res.status(400).json({ message: "No organization" });
+    if (req.auth?.role !== "owner") {
+      return res.status(403).json({ message: "Owner access required" });
+    }
+    const { tier } = req.body;
+    if (!tier || !isTierId(tier)) {
+      return res.status(400).json({ message: "Invalid tier. Use tindahan, negosyo, or kumpanya." });
+    }
+    const sub = await requestPlan(orgId, tier);
+    const org = await saasPrisma.organization.findUnique({
+      where: { id: orgId },
+      select: { id: true, name: true, plan: true, trialEndsAt: true }
+    });
+    const usage = await getOrgUsage(orgId);
+    res.json({
+      ...buildSubscriptionPublicPayload(org, sub, usage),
+      billingContact: getBillingContact(),
+      paymentReference: `${(org?.name ?? "Org").replace(/\s+/g, "")}-${TIERS[tier].name}`,
+      setupFeeCentavos: Number(process.env.SETUP_FEE ?? 149900)
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to request plan" });
+  }
+});
+orgRouter.post("/api/org/subscription/cancel-request", async (req, res) => {
+  try {
+    const orgId = req.auth?.organizationId;
+    if (!orgId) return res.status(400).json({ message: "No organization" });
+    if (req.auth?.role !== "owner") {
+      return res.status(403).json({ message: "Owner access required" });
+    }
+    await ensureOrgSubscription(orgId);
+    await cancelSubscription(orgId);
+    res.json({ ok: true, message: "Subscription cancel requested. Access is locked." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to cancel subscription" });
   }
 });
 orgRouter.get("/api/stores", async (req, res) => {
@@ -9435,6 +10037,17 @@ orgRouter.post("/api/org/stores", async (req, res) => {
     if (req.auth?.role !== "owner") return res.status(403).json({ message: "Owner access required" });
     const userId = req.auth?.userId;
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const limitCheck = await assertCanAddBranch(orgId);
+    if (!limitCheck.ok) {
+      return res.status(403).json({
+        message: limitCheck.message,
+        code: limitCheck.code,
+        upgradeTo: limitCheck.upgradeTo,
+        current: limitCheck.current,
+        max: limitCheck.max,
+        tier: limitCheck.tier
+      });
+    }
     const { name, address, businessMode: rawMode } = req.body;
     if (!name?.trim()) return res.status(400).json({ message: "Store name is required" });
     const safeName = requireTrimString(name, "Store name");
@@ -9582,7 +10195,26 @@ async function unsuspendDemoOrg() {
   const trialEndsAt = addDays(/* @__PURE__ */ new Date(), DEMO_TRIAL_DAYS);
   await saasPrisma.organization.update({
     where: { id: owner.organizationId },
-    data: { plan: "free", trialEndsAt }
+    data: { plan: "tindahan", trialEndsAt }
+  });
+  await saasPrisma.organizationSubscription.upsert({
+    where: { organizationId: owner.organizationId },
+    create: {
+      organizationId: owner.organizationId,
+      tier: "tindahan",
+      status: "trialing",
+      trialStart: /* @__PURE__ */ new Date(),
+      trialEnd: trialEndsAt,
+      monthlyPriceCentavos: 49900
+    },
+    update: {
+      tier: "tindahan",
+      status: "trialing",
+      trialStart: /* @__PURE__ */ new Date(),
+      trialEnd: trialEndsAt,
+      monthlyPriceCentavos: 49900,
+      requestedTier: null
+    }
   });
   console.log(`[Demo] Demo organization active. Trial ends ${trialEndsAt.toISOString().slice(0, 10)}.`);
 }

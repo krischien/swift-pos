@@ -135,6 +135,22 @@ exports.Prisma.OrganizationScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.OrganizationSubscriptionScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  tier: 'tier',
+  status: 'status',
+  trialStart: 'trialStart',
+  trialEnd: 'trialEnd',
+  currentPeriodStart: 'currentPeriodStart',
+  currentPeriodEnd: 'currentPeriodEnd',
+  monthlyPriceCentavos: 'monthlyPriceCentavos',
+  setupFeePaid: 'setupFeePaid',
+  requestedTier: 'requestedTier',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.OrganizationNotificationScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -297,6 +313,7 @@ exports.Prisma.NullsOrder = {
 
 exports.Prisma.ModelName = {
   Organization: 'Organization',
+  OrganizationSubscription: 'OrganizationSubscription',
   OrganizationNotification: 'OrganizationNotification',
   OrganizationBillingPayment: 'OrganizationBillingPayment',
   Store: 'Store',

@@ -11,9 +11,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, AlertTriangle, Trash2, Download, ChevronDown, ChevronLeft, ChevronRight, Barcode, QrCode, FileSpreadsheet, FileText, Package } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Capacitor } from "@capacitor/core";
 import { isSaaS } from "@/config/appMode";
+import { getSubscription } from "@/lib/saasSubscriptionApi";
 import { api } from "@/lib/api";
 import { useDataLayer } from "@/contexts/DataLayerContext";
 import { useStore } from "@/contexts/StoreContext";
@@ -55,6 +57,13 @@ const Inventory = () => {
   const navigate = useNavigate();
   const { activeStoreId, stores } = useStore();
   const isFnb = isSaaS() && stores.find((s) => s.id === activeStoreId)?.businessMode === "fnb";
+  const { data: subscription } = useQuery({
+    queryKey: ["subscription"],
+    queryFn: getSubscription,
+    enabled: isSaaS(),
+    staleTime: 60_000,
+  });
+  const canExcel = !isSaaS() || !!subscription?.features.excelExport;
 
   useEffect(() => {
     if (isFnb) navigate("/ingredients", { replace: true });
@@ -1182,21 +1191,21 @@ const Inventory = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExportProductList}>
+              <DropdownMenuItem onClick={handleExportProductList} disabled={!canExcel}>
                 <FileSpreadsheet className="w-4 h-4 mr-2" />
-                Product List
+                Product List{!canExcel ? " (Negosyo+)" : ""}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExportBIRInventory("xlsx")}>
+              <DropdownMenuItem onClick={() => handleExportBIRInventory("xlsx")} disabled={!canExcel}>
                 <FileSpreadsheet className="w-4 h-4 mr-2" />
-                BIR Inventory Report (XLSX)
+                BIR Inventory Report (XLSX){!canExcel ? " (Negosyo+)" : ""}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleExportBIRInventory("pdf")}>
                 <FileText className="w-4 h-4 mr-2" />
                 BIR Inventory Report (PDF)
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportLowStockList}>
+              <DropdownMenuItem onClick={handleExportLowStockList} disabled={!canExcel}>
                 <AlertTriangle className="w-4 h-4 mr-2" />
-                Low Stock List
+                Low Stock List{!canExcel ? " (Negosyo+)" : ""}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleExportBarcodeList}>
                 <Barcode className="w-4 h-4 mr-2" />

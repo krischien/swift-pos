@@ -32,8 +32,11 @@ import {
 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useDataLayer } from "@/contexts/DataLayerContext";
 import { useStore } from "@/contexts/StoreContext";
+import { isSaaS } from "@/config/appMode";
+import { getSubscription } from "@/lib/saasSubscriptionApi";
 import { formatCurrency } from "@/lib/currency";
 import {
   Dialog,
@@ -172,6 +175,13 @@ function downloadFilteredSalesCsv(rows: any[]) {
 const Sales = () => {
   const dataService = useDataLayer();
   const { activeStoreId } = useStore();
+  const { data: subscription } = useQuery({
+    queryKey: ["subscription"],
+    queryFn: getSubscription,
+    enabled: isSaaS(),
+    staleTime: 60_000,
+  });
+  const canExcel = !isSaaS() || !!subscription?.features.excelExport;
   const [sales, setSales] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -974,20 +984,35 @@ const Sales = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleExport("today")}>
-                Today
+              <DropdownMenuItem
+                disabled={!canExcel}
+                onClick={() => canExcel && handleExport("today")}
+              >
+                Today{!canExcel ? " (Negosyo+)" : ""}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("weekly")}>
-                This Week
+              <DropdownMenuItem
+                disabled={!canExcel}
+                onClick={() => canExcel && handleExport("weekly")}
+              >
+                This Week{!canExcel ? " (Negosyo+)" : ""}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("monthly")}>
-                This Month
+              <DropdownMenuItem
+                disabled={!canExcel}
+                onClick={() => canExcel && handleExport("monthly")}
+              >
+                This Month{!canExcel ? " (Negosyo+)" : ""}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("quarterly")}>
-                This Quarter
+              <DropdownMenuItem
+                disabled={!canExcel}
+                onClick={() => canExcel && handleExport("quarterly")}
+              >
+                This Quarter{!canExcel ? " (Negosyo+)" : ""}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("annual")}>
-                This Year
+              <DropdownMenuItem
+                disabled={!canExcel}
+                onClick={() => canExcel && handleExport("annual")}
+              >
+                This Year{!canExcel ? " (Negosyo+)" : ""}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -44,18 +44,49 @@ async function saasRequest<T>(
   }
   if (!res.ok) {
     let message = text || res.statusText;
+    let code: string | undefined;
+    let upgradeTo: string | undefined;
+    let max: number | undefined;
+    let tier: string | undefined;
     try {
-      const json = JSON.parse(text);
+      const json = JSON.parse(text) as {
+        message?: string;
+        code?: string;
+        upgradeTo?: string;
+        max?: number;
+        tier?: string;
+        reason?: string;
+      };
       if (json?.message) message = json.message;
+      code = json.code;
+      upgradeTo = json.upgradeTo;
+      max = json.max;
+      tier = json.tier;
     } catch {
       /* use raw text */
     }
-    // On 403 suspension/expiry, clear token and redirect to login
-    if (res.status === 403 && (message.includes("suspended") || message.includes("Trial expired"))) {
+    // Don't force logout on subscription lock — app shows choose-plan UI
+    if (
+      res.status === 403 &&
+      code !== "SUBSCRIPTION_LOCKED" &&
+      code !== "TIER_LIMIT_BRANCH" &&
+      code !== "TIER_LIMIT_USER" &&
+      (message.includes("Account suspended") || message.includes("Trial expired"))
+    ) {
       clearSaasToken();
       window.location.href = "/login?reason=suspended";
     }
-    throw new Error(message);
+    const err = new Error(message) as Error & {
+      code?: string;
+      upgradeTo?: string;
+      max?: number;
+      tier?: string;
+    };
+    err.code = code;
+    err.upgradeTo = upgradeTo;
+    err.max = max;
+    err.tier = tier;
+    throw err;
   }
 
   if (res.status === 204 || res.headers.get("content-length") === "0") {

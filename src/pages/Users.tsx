@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { TierLimitModal } from "@/components/TierLimitModal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,6 +64,13 @@ const Users = () => {
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [limitModal, setLimitModal] = useState<{
+    open: boolean;
+    message?: string;
+    tier?: string;
+    max?: number | null;
+    upgradeTo?: string | null;
+  }>({ open: false });
   const { toast } = useToast();
 
   const load = async () => {
@@ -191,12 +199,23 @@ const Users = () => {
       setFormOpen(false);
       await load();
     } catch (e: any) {
-      setFormError(e.message ?? "Failed to save user");
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: e.message ?? "Failed to save user",
-      });
+      if (e?.code === "TIER_LIMIT_USER" || /limitasyon|TIER_LIMIT_USER|user limit/i.test(e?.message ?? "")) {
+        setFormOpen(false);
+        setLimitModal({
+          open: true,
+          message: e.message,
+          tier: e.tier,
+          max: e.max,
+          upgradeTo: e.upgradeTo,
+        });
+      } else {
+        setFormError(e.message ?? "Failed to save user");
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: e.message ?? "Failed to save user",
+        });
+      }
     } finally {
       setSaving(false);
     }
@@ -224,6 +243,15 @@ const Users = () => {
 
   return (
     <div className="p-6 space-y-6">
+      <TierLimitModal
+        open={limitModal.open}
+        onOpenChange={(open) => setLimitModal((s) => ({ ...s, open }))}
+        kind="user"
+        tier={limitModal.tier}
+        max={limitModal.max}
+        upgradeTo={limitModal.upgradeTo}
+        message={limitModal.message}
+      />
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">User Management</h1>

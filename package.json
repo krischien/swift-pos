@@ -45,6 +45,7 @@
     "saas:seed": "tsx --env-file=.env server/saas/seed.ts",
     "saas:seed-demo": "tsx --env-file=.env server/saas/seed-demo.ts",
     "saas:seed-second-org": "tsx --env-file=.env server/saas/scripts/seedSecondOrg.ts",
+    "saas:backfill-subscriptions": "tsx --env-file=.env server/saas/scripts/backfillSubscriptions.ts",
     "prisma:generate": "prisma generate",
     "prisma:seed": "tsx server/seed.ts",
     "build:mobile:solo": "npm run build:solo && npx cap sync android",

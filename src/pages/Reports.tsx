@@ -46,8 +46,11 @@ import {
   Building2,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { useDataLayer } from "@/contexts/DataLayerContext";
 import { useStore } from "@/contexts/StoreContext";
+import { getSubscription } from "@/lib/saasSubscriptionApi";
 import { isSaaS } from "@/config/appMode";
 import { getOrgStores } from "@/lib/saasOrgStoresApi";
 import { formatCurrency } from "@/lib/currency";
@@ -111,6 +114,15 @@ type DateRangePreset = "today" | "7" | "30" | "90" | "all";
 const Reports = () => {
   const dataService = useDataLayer();
   const { stores, storesLoading } = useStore();
+  const { data: subscription } = useQuery({
+    queryKey: ["subscription"],
+    queryFn: getSubscription,
+    enabled: isSaaS(),
+    staleTime: 60_000,
+  });
+  const canExcel = !isSaaS() || !!subscription?.features.excelExport;
+  const canCompare = !isSaaS() || !!subscription?.features.multiBranchComparison;
+  const canAdvancedLowStock = !isSaaS() || !!subscription?.features.advancedLowStock;
   const [reportStores, setReportStores] = useState<Array<{ id: string; name: string }>>([]);
   const [reportStoresLoading, setReportStoresLoading] = useState(false);
   const [sales, setSales] = useState<any[]>([]);
@@ -917,9 +929,16 @@ const Reports = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExportExcel} disabled={exporting}>
+              <DropdownMenuItem
+                onClick={() => {
+                  if (!canExcel) return;
+                  void handleExportExcel();
+                }}
+                disabled={exporting || !canExcel}
+              >
                 <FileSpreadsheet className="w-4 h-4 mr-2" />
                 Export to Excel
+                {!canExcel && " (Negosyo+)"}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleExportPdf}>
                 <FileText className="w-4 h-4 mr-2" />
@@ -1058,6 +1077,7 @@ const Reports = () => {
             })}
           </div>
 
+          {canCompare ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {comparisonStats.map((stat) => (
               <Card key={stat.title}>
@@ -1085,6 +1105,19 @@ const Reports = () => {
               </Card>
             ))}
           </div>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Multi-branch comparison</CardTitle>
+                <CardDescription>
+                  Available sa Negosyo at Kumpanya plans.{" "}
+                  <Link to="/pricing" className="text-primary underline">
+                    Mag-upgrade
+                  </Link>
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          )}
 
           {!isMultiStoreView && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1514,10 +1547,20 @@ const Reports = () => {
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-destructive" />
                   Low Stock Alerts
+                  {canAdvancedLowStock ? null : (
+                    <span className="text-xs font-normal text-muted-foreground">(Negosyo+)</span>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-8">
-                {loading && showStoreFilter && reportStoreId === "all" ? (
+                {!canAdvancedLowStock ? (
+                  <p className="text-sm text-muted-foreground">
+                    Advanced low-stock alerts available sa Negosyo at Kumpanya.{" "}
+                    <Link to="/pricing" className="text-primary underline">
+                      Mag-upgrade
+                    </Link>
+                  </p>
+                ) : loading && showStoreFilter && reportStoreId === "all" ? (
                   <div className="flex justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>

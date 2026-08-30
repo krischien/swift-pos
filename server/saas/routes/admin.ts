@@ -8,6 +8,24 @@ import {
   looksBillingRelatedMessage,
   parseBillingPeriod,
 } from "../utils/billingPayment.js";
+import {
+  activateSubscription,
+  assertCanAddBranch,
+  assertCanAddUser,
+  cancelSubscription,
+  createTrialSubscription,
+  ensureOrgSubscription,
+  isTierId,
+} from "../services/subscriptionService.js";
+import { TIERS, TRIAL_DAYS } from "../config/tiers.js";
+
+const PAID_PLAN_FILTERS = ["tindahan", "negosyo", "kumpanya", "suspended"];
+const LEGACY_NON_BILLING_PLANS = [
+  "free",
+  "Free",
+  "suspended",
+  "Suspended",
+];
 
 const router = Router();
 
@@ -46,16 +64,18 @@ router.post("/organizations", async (req: AuthRequest, res) => {
     }
 
     const trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + 7);
+    trialEndsAt.setDate(trialEndsAt.getDate() + TRIAL_DAYS);
     const org = await saasPrisma.organization.create({
       data: {
         name: name.trim(),
+        plan: "tindahan",
         trialEndsAt,
         phone: phone?.trim() || null,
         email: email?.trim() || null,
         address: address?.trim() || null,
       },
     });
+    await createTrialSubscription(org.id);
 
     let storeId: string | null = null;
     if (storeName?.trim()) {
@@ -340,7 +360,7 @@ router.get("/payment-monitoring", async (_req: AuthRequest, res) => {
         where: {
           billingDueDate: null,
           NOT: {
-            plan: { in: ["free", "Free", "suspended", "Suspended"] },
+            plan: { in: LEGACY_NON_BILLING_PLANS },
           },
         },
         take: 50,
@@ -441,7 +461,7 @@ router.get("/payment-monitoring", async (_req: AuthRequest, res) => {
       where: {
         billingDueDate: null,
         NOT: {
-          plan: { in: ["free", "Free", "suspended", "Suspended"] },
+            plan: { in: LEGACY_NON_BILLING_PLANS },
         },
       },
       take: 50,
@@ -497,19 +517,34 @@ router.get("/overview", async (_req: AuthRequest, res) => {
         },
       }),
       (saasPrisma.$queryRaw<
-        [{ freeCount: bigint; proCount: bigint; enterpriseCount: bigint; suspendedCount: bigint }]
+        [{
+          tindahanCount: bigint;
+          negosyoCount: bigint;
+          kumpanyaCount: bigint;
+          suspendedCount: bigint;
+          freeCount: bigint;
+          proCount: bigint;
+          enterpriseCount: bigint;
+        }]
       >`
         SELECT
+          SUM(CASE WHEN LOWER(plan) = 'tindahan' THEN 1 ELSE 0 END) as tindahanCount,
+          SUM(CASE WHEN LOWER(plan) = 'negosyo' THEN 1 ELSE 0 END) as negosyoCount,
+          SUM(CASE WHEN LOWER(plan) = 'kumpanya' THEN 1 ELSE 0 END) as kumpanyaCount,
+          SUM(CASE WHEN LOWER(plan) = 'suspended' THEN 1 ELSE 0 END) as suspendedCount,
           SUM(CASE WHEN LOWER(plan) = 'free' THEN 1 ELSE 0 END) as freeCount,
           SUM(CASE WHEN LOWER(plan) = 'pro' THEN 1 ELSE 0 END) as proCount,
-          SUM(CASE WHEN LOWER(plan) = 'enterprise' THEN 1 ELSE 0 END) as enterpriseCount,
-          SUM(CASE WHEN LOWER(plan) = 'suspended' THEN 1 ELSE 0 END) as suspendedCount
+          SUM(CASE WHEN LOWER(plan) = 'enterprise' THEN 1 ELSE 0 END) as enterpriseCount
         FROM "Organization"
       `).then((r) => ({
-        freeCount: Number(r[0]?.freeCount ?? 0),
-        proCount: Number(r[0]?.proCount ?? 0),
-        enterpriseCount: Number(r[0]?.enterpriseCount ?? 0),
+        tindahanCount: Number(r[0]?.tindahanCount ?? 0) + Number(r[0]?.freeCount ?? 0),
+        negosyoCount: Number(r[0]?.negosyoCount ?? 0) + Number(r[0]?.proCount ?? 0),
+        kumpanyaCount: Number(r[0]?.kumpanyaCount ?? 0) + Number(r[0]?.enterpriseCount ?? 0),
         suspendedCount: Number(r[0]?.suspendedCount ?? 0),
+        // legacy aliases for older admin UI during rollout
+        freeCount: Number(r[0]?.tindahanCount ?? 0) + Number(r[0]?.freeCount ?? 0),
+        proCount: Number(r[0]?.negosyoCount ?? 0) + Number(r[0]?.proCount ?? 0),
+        enterpriseCount: Number(r[0]?.kumpanyaCount ?? 0) + Number(r[0]?.enterpriseCount ?? 0),
       })),
     ]);
 
@@ -554,7 +589,7 @@ router.get("/organizations", async (req: AuthRequest, res) => {
         ],
       });
     }
-    if (plan && ["free", "pro", "enterprise", "suspended"].includes(plan.toLowerCase())) {
+    if (plan && PAID_PLAN_FILTERS.includes(plan.toLowerCase())) {
       const planLower = plan.toLowerCase();
       where.push({
         OR: [
@@ -598,6 +633,7 @@ router.get("/organizations/:id", async (req: AuthRequest, res) => {
       where: { id: req.params.id },
       include: {
         stores: true,
+        subscription: true,
         users: {
           select: {
             id: true,
@@ -613,9 +649,15 @@ router.get("/organizations/:id", async (req: AuthRequest, res) => {
     if (!org) {
       return res.status(404).json({ message: "Organization not found" });
     }
+    await ensureOrgSubscription(org.id);
+    const refreshed = await saasPrisma.organizationSubscription.findUnique({
+      where: { organizationId: org.id },
+    });
     const { users, ...rest } = org;
     res.json({
       ...rest,
+      subscription: refreshed,
+      tierLimits: TIERS,
       users: users.map((u) => {
         const { password: _p, storeAccess, ...uRest } = u as typeof u & {
           password?: string;
@@ -771,7 +813,19 @@ router.post("/organizations/:orgId/billing-payments", async (req: AuthRequest, r
 
 router.patch("/organizations/:id", async (req: AuthRequest, res) => {
   try {
-    const { name, plan, suspended, billingDueDate, phone, email, address } = req.body as {
+    const {
+      name,
+      plan,
+      suspended,
+      billingDueDate,
+      phone,
+      email,
+      address,
+      subscriptionStatus,
+      setupFeePaid,
+      activateTier,
+      extendTrialDays,
+    } = req.body as {
       name?: string;
       plan?: string;
       suspended?: boolean;
@@ -779,27 +833,107 @@ router.patch("/organizations/:id", async (req: AuthRequest, res) => {
       phone?: string;
       email?: string;
       address?: string;
+      subscriptionStatus?: string;
+      setupFeePaid?: boolean;
+      activateTier?: string;
+      extendTrialDays?: number;
     };
+
+    await ensureOrgSubscription(req.params.id);
+
+    if (activateTier && isTierId(activateTier)) {
+      await activateSubscription(req.params.id, activateTier, {
+        setupFeePaid: setupFeePaid === true,
+      });
+    } else if (suspended === true) {
+      await cancelSubscription(req.params.id);
+    } else if (plan !== undefined && isTierId(plan)) {
+      await activateSubscription(req.params.id, plan, {
+        setupFeePaid,
+      });
+    } else if (suspended === false) {
+      // Restore to trialing Tindahan (not free)
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + (extendTrialDays ?? TRIAL_DAYS));
+      await saasPrisma.organization.update({
+        where: { id: req.params.id },
+        data: { plan: "tindahan", trialEndsAt },
+      });
+      await saasPrisma.organizationSubscription.update({
+        where: { organizationId: req.params.id },
+        data: {
+          tier: "tindahan",
+          status: "trialing",
+          trialStart: new Date(),
+          trialEnd: trialEndsAt,
+          monthlyPriceCentavos: TIERS.tindahan.priceMonthlyCentavos,
+          requestedTier: null,
+        },
+      });
+    }
+
+    if (extendTrialDays && !activateTier && suspended !== true) {
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + extendTrialDays);
+      await saasPrisma.organization.update({
+        where: { id: req.params.id },
+        data: { plan: "tindahan", trialEndsAt },
+      });
+      await saasPrisma.organizationSubscription.update({
+        where: { organizationId: req.params.id },
+        data: {
+          status: "trialing",
+          tier: "tindahan",
+          trialEnd: trialEndsAt,
+          trialStart: new Date(),
+        },
+      });
+    }
+
+    if (setupFeePaid !== undefined && !activateTier && plan === undefined) {
+      await saasPrisma.organizationSubscription.update({
+        where: { organizationId: req.params.id },
+        data: { setupFeePaid },
+      });
+    }
+
+    if (subscriptionStatus) {
+      await saasPrisma.organizationSubscription.update({
+        where: { organizationId: req.params.id },
+        data: { status: subscriptionStatus },
+      });
+      if (subscriptionStatus === "cancelled" || subscriptionStatus === "expired") {
+        await saasPrisma.organization.update({
+          where: { id: req.params.id },
+          data: { plan: "suspended" },
+        });
+      }
+    }
+
     const updateData: Record<string, unknown> = {};
     if (name !== undefined) updateData.name = name.trim();
-    if (plan !== undefined) updateData.plan = plan;
-    if (suspended !== undefined) updateData.plan = suspended ? "suspended" : "free";
     if (billingDueDate !== undefined)
       updateData.billingDueDate = billingDueDate && billingDueDate.trim() ? new Date(billingDueDate) : null;
     if (phone !== undefined) updateData.phone = phone?.trim() || null;
     if (email !== undefined) updateData.email = email?.trim() || null;
     if (address !== undefined) {
       updateData.address = address?.trim() || null;
-      // Sync address to all stores in this org
       await saasPrisma.store.updateMany({
         where: { organizationId: req.params.id },
         data: { address: address?.trim() || null },
       });
     }
 
-    const org = await saasPrisma.organization.update({
+    if (Object.keys(updateData).length > 0) {
+      await saasPrisma.organization.update({
+        where: { id: req.params.id },
+        data: updateData,
+      });
+    }
+
+    const org = await saasPrisma.organization.findUnique({
       where: { id: req.params.id },
-      data: updateData,
+      include: { subscription: true },
     });
     res.json(org);
   } catch (error: unknown) {
@@ -841,6 +975,18 @@ router.post("/api/admin/organizations/:id/users", async (req: AuthRequest, res) 
     });
     if (!org) {
       return res.status(404).json({ message: "Organization not found" });
+    }
+
+    const limitCheck = await assertCanAddUser(orgId);
+    if (!limitCheck.ok) {
+      return res.status(403).json({
+        message: limitCheck.message,
+        code: limitCheck.code,
+        upgradeTo: limitCheck.upgradeTo,
+        current: limitCheck.current,
+        max: limitCheck.max,
+        tier: limitCheck.tier,
+      });
     }
 
     const existing = await saasPrisma.user.findUnique({
@@ -984,6 +1130,19 @@ router.post("/organizations/:orgId/stores", async (req: AuthRequest, res) => {
       select: { id: true, address: true },
     });
     if (!org) return res.status(404).json({ message: "Organization not found" });
+
+    const limitCheck = await assertCanAddBranch(orgId);
+    if (!limitCheck.ok) {
+      return res.status(403).json({
+        message: limitCheck.message,
+        code: limitCheck.code,
+        upgradeTo: limitCheck.upgradeTo,
+        current: limitCheck.current,
+        max: limitCheck.max,
+        tier: limitCheck.tier,
+      });
+    }
+
     const businessMode = rawMode === "fnb" ? "fnb" : "retail";
     const store = await saasPrisma.store.create({
       data: {

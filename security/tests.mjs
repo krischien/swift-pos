@@ -386,4 +386,33 @@ export const securityTests = [
       expectStatus(res.status, 400, "Incomplete signup");
     },
   },
+
+  // --- Subscription tiers ---
+  {
+    id: "subscription-status-readable",
+    category: "Subscription",
+    name: "Owner can GET /api/org/subscription while authenticated",
+    async run({ sessions }) {
+      const { status, body } = await apiFetch("/api/org/subscription", {
+        token: sessions.owner.token,
+      });
+      expectStatus(status, 200, "Subscription status");
+      if (!body?.tier || !body?.status) {
+        throw new Error("Subscription payload missing tier/status");
+      }
+    },
+  },
+  {
+    id: "subscription-request-invalid-tier",
+    category: "Subscription",
+    name: "POST /api/org/subscription/request rejects invalid tier",
+    async run({ sessions }) {
+      const { status } = await apiFetch("/api/org/subscription/request", {
+        token: sessions.owner.token,
+        method: "POST",
+        body: { tier: "free" },
+      });
+      expectStatus(status, 400, "Invalid tier rejected");
+    },
+  },
 ];

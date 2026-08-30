@@ -21,9 +21,9 @@ import { useToast } from "@/hooks/use-toast";
 
 const PLAN_FILTERS = [
   { value: "all", label: "All" },
-  { value: "free", label: "Free" },
-  { value: "pro", label: "Pro" },
-  { value: "enterprise", label: "Enterprise" },
+  { value: "tindahan", label: "Tindahan" },
+  { value: "negosyo", label: "Negosyo" },
+  { value: "kumpanya", label: "Kumpanya" },
   { value: "suspended", label: "Suspended" },
 ] as const;
 

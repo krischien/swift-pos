@@ -38,6 +38,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
+import { TierLimitModal } from "@/components/TierLimitModal";
 import { isSaaS } from "@/config/appMode";
 import {
   getOrgStores,
@@ -64,6 +65,13 @@ const Stores = () => {
   const [deletingStore, setDeletingStore] = useState<OrgStore | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [limitModal, setLimitModal] = useState<{
+    open: boolean;
+    message?: string;
+    tier?: string;
+    max?: number | null;
+    upgradeTo?: string | null;
+  }>({ open: false });
   const [formBusinessMode, setFormBusinessMode] = useState<"retail" | "fnb">("retail");
 
   const load = async () => {
@@ -158,9 +166,21 @@ const Stores = () => {
       setStoresState(list);
       refreshStoreContext(list);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Failed to save store";
-      setFormError(msg);
-      toast({ variant: "destructive", title: "Error", description: msg });
+      const err = e as Error & { code?: string; upgradeTo?: string; max?: number; tier?: string };
+      const msg = err.message ?? "Failed to save store";
+      if (err.code === "TIER_LIMIT_BRANCH") {
+        setFormOpen(false);
+        setLimitModal({
+          open: true,
+          message: msg,
+          tier: err.tier,
+          max: err.max,
+          upgradeTo: err.upgradeTo,
+        });
+      } else {
+        setFormError(msg);
+        toast({ variant: "destructive", title: "Error", description: msg });
+      }
     } finally {
       setSaving(false);
     }
@@ -202,6 +222,15 @@ const Stores = () => {
 
   return (
     <div className="p-6 space-y-6">
+      <TierLimitModal
+        open={limitModal.open}
+        onOpenChange={(open) => setLimitModal((s) => ({ ...s, open }))}
+        kind="branch"
+        tier={limitModal.tier}
+        max={limitModal.max}
+        upgradeTo={limitModal.upgradeTo}
+        message={limitModal.message}
+      />
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Stores</h1>

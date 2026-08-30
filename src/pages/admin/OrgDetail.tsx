@@ -120,6 +120,11 @@ const OrgDetail = () => {
       email?: string;
       address?: string;
       billingDueDate?: string | null;
+      suspended?: boolean;
+      activateTier?: string;
+      setupFeePaid?: boolean;
+      extendTrialDays?: number;
+      subscriptionStatus?: string;
     }) => adminApi.updateOrganization(id!, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "organization", id] });
@@ -559,20 +564,73 @@ const OrgDetail = () => {
             <div>
               <p className="text-sm text-muted-foreground">Plan</p>
               <Select
-                value={data.plan}
-                onValueChange={(v) => updateMutation.mutate({ plan: v })}
+                value={data.plan === "suspended" ? "suspended" : data.plan}
+                onValueChange={(v) => {
+                  if (v === "suspended") {
+                    updateMutation.mutate({ suspended: true });
+                  } else {
+                    updateMutation.mutate({ activateTier: v, plan: v });
+                  }
+                }}
                 disabled={updateMutation.isPending}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="free">Free</SelectItem>
-                  <SelectItem value="pro">Pro</SelectItem>
-                  <SelectItem value="enterprise">Enterprise</SelectItem>
+                  <SelectItem value="tindahan">Tindahan</SelectItem>
+                  <SelectItem value="negosyo">Negosyo</SelectItem>
+                  <SelectItem value="kumpanya">Kumpanya</SelectItem>
                   <SelectItem value="suspended">Suspended</SelectItem>
                 </SelectContent>
               </Select>
+              {data.subscription && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Status: {data.subscription.status}
+                  {data.subscription.requestedTier
+                    ? ` · Requested: ${data.subscription.requestedTier}`
+                    : ""}
+                  {data.subscription.setupFeePaid ? " · Setup fee paid" : " · Setup fee unpaid"}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2 mt-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={updateMutation.isPending}
+                  onClick={() =>
+                    updateMutation.mutate({
+                      activateTier: data.subscription?.requestedTier || data.plan || "tindahan",
+                      setupFeePaid: true,
+                    })
+                  }
+                >
+                  Activate + mark setup paid
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={updateMutation.isPending}
+                  onClick={() => updateMutation.mutate({ extendTrialDays: 7 })}
+                >
+                  Extend trial 7d
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={updateMutation.isPending}
+                  onClick={() =>
+                    updateMutation.mutate({
+                      setupFeePaid: !data.subscription?.setupFeePaid,
+                    })
+                  }
+                >
+                  Toggle setup fee
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="org-billing-due">Billing due date</Label>

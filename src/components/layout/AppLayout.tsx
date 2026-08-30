@@ -25,6 +25,10 @@ import { isSaaS } from "@/config/appMode";
 import NotificationBanner from "@/components/NotificationBanner";
 import TrialBanner from "@/components/TrialBanner";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { TierBadge } from "@/components/TierBadge";
+import { useQuery } from "@tanstack/react-query";
+import { getSubscription } from "@/lib/saasSubscriptionApi";
+import { Building2 } from "lucide-react";
 
 const AppLayout = () => {
   const { user, logout } = useAuth();
@@ -33,6 +37,13 @@ const AppLayout = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const activeStore = stores.find((s) => s.id === activeStoreId) || stores[0];
   const isFnb = isSaaS() && activeStore?.businessMode === "fnb";
+
+  const { data: sub } = useQuery({
+    queryKey: ["subscription"],
+    queryFn: getSubscription,
+    enabled: isSaaS() && !!user && user.role !== "super_admin",
+    staleTime: 60_000,
+  });
 
   const handleLogout = () => {
     logout();
@@ -44,6 +55,9 @@ const AppLayout = () => {
       ? [{ to: "/admin", icon: Shield, label: "Super Admin", roles: ["super_admin"] }]
       : []),
     { to: "/pos", icon: ShoppingCart, label: "POS", roles: ["admin", "cashier", "owner"] },
+    ...(sub?.features.hqDashboard
+      ? [{ to: "/hq", icon: Building2, label: "HQ", roles: ["owner"] }]
+      : []),
     ...(!isFnb ? [{ to: "/sticker-generator", icon: QrCode, label: "Sticker Generator", roles: ["owner"] }] : []),
     ...(isFnb
       ? [
@@ -99,6 +113,7 @@ const AppLayout = () => {
               <h1 className="font-bold text-lg">SwiftPOS</h1>
               <p className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap" title={activeStore?.name}>
                 <span className="truncate">{isSaaS() && activeStore ? activeStore.name : user?.role}</span>
+                {isSaaS() && <TierBadge tier={sub?.tier} status={sub?.status} />}
                 <OfflineIndicator />
               </p>
             </div>
@@ -146,8 +161,9 @@ const AppLayout = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <h1 className="font-bold text-lg">SwiftPOS</h1>
-                  <p className="text-xs text-muted-foreground truncate" title={activeStore?.name}>
+                  <p className="text-xs text-muted-foreground truncate flex items-center gap-1" title={activeStore?.name}>
                     {isSaaS() && activeStore ? activeStore.name : user?.role}
+                    {isSaaS() && <TierBadge tier={sub?.tier} status={sub?.status} />}
                   </p>
                 </div>
               </div>

@@ -84,6 +84,9 @@ export const adminApi = {
     freeCount?: number;
     proCount?: number;
     enterpriseCount?: number;
+    tindahanCount?: number;
+    negosyoCount?: number;
+    kumpanyaCount?: number;
     suspendedCount?: number;
   }>("/api/admin/overview"),
 
@@ -136,6 +139,16 @@ export const adminApi = {
       email?: string | null;
       address?: string | null;
       billingDueDate?: string | null;
+      trialEndsAt?: string | null;
+      subscription?: {
+        id: string;
+        tier: string;
+        status: string;
+        trialEnd?: string | null;
+        requestedTier?: string | null;
+        setupFeePaid?: boolean;
+        monthlyPriceCentavos?: number;
+      } | null;
       stores: Array<{ id: string; name: string; address?: string | null }>;
       users: Array<{
         id: string;
@@ -156,6 +169,10 @@ export const adminApi = {
       phone?: string;
       email?: string;
       address?: string;
+      activateTier?: string;
+      setupFeePaid?: boolean;
+      extendTrialDays?: number;
+      subscriptionStatus?: string;
     }
   ) =>
     adminRequest(`/api/admin/organizations/${id}`, {
