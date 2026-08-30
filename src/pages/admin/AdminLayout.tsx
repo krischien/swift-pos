@@ -16,8 +16,9 @@ const AdminLayout = () => {
   }
 
   const handleLogout = () => {
+    setMenuOpen(false);
     logout();
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
   const NavContent = () => (
@@ -86,6 +87,16 @@ const AdminLayout = () => {
         <div className="flex-1 flex justify-center">
           <span className="font-bold">Super Admin</span>
         </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="shrink-0"
+          onClick={handleLogout}
+          aria-label="Logout"
+          title="Logout"
+        >
+          <LogOut className="w-5 h-5" />
+        </Button>
       </div>
 
       <main className="flex-1 overflow-auto p-6 lg:mt-0 mt-16">

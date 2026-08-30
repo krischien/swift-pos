@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { isSaaS } from "@/config/appMode";
 import { getSaasToken, fetchStores } from "@/lib/saasAuth";
+import { useAuth } from "@/contexts/AuthContext";
 
 const DEFAULT_STORE_ID = "default";
 const STORES_STORAGE_KEY = "saas_stores";
@@ -27,6 +28,7 @@ interface StoreContextType {
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 export const StoreProvider = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useAuth();
   const [activeStoreId, setActiveStoreIdState] = useState<string>(() => {
     if (isSaaS()) {
       return window.localStorage.getItem("saas_active_store_id") || DEFAULT_STORE_ID;
@@ -49,6 +51,17 @@ export const StoreProvider = ({ children }: { children: React.ReactNode }) => {
       window.localStorage.setItem(STORES_STORAGE_KEY, JSON.stringify(s));
     }
   }, []);
+
+  // Reset in-memory store scope when session ends (logout)
+  useEffect(() => {
+    if (isAuthenticated) return;
+    setStoresState([]);
+    setActiveStoreIdState(DEFAULT_STORE_ID);
+    if (isSaaS() && typeof window !== "undefined") {
+      window.localStorage.removeItem("saas_active_store_id");
+      window.localStorage.removeItem(STORES_STORAGE_KEY);
+    }
+  }, [isAuthenticated]);
 
   // When we have stores but activeStoreId is invalid, set it to the first store
   useEffect(() => {

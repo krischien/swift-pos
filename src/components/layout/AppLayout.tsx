@@ -23,6 +23,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { isSaaS } from "@/config/appMode";
 import NotificationBanner from "@/components/NotificationBanner";
 import TrialBanner from "@/components/TrialBanner";
+import { UserAccountMenu } from "@/components/layout/UserAccountMenu";
 
 const AppLayout = () => {
   const { user, logout } = useAuth();
@@ -32,8 +33,9 @@ const AppLayout = () => {
   const activeStore = stores.find((s) => s.id === activeStoreId) || stores[0];
 
   const handleLogout = () => {
+    setMobileMenuOpen(false);
     logout();
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
   const navItems = [
@@ -80,8 +82,8 @@ const AppLayout = () => {
   return (
     <div className="min-h-screen flex bg-background">
       {/* Desktop/Tablet Sidebar - hidden on mobile, use Sheet instead */}
-      <aside className="hidden lg:flex w-64 bg-sidebar border-r flex-col shrink-0">
-        <div className="p-4 border-b">
+      <aside className="hidden lg:flex w-64 h-screen sticky top-0 bg-sidebar border-r flex-col shrink-0">
+        <div className="p-4 border-b shrink-0">
           <div className="flex items-center">
             <img src="/favico.png" alt="QuickScale" className="w-14 h-14" />
             <div className="min-w-0 flex-1">
@@ -98,23 +100,12 @@ const AppLayout = () => {
           )}
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 min-h-0 p-4 space-y-1 overflow-y-auto">
           <NavLinks />
         </nav>
 
-        <div className="p-4 border-t">
-          <div className="mb-4 px-4 py-3 bg-sidebar-accent rounded-lg">
-            <p className="text-sm font-medium">{user?.name}</p>
-            <p className="text-xs text-muted-foreground">{user?.email}</p>
-          </div>
-          <Button
-            variant="outline"
-            className="w-full justify-start gap-3"
-            onClick={handleLogout}
-          >
-            <LogOut className="w-4 h-4" />
-            Logout
-          </Button>
+        <div className="p-4 border-t shrink-0 bg-sidebar">
+          <UserAccountMenu onLogout={handleLogout} menuSide="top" />
         </div>
       </aside>
 
@@ -126,8 +117,8 @@ const AppLayout = () => {
               <Menu className="w-6 h-6" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-64 p-0">
-            <div className="p-6 border-b">
+          <SheetContent side="left" className="w-64 p-0 flex flex-col">
+            <div className="p-6 border-b shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
                   <img src="/favico.png" alt="QuickScale" className="w-6 h-6" />
@@ -146,23 +137,12 @@ const AppLayout = () => {
               )}
             </div>
 
-            <nav className="flex-1 p-4 space-y-1">
+            <nav className="flex-1 min-h-0 p-4 space-y-1 overflow-y-auto">
               <NavLinks mobile />
             </nav>
 
-            <div className="p-4 border-t">
-              <div className="mb-4 px-4 py-3 bg-sidebar-accent rounded-lg">
-                <p className="text-sm font-medium">{user?.name}</p>
-                <p className="text-xs text-muted-foreground">{user?.email}</p>
-              </div>
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-3"
-                onClick={handleLogout}
-              >
-                <LogOut className="w-4 h-4" />
-                Logout
-              </Button>
+            <div className="p-4 border-t shrink-0 mt-auto">
+              <UserAccountMenu onLogout={handleLogout} menuSide="top" />
             </div>
           </SheetContent>
         </Sheet>
@@ -179,6 +159,16 @@ const AppLayout = () => {
             </>
           )}
         </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="shrink-0"
+          onClick={handleLogout}
+          aria-label="Logout"
+          title="Logout"
+        >
+          <LogOut className="w-5 h-5" />
+        </Button>
       </div>
 
       {/* Main Content */}

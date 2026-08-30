@@ -5,8 +5,8 @@ import { isSaaS } from "@/config/appMode";
 import {
   saasLogin,
   setSaasToken,
-  clearSaasToken,
 } from "@/lib/saasAuth";
+import { clearClientSession, hasActiveClientSession } from "@/lib/session";
 
 export interface LoginResult {
   user: User;
@@ -32,10 +32,7 @@ const getStoredUser = (): User | null => {
   if (typeof window === "undefined") {
     return null;
   }
-  if (isSaaS()) {
-    const token = window.localStorage.getItem("saas_token");
-    if (!token) return null;
-  }
+  if (!hasActiveClientSession()) return null;
   const raw = window.localStorage.getItem(USER_STORAGE_KEY);
   if (!raw) {
     return null;
@@ -117,13 +114,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = () => {
-    if (isSaaS()) {
-      clearSaasToken();
-    }
+    clearClientSession();
     setUser(null);
     setOrganization(null);
-    persistUser(null);
-    persistOrganization(null);
   };
 
   const setUserFromAuth = (u: User) => {

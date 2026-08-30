@@ -9,6 +9,7 @@ import { useStore } from "@/contexts/StoreContext";
 import { useToast } from "@/hooks/use-toast";
 import { isSaaS } from "@/config/appMode";
 import { showLoginQuickDemo } from "@/config/loginDemo";
+import { hasActiveClientSession } from "@/lib/session";
 
 // SaaS demo credentials for quick-login only (super-admin is never quick-login)
 const DEMO_CREDENTIALS = {
@@ -32,6 +33,7 @@ const Login = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    if (!hasActiveClientSession()) return;
     if (isAuthenticated && user) {
       navigate(user.role === "super_admin" ? "/admin" : "/pos", { replace: true });
     }
@@ -74,12 +76,12 @@ const Login = () => {
     } catch (error: unknown) {
       console.error("Login error caught in component:", error);
       const msg = error instanceof Error ? error.message : "Invalid credentials";
-      const isNetworkError = /failed to fetch|network|connection/i.test(msg);
+      const isNetworkError = /failed to fetch|network|connection|proxy error|econnrefused/i.test(msg);
       toast({
         variant: "destructive",
         title: "Login failed",
         description: isNetworkError && isSaaS()
-          ? `${msg}. Ensure the API server is running (npm run start:mobile) and reachable from this device.`
+          ? "Cannot reach the API server. Run npm run start:saas (or npm run dev:saas in a second terminal) and try again."
           : msg,
       });
     }
