@@ -19,6 +19,7 @@
     "prisma:migrate:saas": "prisma migrate dev --schema=prisma-saas/schema.prisma",
     "prisma:migrate:saas:dev": "prisma migrate dev --schema=prisma-saas/schema.dev.prisma",
     "prisma:push:saas:dev": "prisma db push --schema=prisma-saas/schema.dev.prisma",
+    "prisma:push:saas:pg": "prisma db push --schema=prisma-saas/schema.pg.prisma",
     "prisma:generate:saas": "prisma generate --schema=prisma-saas/schema.prisma",
     "prisma:generate:saas:dev": "prisma generate --schema=prisma-saas/schema.dev.prisma",
     "saas:seed": "tsx server/saas/seed.ts",
@@ -34,7 +35,7 @@
     "cap:sync:solo": "npm run build:solo && npx cap sync android",
     "cap:sync:saas": "npm run build:saas && npx cap sync android",
     "cap:open": "npx cap open android",
-    "vercel:build": "npm run build:saas && npx prisma generate --schema=prisma-saas/schema.pg.prisma && npm run build:api",
+    "vercel:build": "npm run build:saas && npx prisma db push --schema=prisma-saas/schema.pg.prisma && npx prisma generate --schema=prisma-saas/schema.pg.prisma && npm run build:api",
     "vercel:build:assets": "npm run build:saas && npm run build:api",
     "build:api": "npx esbuild server/saas/index.ts --bundle --platform=node --format=cjs --outfile=api/index.cjs --packages=external"
   },

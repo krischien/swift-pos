@@ -1,5 +1,6 @@
 import { Capacitor } from "@capacitor/core";
 import { getDatabase, resetDatabaseConnection } from "./mobileDb";
+import { APP_NAME } from "@/config/brand";
 
 const DB_NAME = "quickpos";
 
@@ -95,7 +96,7 @@ export async function exportMobileBackup(): Promise<void> {
     // Share the file
     await Share.share({
       title: "Database Backup",
-      text: "QuickScale Database Backup",
+      text: `${APP_NAME} Database Backup`,
       url: fileUri.uri,
       dialogTitle: "Share Database Backup",
     });

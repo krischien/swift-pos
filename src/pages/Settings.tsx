@@ -41,6 +41,7 @@ import {
 } from "@/lib/mobileBackup";
 import { useAuth } from "@/contexts/AuthContext";
 import { adminApi } from "@/lib/saasAdminApi";
+import { APP_NAME } from "@/config/brand";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -422,7 +423,7 @@ const Settings = () => {
       const result = await adminApi.seedDemo();
       toast({
         title: "Demo data seeded",
-        description: `Created ${result.orgName} with ${result.storeCount} stores and ${result.salesCount} sales. Log in with owner@demo.com, maria@demo.com, or juan@demo.com (password: ${result.password})`,
+        description: `Created ${result.orgName} with ${result.storeCount} stores and ${result.salesCount} sales. Log in with owner@demo.com, maria@demo.com, juan@demo.com, or cashier@demo.com (password: ${result.password})`,
       });
     } catch (e: any) {
       toast({
@@ -450,7 +451,7 @@ const Settings = () => {
               Demo Data
             </CardTitle>
             <CardDescription>
-              Seed a Demo Organization with 2 stores, sample products, and 10 days of sales history. Useful for demos and testing.
+              Seed a Demo Organization with 3 stores (sari-sari, pet shop, cafe), realistic inventory with low/out-of-stock items, and 100 sales per store over the last 30 days.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -491,7 +492,7 @@ const Settings = () => {
                 <Label htmlFor="store-name">Store name</Label>
                 <Input
                   id="store-name"
-                  placeholder="QuickScale"
+                  placeholder={APP_NAME}
                   value={storeName}
                   onChange={(e) => setStoreName(e.target.value)}
                 />

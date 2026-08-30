@@ -1,6 +1,6 @@
 # Android Deployment Guide
 
-Checklist for building and deploying QuickScale POS to the Google Play Store.
+Checklist for building and deploying SwiftPOS to the Google Play Store.
 
 ## Prerequisites
 

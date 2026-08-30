@@ -1,5 +1,6 @@
 import { Capacitor } from "@capacitor/core";
 import EscPosEncoder, { PrinterWidthEnum } from "@manhnd/esc-pos-encoder";
+import { APP_NAME } from "@/config/brand";
 
 export interface PrinterDevice {
   name: string;
@@ -162,7 +163,7 @@ const buildEscPosReceipt = (payload: ReceiptPayload) => {
   encoder.initialize().setPinterType(PrinterWidthEnum._58).codepage("cp437");
 
   encoder.align("center").bold();
-  encoder.line(payload.storeName || "QuickScale");
+  encoder.line(payload.storeName || APP_NAME);
   encoder.bold(false);
   if (payload.storeAddress) {
     encoder.line(payload.storeAddress);
@@ -241,7 +242,7 @@ export const printerService = {
 
   async test(address: string, storeName?: string, storeAddress?: string) {
     await printerService.print(address, {
-      storeName: storeName || "QuickScale",
+      storeName: storeName || APP_NAME,
       storeAddress,
       cashierName: "Test Print",
       ticketNumber: `TEST-${Date.now().toString(36).toUpperCase()}`,

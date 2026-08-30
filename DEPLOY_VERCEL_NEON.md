@@ -1,4 +1,4 @@
-# Deploy QuickScale POS (Demo) to Vercel + Neon
+# Deploy SwiftPOS (Demo) to Vercel + Neon
 
 This guide covers deploying the **SaaS API** to Vercel with Neon PostgreSQL, so the Android app can connect.
 
@@ -18,8 +18,10 @@ Before deploying, apply the schema to your Neon database (run locally with `SAAS
 $env:SAAS_DATABASE_URL = "postgresql://..."   # PowerShell
 # export SAAS_DATABASE_URL="postgresql://..."  # Bash
 
-npx prisma db push --schema=prisma-saas/schema.pg.prisma
+npm run prisma:push:saas:pg
 ```
+
+`vercel:build` also runs `prisma db push` during deploy so schema stays in sync — redeploy after the first manual push if bootstrap still fails.
 
 ## 3. Deploy to Vercel
 

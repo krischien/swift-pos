@@ -19,6 +19,7 @@ import { Capacitor } from "@capacitor/core";
 import { printerService } from "@/lib/printer";
 import { formatCurrency } from "@/lib/currency";
 import { BarcodeCameraScanner } from "@/components/pos/BarcodeCameraScanner";
+import { APP_NAME } from "@/config/brand";
 
 const POS = () => {
   const dataService = useDataLayer();
@@ -387,7 +388,7 @@ const POS = () => {
       )
       .join("") || `<tr><td colspan="4" style="text-align:center;padding:8px 0;">No items</td></tr>`;
 
-    const headerName = storeName || "QuickScale";
+    const headerName = storeName || APP_NAME;
     const headerAddress = storeAddress || "";
     const showLogo = showLogoOnReceipt && receiptLogoUrl;
     const totalDisplay = typeof sale?.total === "number" ? sale.total : fallbackTotals.total;

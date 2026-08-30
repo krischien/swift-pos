@@ -1,10 +1,10 @@
-# QuickScale POS
+# SwiftPOS
 
 A point-of-sale system with multi-store support, inventory management, and reporting. Built for retail, cafes, and small businesses—with offline-first solo mode and cloud-based SaaS mode.
 
 ## Overview
 
-QuickScale POS runs in two modes:
+SwiftPOS runs in two modes:
 
 - **Solo** — Single store, offline-first. Uses a local SQLite database and Express server. Ideal for standalone terminals or mobile devices.
 - **SaaS** — Multi-store, cloud-based. Organizations can have multiple stores, users, and roles. Uses JWT auth and supports SQLite (dev) or PostgreSQL (prod).

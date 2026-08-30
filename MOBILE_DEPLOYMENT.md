@@ -1,6 +1,6 @@
 # Mobile Deployment Guide
 
-This guide covers building and deploying Swift POS (Quick POS) as an Android app.
+This guide covers building and deploying SwiftPOS as an Android app.
 
 ## Prerequisites
 
@@ -114,7 +114,7 @@ The app cannot reach the API server. Check:
 1. **Server running:** Run `npm run start:mobile` on your PC and keep it running.
 2. **Same network:** Phone and PC must be on the same WiFi.
 3. **Firewall (Windows):** Allow port 4001. In PowerShell (Admin):  
-   `netsh advfirewall firewall add rule name="QuickScale API" dir=in action=allow protocol=TCP localport=4001`
+   `netsh advfirewall firewall add rule name="SwiftPOS API" dir=in action=allow protocol=TCP localport=4001`
 4. **Emulator vs device:**  
    - Android emulator: Build with `VITE_SAAS_API_URL=` (empty) to use `10.0.2.2:4001`.  
    - Real device: Set `VITE_SAAS_API_URL=http://YOUR_PC_IP:4001` and rebuild.

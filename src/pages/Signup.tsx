@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useAuth } from "@/contexts/AuthContext";
 import { useStore } from "@/contexts/StoreContext";
 import { useToast } from "@/hooks/use-toast";
+import { APP_NAME } from "@/config/brand";
 
 const Signup = () => {
   const [organizationName, setOrganizationName] = useState("");
@@ -53,7 +54,7 @@ const Signup = () => {
       }
       toast({
         title: "Account created",
-        description: "Welcome! You can now start using QuickScale.",
+        description: `Welcome! You can now start using ${APP_NAME}.`,
       });
       navigate("/pos");
     } catch (error: unknown) {
@@ -71,7 +72,7 @@ const Signup = () => {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <img src="/favico.png" alt="QuickScale" className="w-24 h-24" />
+            <img src="/favico.png" alt={APP_NAME} className="w-24 h-24" />
           </div>
           <CardTitle className="text-3xl font-bold">Create your account</CardTitle>
           <CardDescription>Set up your organization and first store</CardDescription>

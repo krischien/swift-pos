@@ -23,6 +23,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { isSaaS } from "@/config/appMode";
 import NotificationBanner from "@/components/NotificationBanner";
 import TrialBanner from "@/components/TrialBanner";
+import { APP_NAME } from "@/config/brand";
 import { UserAccountMenu } from "@/components/layout/UserAccountMenu";
 
 const AppLayout = () => {
@@ -85,9 +86,9 @@ const AppLayout = () => {
       <aside className="hidden lg:flex w-64 h-screen sticky top-0 bg-sidebar border-r flex-col shrink-0">
         <div className="p-4 border-b shrink-0">
           <div className="flex items-center">
-            <img src="/favico.png" alt="QuickScale" className="w-14 h-14" />
+            <img src="/favico.png" alt={APP_NAME} className="w-14 h-14" />
             <div className="min-w-0 flex-1">
-              <h1 className="font-bold text-lg">QuickScale</h1>
+              <h1 className="font-bold text-lg">{APP_NAME}</h1>
               <p className="text-xs text-muted-foreground truncate" title={activeStore?.name}>
                 {isSaaS() && activeStore ? activeStore.name : user?.role}
               </p>
@@ -121,10 +122,10 @@ const AppLayout = () => {
             <div className="p-6 border-b shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-                  <img src="/favico.png" alt="QuickScale" className="w-6 h-6" />
+                  <img src="/favico.png" alt={APP_NAME} className="w-6 h-6" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h1 className="font-bold text-lg">QuickScale</h1>
+                  <h1 className="font-bold text-lg">{APP_NAME}</h1>
                   <p className="text-xs text-muted-foreground truncate" title={activeStore?.name}>
                     {isSaaS() && activeStore ? activeStore.name : user?.role}
                   </p>
@@ -148,8 +149,8 @@ const AppLayout = () => {
         </Sheet>
 
         <div className="flex-1 flex items-center justify-center gap-2 min-w-0">
-          <img src="/favico.png" alt="QuickScale" className="w-5 h-5 shrink-0" />
-          <span className="font-bold truncate">QuickScale</span>
+          <img src="/favico.png" alt={APP_NAME} className="w-5 h-5 shrink-0" />
+          <span className="font-bold truncate">{APP_NAME}</span>
           {isSaaS() && activeStore && (
             <>
               <span className="text-muted-foreground hidden sm:inline">·</span>
