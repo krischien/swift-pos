@@ -25,5 +25,8 @@ allprojects {
 }
 
 task clean(type: Delete) {
-    delete rootProject.buildDir
+    def buildDir = rootProject.buildDir
+    if (buildDir != null && buildDir.exists()) {
+        delete buildDir
+    }
 }

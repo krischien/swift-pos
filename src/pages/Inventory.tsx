@@ -9,16 +9,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, AlertTriangle, Trash2, Download, ChevronDown, Barcode, QrCode, FileSpreadsheet } from "lucide-react";
+import { Plus, Search, AlertTriangle, Trash2, Download, ChevronDown, ChevronLeft, ChevronRight, Barcode, QrCode, FileSpreadsheet, FileText, Package } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { Capacitor } from "@capacitor/core";
+import { isSaaS } from "@/config/appMode";
+import { getSubscription } from "@/lib/saasSubscriptionApi";
 import { api } from "@/lib/api";
+import { useDataLayer } from "@/contexts/DataLayerContext";
+import { useStore } from "@/contexts/StoreContext";
 import { Category, Product, Variant } from "@/types/pos";
 import { formatCurrency } from "@/lib/currency";
+import { useSettings } from "@/contexts/SettingsContext";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -33,10 +42,37 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { OCRScanDialog } from "@/components/inventory/OCRScanDialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+import {
+  isLowStock,
+  hasZeroStock,
+  outOfStockVariantCount,
+  needsStockAttention,
+} from "@/lib/inventoryStockStatus";
 
 const Inventory = () => {
+  const dataService = useDataLayer();
+  const navigate = useNavigate();
+  const { activeStoreId, stores } = useStore();
+  const isFnb = isSaaS() && stores.find((s) => s.id === activeStoreId)?.businessMode === "fnb";
+  const { data: subscription } = useQuery({
+    queryKey: ["subscription"],
+    queryFn: getSubscription,
+    enabled: isSaaS(),
+    staleTime: 60_000,
+  });
+  const canExcel = !isSaaS() || !!subscription?.features.excelExport;
+
+  useEffect(() => {
+    if (isFnb) navigate("/ingredients", { replace: true });
+  }, [isFnb, navigate]);
+  const { storeName, storeAddress } = useSettings();
   const [search, setSearch] = useState("");
-  const [stockFilter, setStockFilter] = useState<"all" | "lowStock">("all");
+  const [stockFilter, setStockFilter] = useState<"all" | "lowStock" | "outOfStock">("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
@@ -53,6 +89,7 @@ const Inventory = () => {
   const [formSku, setFormSku] = useState("");
   const [formMarginPercentage, setFormMarginPercentage] = useState("");
   const [formImage, setFormImage] = useState("");
+  const [formUnitOfMeasure, setFormUnitOfMeasure] = useState("PCS");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -60,14 +97,15 @@ const Inventory = () => {
   const [variantProduct, setVariantProduct] = useState<Product | null>(null);
   const [variantRows, setVariantRows] = useState<(Variant & { isNew?: boolean })[]>([]);
   const [variantSavingId, setVariantSavingId] = useState<string | null>(null);
+  const [restockDialogOpen, setRestockDialogOpen] = useState(false);
 
   const load = async () => {
     try {
       setLoading(true);
       setError(null);
       const [cats, prods] = await Promise.all([
-        api.getCategories(),
-        api.getProducts(),
+        dataService.getCategories(),
+        dataService.getProducts(),
       ]);
       setCategories(cats as Category[]);
       setProducts(prods as Product[]);
@@ -80,7 +118,7 @@ const Inventory = () => {
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [activeStoreId]);
 
   // Auto-calculate selling price from base price and margin percentage
   useEffect(() => {
@@ -99,14 +137,6 @@ const Inventory = () => {
     }
   }, [formBasePrice, formMarginPercentage]);
 
-  // Helper function to check if product is low in stock
-  const isLowStock = (product: Product): boolean => {
-    const totalStock = product.hasVariants
-      ? product.variants?.reduce((sum, v) => sum + v.stock, 0)
-      : product.stock;
-    return (totalStock || 0) <= product.lowStockThreshold;
-  };
-
   const filtered = products.filter((p) => {
     // Apply search filter
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
@@ -114,12 +144,26 @@ const Inventory = () => {
     
     // Apply stock filter
     if (stockFilter === "lowStock") {
-      return isLowStock(p);
+      return needsStockAttention(p);
+    }
+    if (stockFilter === "outOfStock") {
+      return hasZeroStock(p);
     }
     return true; // "all" - show all products
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedItems = filtered.slice(startIndex, startIndex + itemsPerPage);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
   
-  // Calculate low stock count (from all products, not filtered)
+  // Calculate counts (from all products) - low stock excludes out of stock
+  const outOfStockCount = products.filter((product) => hasZeroStock(product)).length;
   const lowStockCount = products.filter((product) => isLowStock(product)).length;
   
   const isEditing = !!editingProduct;
@@ -134,6 +178,7 @@ const Inventory = () => {
     setFormLowStock("");
     setFormMarginPercentage("0");
     setFormImage("");
+    setFormUnitOfMeasure("PCS");
     // Generate a simple item code we can later use for QR codes
     const code = `ITM-${Date.now().toString(36).toUpperCase().slice(-6)}`;
     setFormItemCode(code);
@@ -160,6 +205,7 @@ const Inventory = () => {
     setFormSku(product.sku ?? "");
     setFormMarginPercentage(product.marginPercentage?.toString() ?? "0");
     setFormImage(product.image ?? "");
+    setFormUnitOfMeasure(product.unitOfMeasure ?? "PCS");
     setFormError(null);
     setFormOpen(true);
   };
@@ -186,12 +232,13 @@ const Inventory = () => {
         lowStockThreshold: formLowStock ? parseInt(formLowStock, 10) : undefined,
         marginPercentage: formMarginPercentage ? parseFloat(formMarginPercentage) : undefined,
         image: formImage || undefined,
+        unitOfMeasure: formUnitOfMeasure || "PCS",
       };
 
       if (isEditing && editingProduct) {
-        await api.updateProduct(editingProduct.id, basePayload);
+        await dataService.updateProduct(editingProduct.id, basePayload);
       } else {
-        await api.createProduct({
+        await dataService.createProduct({
           ...basePayload,
           hasVariants: false,
           status: "active",
@@ -210,6 +257,7 @@ const Inventory = () => {
       setFormSku("");
       setFormMarginPercentage("");
       setFormImage("");
+      setFormUnitOfMeasure("PCS");
 
       await load();
     } catch (e: any) {
@@ -227,7 +275,7 @@ const Inventory = () => {
 
     try {
       setDeletingId(product.id);
-      await api.deleteProduct(product.id);
+      await dataService.deleteProduct(product.id);
       // Optimistically update table so the row disappears immediately
       setProducts((prev) => prev.filter((p) => p.id !== product.id));
       // Optionally re-load from server in background to stay in sync
@@ -239,11 +287,65 @@ const Inventory = () => {
     }
   };
 
+  const handleImportItems = async (items: Array<{
+    name: string;
+    categoryId: string;
+    itemCode: string;
+    hasVariants: boolean;
+    basePrice?: number;
+    price?: number;
+    stock?: number;
+    lowStockThreshold?: number;
+    marginPercentage?: number;
+    status: "active";
+    unitOfMeasure?: string;
+  }>) => {
+    try {
+      setLoading(true);
+      for (const item of items) {
+        await dataService.createProduct(item);
+      }
+      await load();
+      alert(`Successfully imported ${items.length} items`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to import";
+      alert(`Failed to import items: ${msg}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRestockProduct = async (productId: string, quantity: number, variantId?: string) => {
+    try {
+      const product = products.find((p) => p.id === productId);
+      if (!product) return;
+
+      if (variantId && product.hasVariants && product.variants) {
+        const variant = product.variants.find((v) => v.id === variantId);
+        if (variant) {
+          await dataService.updateVariant(variantId, {
+            stock: (variant.stock || 0) + quantity,
+          });
+        }
+      } else {
+        const currentStock = product.stock || 0;
+        await dataService.updateProduct(productId, {
+          stock: currentStock + quantity,
+        });
+      }
+
+      await load();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to restock";
+      alert(`Failed to restock: ${msg}`);
+    }
+  };
+
   const openVariantDialog = async (product: Product) => {
     setVariantProduct(product);
     setVariantDialogOpen(true);
     try {
-      const variants = (await api.getVariants(product.id)) as Variant[];
+      const variants = (await dataService.getVariants(product.id)) as Variant[];
       setVariantRows(variants);
     } catch (_e) {
       // Fallback to existing variants on product if API fails
@@ -279,7 +381,7 @@ const Inventory = () => {
     try {
       setVariantSavingId(row.id);
       if (row.isNew) {
-        const created = (await api.createVariant(variantProduct.id, {
+        const created = (await dataService.createVariant(variantProduct.id, {
           name: row.name,
           price: row.price,
           stock: row.stock,
@@ -288,7 +390,7 @@ const Inventory = () => {
           rows.map((r) => (r.id === row.id ? { ...created } : r)),
         );
       } else {
-        const updated = (await api.updateVariant(row.id, {
+        const updated = (await dataService.updateVariant(row.id, {
           name: row.name,
           price: row.price,
           stock: row.stock,
@@ -318,7 +420,7 @@ const Inventory = () => {
 
     try {
       setVariantSavingId(row.id);
-      await api.deleteVariant(row.id);
+      await dataService.deleteVariant(row.id);
       setVariantRows((rows) => rows.filter((r) => r.id !== row.id));
       void load();
     } catch (e: any) {
@@ -391,8 +493,8 @@ const Inventory = () => {
   const handleExportLowStockList = async () => {
     const XLSX = await import("xlsx");
     
-    // Filter products that are low in stock
-    const lowStockProducts = products.filter((product) => isLowStock(product));
+    // Filter products that need stock attention (low or zero)
+    const lowStockProducts = products.filter((product) => needsStockAttention(product));
     
     if (lowStockProducts.length === 0) {
       alert("No low stock items found.");
@@ -745,6 +847,230 @@ const Inventory = () => {
     }
   };
 
+  const handleExportBIRInventory = async (format: "xlsx" | "pdf" = "xlsx") => {
+    const currentYear = new Date().getFullYear();
+    const inventoryDate = `${currentYear}-12-31`;
+    const companyName = storeName?.trim() || "";
+    const companyAddress = storeAddress?.trim() || "";
+
+    // PDF is server-only; XLSX can fallback to client-side on mobile
+    const useApi = !Capacitor.isNativePlatform() || format === "pdf";
+    if (useApi) {
+      try {
+        const blob = await api.getBirInventoryReport({
+          companyName,
+          tin: "",
+          address: companyAddress,
+          inventoryDate,
+          format,
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `BIR-Inventory-Report-${currentYear}.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        return;
+      } catch (_apiError) {
+        if (format === "pdf") {
+          alert("PDF export requires server connection. Please ensure the server is running.");
+          return;
+        }
+        // Fallback to client-side XLSX
+      }
+    }
+
+    // Client-side XLSX fallback (mobile or when server unavailable)
+    try {
+      const productsData = await dataService.getProducts();
+      const productsArr = productsData as Product[];
+
+      if (productsArr.length === 0) {
+        alert("No inventory items found to export.");
+        return;
+      }
+
+      const rows: any[] = [];
+      let grandTotal = 0;
+
+      for (const product of productsArr) {
+        const unitOfMeasure = product.unitOfMeasure || "PCS";
+        const unitPrice = product.basePrice || product.price || 0;
+        const locationAddr = companyAddress || "";
+
+        if (product.hasVariants && product.variants?.length) {
+          for (const variant of product.variants) {
+            const qty = variant.stock || 0;
+            const totalCost = unitPrice * qty;
+            grandTotal += totalCost;
+            rows.push({
+              "PRODUCT / INVENTORY CODE": product.itemCode || product.sku || "",
+              "ITEM DESCRIPTION": `${product.name} - ${variant.name}`,
+              "LOCATION - ADDRESS": locationAddr,
+              "LOCATION - CODE": "",
+              "LOCATION - REMARKS": "",
+              "INVENTORY VALUATION METHOD": "FIFO",
+              "UNIT PRICE": unitPrice,
+              "QUANTITY IN STOCKS": qty,
+              "UNIT OF MEASUREMENT": unitOfMeasure,
+              "TOTAL WEIGHT / VOLUME": "",
+              "TOTAL COST": totalCost,
+            });
+          }
+        } else {
+          const qty = product.stock || 0;
+          const totalCost = unitPrice * qty;
+          grandTotal += totalCost;
+          rows.push({
+            "PRODUCT / INVENTORY CODE": product.itemCode || product.sku || "",
+            "ITEM DESCRIPTION": product.name,
+            "LOCATION - ADDRESS": locationAddr,
+            "LOCATION - CODE": "",
+            "LOCATION - REMARKS": "",
+            "INVENTORY VALUATION METHOD": "FIFO",
+            "UNIT PRICE": unitPrice,
+            "QUANTITY IN STOCKS": qty,
+            "UNIT OF MEASUREMENT": unitOfMeasure,
+            "TOTAL WEIGHT / VOLUME": "",
+            "TOTAL COST": totalCost,
+          });
+        }
+      }
+
+      const XLSX = await import("xlsx");
+      const pad = (arr: any[], len = 11) => [...arr, ...Array(Math.max(0, len - arr.length)).fill("")];
+      const sheetData: any[][] = [];
+
+      sheetData.push(pad(["For Retail / Manufacturing Industry"]));
+      sheetData.push(pad([]));
+      sheetData.push(pad([], 14)); // row3 - ANNEX A in col N (index 13)
+      sheetData[2][13] = "ANNEX A";
+      sheetData.push(pad([]));
+      const row5 = pad([]);
+      row5[5] = companyName;
+      sheetData.push(row5);
+      const row6 = pad([]);
+      row6[4] = "MERCHANDISE/ RAW MATERIALS/GOODS IN PROCESS / FINISHED GOODS INVENTORY";
+      sheetData.push(row6);
+      const row7 = pad([]);
+      row7[5] = `As of December 31, ${currentYear}`;
+      sheetData.push(row7);
+      sheetData.push(pad([]));
+      sheetData.push([
+        "PRODUCT / INVENTORY CODE",
+        "ITEM DESCRIPTION",
+        "LOCATION (Note 1)",
+        "",
+        "",
+        "INVENTORY VALUATION METHOD (Note 2)",
+        "UNIT PRICE",
+        "QUANTITY IN STOCKS",
+        "UNIT OF MEASUREMENT",
+        "",
+        "TOTAL COST",
+      ]);
+      sheetData.push([
+        "",
+        "",
+        "ADDRESS",
+        "CODE",
+        "REMARKS",
+        "",
+        "",
+        "",
+        "(In weight or volume e.g., kilos, grams, liters, etc.)",
+        "TOTAL WEIGHT / VOLUME",
+        "",
+      ]);
+      sheetData.push([]);
+
+      for (const row of rows) {
+        sheetData.push([
+          row["PRODUCT / INVENTORY CODE"],
+          row["ITEM DESCRIPTION"],
+          row["LOCATION - ADDRESS"],
+          row["LOCATION - CODE"],
+          row["LOCATION - REMARKS"],
+          row["INVENTORY VALUATION METHOD"],
+          row["UNIT PRICE"],
+          row["QUANTITY IN STOCKS"],
+          row["UNIT OF MEASUREMENT"],
+          row["TOTAL WEIGHT / VOLUME"],
+          row["TOTAL COST"],
+        ]);
+      }
+
+      // Total row
+      sheetData.push([
+        "TOTAL",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        grandTotal,
+      ]);
+      sheetData.push(pad([]));
+      // Note a: A="Note a", B="a", C-K=paragraph (reference layout - NOT all in column A)
+      const note1a =
+        "Include all goods whether taxpayer has title thereto or not, provided these goods are actually situated in location/address at the Head Office or Branch or Facilities (with or without sales activity of the taxpayer). Facilities shall include but not limited to place of production, showroom, warehouse, storage place, leased property, etc. Include also goods out on consignment, though not physically present are nonetheless owned by the taxpayer.";
+      sheetData.push(["Note a", "a", note1a, "", "", "", "", "", "", "", ""]);
+      // Note b: A=empty, B="b", C-K="Use the following codes:"
+      sheetData.push(["", "b", "Use the following codes:", "", "", "", "", "", "", "", ""]);
+      // Note 1b rows: A=empty, B=empty, C=code, D-E=desc, G-K=remark
+      sheetData.push(["", "", "CH", "Goods on consignment held by the taxpayer", "", "", "Indicate the name of the consignor in the Remarks column", "", "", "", ""]);
+      sheetData.push(["", "", "P", "Parked goods or goods owned by related parties", "", "", "Indicate the name of related party/owner in the Remarks column", "", "", "", ""]);
+      sheetData.push(["", "", "O", "Goods owned by the taxpayer", "", "", "", "", "", "", ""]);
+      sheetData.push(["", "", "CO", "Goods out on consignment held in the hands of entity other than taxpayer", "", "", "Indicate the name of the entity in the Remarks column", "", "", "", ""]);
+      // Note 2: A="Note 2", B=empty, C-K=text
+      sheetData.push(["Note 2", "", "Indicate costing method applied, e.g., Standard Costing, FIFO, Weighted Average, Specific Identification, etc.", "", "", "", "", "", "", "", ""]);
+      sheetData.push(pad([]));
+      // Signature block: B-K=declaration, F-J=signature line + labels (reference layout)
+      const declaration =
+        "We declare, under the penalties of perjury, that this schedule has been made in good faith, verified by us, and to the best of our knowledge and belief, is true and correct pursuant to the provisions of the National Internal Revenue Code, as amended, and the regulations issued under authority thereof.";
+      sheetData.push(["", declaration, "", "", "", "", "", "", "", "", ""]);
+      sheetData.push(["", "", "", "", "", "_________________________", "", "", "", "", ""]);
+      sheetData.push(["", "", "", "", "", "Name and Signature of Authorized Representative", "", "", "", "", ""]);
+      sheetData.push(["", "", "", "", "", "TIN: _________________________", "", "", "", "", ""]);
+
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+      ws["!cols"] = [
+        { wch: 20 },
+        { wch: 30 },
+        { wch: 25 },
+        { wch: 15 },
+        { wch: 20 },
+        { wch: 25 },
+        { wch: 12 },
+        { wch: 18 },
+        { wch: 20 },
+        { wch: 18 },
+        { wch: 15 },
+      ];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "ANNEX A");
+      const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([wbout], { type: "application/octet-stream" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `BIR-Inventory-Report-${currentYear}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      console.error("BIR Export Error:", e);
+      alert(e.message ?? "Failed to export BIR inventory report");
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -752,7 +1078,110 @@ const Inventory = () => {
           <h1 className="text-3xl font-bold">Inventory Management</h1>
           <p className="text-muted-foreground">Manage your products and stock levels</p>
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
+        <div className="flex gap-2 w-full md:w-auto flex-wrap">
+          <OCRScanDialog categories={categories} onImport={handleImportItems} />
+          <Dialog open={restockDialogOpen} onOpenChange={setRestockDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2 flex-1 md:flex-none">
+                <Package className="w-4 h-4" />
+                Restock
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[90vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle>Restock Products</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 overflow-y-auto flex-1 pr-2">
+                <p className="text-sm text-muted-foreground">
+                  Select products to restock. Enter the quantity to add to current stock.
+                </p>
+                <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                  {products
+                    .filter((p) => p.status === "active")
+                    .flatMap((product) => {
+                      if (product.hasVariants && product.variants && product.variants.length > 0) {
+                        return product.variants.map((variant) => ({
+                          id: variant.id,
+                          productId: product.id,
+                          variantId: variant.id,
+                          name: `${product.name} (${variant.name})`,
+                          stock: variant.stock || 0,
+                          lowStockThreshold: product.lowStockThreshold,
+                          isVariant: true,
+                        }));
+                      }
+                      return [{
+                        id: product.id,
+                        productId: product.id,
+                        variantId: undefined as string | undefined,
+                        name: product.name,
+                        stock: product.stock || 0,
+                        lowStockThreshold: product.lowStockThreshold,
+                        isVariant: false,
+                      }];
+                    })
+                    .sort((a, b) => {
+                      const aLow = a.stock <= a.lowStockThreshold;
+                      const bLow = b.stock <= b.lowStockThreshold;
+                      if (aLow && !bLow) return -1;
+                      if (!aLow && bLow) return 1;
+                      return 0;
+                    })
+                    .map((item) => {
+                      const isLow = item.stock <= item.lowStockThreshold;
+                      return (
+                        <div key={item.id} className="flex items-center gap-4 p-3 border rounded-lg">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className={cn("font-medium", isLow && "text-destructive")}>{item.name}</p>
+                              {isLow && <AlertTriangle className="w-4 h-4 text-destructive" />}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              Current Stock: {item.stock}
+                            </p>
+                          </div>
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder="Qty to add"
+                            className="w-32"
+                            id={`restock-${item.id}`}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                const input = e.currentTarget;
+                                const qty = parseInt(input.value, 10) || 0;
+                                if (qty > 0) {
+                                  handleRestockProduct(item.productId, qty, item.variantId);
+                                  input.value = "";
+                                }
+                              }
+                            }}
+                          />
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              const input = document.getElementById(`restock-${item.id}`) as HTMLInputElement | null;
+                              const qty = parseInt(input?.value || "0", 10) || 0;
+                              if (qty > 0) {
+                                handleRestockProduct(item.productId, qty, item.variantId);
+                                if (input) input.value = "";
+                              }
+                            }}
+                          >
+                            Add
+                          </Button>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-4 border-t mt-4">
+                <Button variant="outline" onClick={() => setRestockDialogOpen(false)}>
+                  Close
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="flex-1 md:flex-none">
@@ -762,13 +1191,21 @@ const Inventory = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExportProductList}>
+              <DropdownMenuItem onClick={handleExportProductList} disabled={!canExcel}>
                 <FileSpreadsheet className="w-4 h-4 mr-2" />
-                Product List
+                Product List{!canExcel ? " (Negosyo+)" : ""}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportLowStockList}>
+              <DropdownMenuItem onClick={() => handleExportBIRInventory("xlsx")} disabled={!canExcel}>
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                BIR Inventory Report (XLSX){!canExcel ? " (Negosyo+)" : ""}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExportBIRInventory("pdf")}>
+                <FileText className="w-4 h-4 mr-2" />
+                BIR Inventory Report (PDF)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportLowStockList} disabled={!canExcel}>
                 <AlertTriangle className="w-4 h-4 mr-2" />
-                Low Stock List
+                Low Stock List{!canExcel ? " (Negosyo+)" : ""}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleExportBarcodeList}>
                 <Barcode className="w-4 h-4 mr-2" />
@@ -781,7 +1218,7 @@ const Inventory = () => {
             </DropdownMenuContent>
           </DropdownMenu>
           <Dialog open={formOpen} onOpenChange={setFormOpen}>
-            <Button className="gap-2 flex-1 md:flex-none" onClick={openAddDialog}>
+            <Button className="gap-2 flex-1 md:flex-none" onClick={openAddDialog} data-testid="inventory-add">
               <Plus className="w-4 h-4" />
               Add Product
             </Button>
@@ -804,6 +1241,15 @@ const Inventory = () => {
                     onChange={(e) => setFormSku(e.target.value)}
                     placeholder="Stock Keeping Unit"
                   />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Unit of Measure</p>
+                  <Input
+                    value={formUnitOfMeasure}
+                    onChange={(e) => setFormUnitOfMeasure(e.target.value)}
+                    placeholder="PCS, KLS, etc."
+                  />
+                  <p className="text-xs text-muted-foreground">e.g., PCS, KLS, BOX, BTL</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Name</p>
@@ -956,7 +1402,7 @@ const Inventory = () => {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm">
-              View: {stockFilter === "all" ? "All" : "Low Stock"}
+              View: {stockFilter === "all" ? "All" : stockFilter === "outOfStock" ? "Out of Stock" : "Low Stock"}
               <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -964,18 +1410,96 @@ const Inventory = () => {
             <DropdownMenuItem onClick={() => setStockFilter("all")}>
               All
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setStockFilter("outOfStock")}>
+              Out of Stock
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setStockFilter("lowStock")}>
               Low Stock
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <div className="text-sm font-medium text-red-600">
-          Items Low in Stock: {lowStockCount}
+        <div className="flex gap-4 text-sm font-medium">
+          <span className="text-slate-600">Out of Stock: {outOfStockCount}</span>
+          <span className="text-amber-600">Low Stock: {lowStockCount - outOfStockCount}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Per page:</span>
+          <Select value={String(itemsPerPage)} onValueChange={(v) => { setItemsPerPage(Number(v)); setCurrentPage(1); }}>
+            <SelectTrigger className="w-20 h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[5, 10, 25, 50, 100].map((n) => (
+                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
       <div className="space-y-4">
-        {loading && <p className="text-sm text-muted-foreground">Loading inventory...</p>}
+        {loading && (
+          <>
+            {/* Desktop skeleton */}
+            <div className="hidden md:block rounded-lg border bg-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product Name</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Variants</TableHead>
+                    <TableHead>Stock</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-14" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            {/* Mobile skeleton */}
+            <div className="grid grid-cols-1 gap-4 md:hidden">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-card rounded-lg border p-4 space-y-3 shadow-sm">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </div>
+                    <Skeleton className="h-5 w-14" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Skeleton className="h-3 w-12" />
+                      <Skeleton className="h-4 w-16" />
+                    </div>
+                    <div className="space-y-1">
+                      <Skeleton className="h-3 w-12" />
+                      <Skeleton className="h-4 w-12" />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2 border-t">
+                    <Skeleton className="h-8 w-12" />
+                    <Skeleton className="h-8 w-16" />
+                    <Skeleton className="h-8 w-8" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
         {error && !loading && (
           <p className="text-sm text-destructive">Failed to load: {error}</p>
         )}
@@ -996,12 +1520,19 @@ const Inventory = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((product) => {
+                  {paginatedItems.map((product) => {
                     const category = categories.find((c) => c.id === product.categoryId);
                     const totalStock = product.hasVariants
-                      ? product.variants?.reduce((sum, v) => sum + v.stock, 0)
+                      ? product.variants?.reduce((sum, v) => sum + (v.stock ?? 0), 0)
                       : product.stock;
-                    const isLowStock = (totalStock || 0) <= product.lowStockThreshold;
+                    const hasZeroStockVariant = product.hasVariants && product.variants
+                      ? product.variants.some((v) => (v.stock ?? 0) <= 0)
+                      : (product.stock ?? 0) <= 0;
+                    const isProductLowStock = isLowStock(product);
+                    const outCount = outOfStockVariantCount(product);
+                    const stockStatusText = hasZeroStockVariant && (totalStock ?? 0) > 0 && outCount > 0
+                      ? `${totalStock} in stock (${outCount} variant${outCount === 1 ? "" : "s"} out)`
+                      : null;
 
                     return (
                       <TableRow key={product.id}>
@@ -1016,10 +1547,15 @@ const Inventory = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            {isLowStock && (
+                            {hasZeroStockVariant && (
                               <AlertTriangle className="w-4 h-4 text-destructive" />
                             )}
-                            <span className={isLowStock ? "text-destructive font-semibold" : ""}>
+                            {isProductLowStock && !hasZeroStockVariant && (
+                              <AlertTriangle className="w-4 h-4 text-destructive" />
+                            )}
+                            <span className={cn(
+                              (isProductLowStock || hasZeroStockVariant) && "text-destructive font-semibold"
+                            )}>
                               {totalStock}
                             </span>
                           </div>
@@ -1029,9 +1565,22 @@ const Inventory = () => {
                           {product.hasVariants && "+"}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={product.status === "active" ? "default" : "secondary"}>
-                            {product.status}
-                          </Badge>
+                          <div className="flex flex-row items-center gap-1">
+                            {hasZeroStockVariant ? (
+                              <Badge className="bg-slate-600 hover:bg-slate-600 text-white border-slate-600">Disabled</Badge>
+                            ) : (
+                              <Badge className={product.status === "active" ? "bg-emerald-600 hover:bg-emerald-600 text-white border-emerald-600" : "bg-secondary text-secondary-foreground"}>
+                                {product.status}
+                              </Badge>
+                            )}
+                            {hasZeroStockVariant ? (
+                              <Badge className="bg-slate-500 hover:bg-slate-500 text-white border-slate-500">
+                                {stockStatusText ?? "Out of Stock"}
+                              </Badge>
+                            ) : isProductLowStock ? (
+                              <Badge className="bg-amber-500 hover:bg-amber-500 text-white border-amber-500">Low Stock</Badge>
+                            ) : null}
+                          </div>
                         </TableCell>
                         <TableCell className="text-right space-x-1">
                           <Button
@@ -1065,25 +1614,87 @@ const Inventory = () => {
               </Table>
             </div>
 
+            {filtered.length > 0 && (
+              <div className="flex items-center justify-center gap-2 py-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((p) => p === 1 || p === totalPages || (p >= currentPage - 2 && p <= currentPage + 2))
+                    .map((p, idx, arr) => (
+                      <span key={p} className="flex items-center gap-1">
+                        {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1">…</span>}
+                        <Button
+                          variant={currentPage === p ? "default" : "outline"}
+                          size="sm"
+                          className="min-w-8 h-8 p-0"
+                          onClick={() => setCurrentPage(p)}
+                        >
+                          {p}
+                        </Button>
+                      </span>
+                    ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
             {/* Mobile View */}
             <div className="grid grid-cols-1 gap-4 md:hidden">
-              {filtered.map((product) => {
+              {paginatedItems.map((product) => {
                 const category = categories.find((c) => c.id === product.categoryId);
                 const totalStock = product.hasVariants
-                  ? product.variants?.reduce((sum, v) => sum + v.stock, 0)
+                  ? product.variants?.reduce((sum, v) => sum + (v.stock ?? 0), 0)
                   : product.stock;
-                const isLowStock = (totalStock || 0) <= product.lowStockThreshold;
+                const hasZeroStockVariant = product.hasVariants && product.variants
+                  ? product.variants.some((v) => (v.stock ?? 0) <= 0)
+                  : (product.stock ?? 0) <= 0;
+                const isProductLowStock = isLowStock(product);
+                const showRestock = totalStock <= 0 || hasZeroStockVariant;
+                const showDisabled = totalStock <= 0 || hasZeroStockVariant;
+                const outCount = outOfStockVariantCount(product);
+                const stockStatusText = hasZeroStockVariant && (totalStock ?? 0) > 0 && outCount > 0
+                  ? `${totalStock} in stock (${outCount} variant${outCount === 1 ? "" : "s"} out)`
+                  : null;
 
                 return (
                   <div key={product.id} className="bg-card rounded-lg border p-4 space-y-3 shadow-sm">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-semibold">{product.name}</h3>
+                        <h3 className={cn("font-semibold", (isProductLowStock || showRestock) && "text-destructive")}>
+                          {product.name}
+                        </h3>
                         <p className="text-sm text-muted-foreground">{category?.name}</p>
                       </div>
-                      <Badge variant={product.status === "active" ? "default" : "secondary"}>
-                        {product.status}
-                      </Badge>
+                      <div className="flex flex-row items-center gap-1">
+                        {showDisabled ? (
+                          <Badge className="bg-slate-600 hover:bg-slate-600 text-white h-5 text-[10px] px-1">Disabled</Badge>
+                        ) : (
+                          <Badge className={product.status === "active" ? "bg-emerald-600 hover:bg-emerald-600 text-white border-emerald-600 h-5 text-[10px] px-1" : "bg-secondary text-secondary-foreground h-5 text-[10px] px-1"}>
+                            {product.status}
+                          </Badge>
+                        )}
+                        {showRestock ? (
+                          <Badge className="bg-slate-500 hover:bg-slate-500 text-white border-slate-500 h-5 text-[10px] px-1">
+                            {stockStatusText ?? "Out of Stock"}
+                          </Badge>
+                        ) : isProductLowStock ? (
+                          <Badge className="bg-amber-500 hover:bg-amber-500 text-white border-amber-500 h-5 text-[10px] px-1">Low Stock</Badge>
+                        ) : null}
+                      </div>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4 text-sm">
@@ -1097,8 +1708,17 @@ const Inventory = () => {
                       <div>
                         <p className="text-muted-foreground">Stock</p>
                         <div className="flex items-center gap-1">
-                          {isLowStock && <AlertTriangle className="w-3 h-3 text-destructive" />}
-                          <span className={isLowStock ? "text-destructive font-medium" : "font-medium"}>
+                          {totalStock <= 0 ? (
+                            <Badge className="bg-slate-500 hover:bg-slate-500 text-white border-slate-500 h-5 text-[10px] px-1">
+                              {stockStatusText ?? "Out of Stock"}
+                            </Badge>
+                          ) : isProductLowStock ? (
+                            <Badge className="bg-amber-500 hover:bg-amber-500 text-white border-amber-500 h-5 text-[10px] px-1">Low Stock</Badge>
+                          ) : null}
+                          <span className={cn(
+                            (isProductLowStock || totalStock <= 0) && "text-destructive font-medium",
+                            "font-medium"
+                          )}>
                             {totalStock}
                           </span>
                         </div>

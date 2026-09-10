@@ -129,6 +129,7 @@ export const api = {
     image?: string;
     barcode?: string;
     qrCode?: string;
+    unitOfMeasure?: string;
   }) => {
     await ensureDbInitialized();
     if (Capacitor.isNativePlatform()) {
@@ -157,6 +158,7 @@ export const api = {
       image?: string;
       barcode?: string;
       qrCode?: string;
+      unitOfMeasure?: string;
     }>,
   ) => {
     await ensureDbInitialized();
@@ -227,7 +229,7 @@ export const api = {
   },
 
   // Sales
-  getSales: async (params?: { from?: string; to?: string }) => {
+  getSales: async (params?: { from?: string; to?: string; voidFilter?: "active" | "voided" | "all" }) => {
     await ensureDbInitialized();
     if (Capacitor.isNativePlatform()) {
       return mobileServices.getSales(params);
@@ -235,6 +237,7 @@ export const api = {
     const searchParams = new URLSearchParams();
     if (params?.from) searchParams.set("from", params.from);
     if (params?.to) searchParams.set("to", params.to);
+    if (params?.voidFilter) searchParams.set("voidFilter", params.voidFilter);
     const qs = searchParams.toString();
     return request(`/sales${qs ? `?${qs}` : ""}`);
   },
@@ -329,6 +332,32 @@ export const api = {
     return request<{ message: string; path: string }>("/backups/create", {
       method: "POST",
     });
+  },
+
+  // BIR Annex A Inventory Report (server only - returns blob for download)
+  getBirInventoryReport: async (params: {
+    companyName: string;
+    tin?: string;
+    address: string;
+    inventoryDate?: string;
+    format?: "xlsx" | "pdf";
+  }): Promise<Blob> => {
+    const res = await fetch(`${API_BASE_URL}/reports/bir-inventory`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        companyName: params.companyName,
+        tin: params.tin ?? "",
+        address: params.address,
+        inventoryDate: params.inventoryDate ?? `${new Date().getFullYear()}-12-31`,
+        format: params.format ?? "xlsx",
+      }),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || res.statusText);
+    }
+    return res.blob();
   },
 };
 

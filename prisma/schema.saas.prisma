@@ -1,0 +1,141 @@
+// SaaS multi-tenant schema - SQLite
+// Run: npx prisma generate --schema=prisma/schema.saas.prisma
+// SAAS_DATABASE_URL=file:./prisma-saas/saas-dev.db
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/saas-client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("SAAS_DATABASE_URL")
+}
+
+model Organization {
+  id               String   @id @default(cuid())
+  name             String
+  plan             String   @default("free")
+  stripeCustomerId String?
+  createdAt        DateTime @default(now())
+
+  users  User[]
+  stores Store[]
+}
+
+model Store {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  address        String?
+  receiptLogoUrl String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  categories   Category[]
+  products     Product[]
+  sales        Sale[]
+  userAccess   UserStore[]
+}
+
+model User {
+  id             String   @id @default(cuid())
+  organizationId String?
+  name           String
+  email          String   @unique
+  password       String
+  role           String   // "super_admin" | "owner" | "admin" | "cashier"
+  createdAt      DateTime @default(now())
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sales        Sale[]
+  storeAccess  UserStore[]
+}
+
+model UserStore {
+  userId  String
+  storeId String
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store   Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@id([userId, storeId])
+}
+
+model Category {
+  id      String   @id @default(cuid())
+  storeId String
+  name    String
+
+  store    Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  products Product[]
+}
+
+model Product {
+  id                 String         @id @default(cuid())
+  storeId            String
+  name               String
+  categoryId         String
+  itemCode           String?
+  sku                String?
+  hasVariants        Boolean        @default(false)
+  basePrice          Float?
+  price              Float?
+  stock              Int?
+  lowStockThreshold  Int            @default(0)
+  marginPercentage   Float?
+  status             String         @default("active")
+  image              String?
+  barcode            String?
+  qrCode             String?
+  unitOfMeasure      String?        @default("PCS")
+
+  store    Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  variants Variant[]
+  saleItems SaleItem[]
+}
+
+model Variant {
+  id        String   @id @default(cuid())
+  productId String
+  name      String
+  price     Float
+  stock     Int
+
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  saleItems SaleItem[]
+}
+
+model Sale {
+  id             String   @id @default(cuid())
+  storeId        String
+  ticketNumber   String?
+  cashierId      String
+  cashierName    String
+  total          Float
+  paymentMethod  String   @default("cash")
+  amountReceived Float
+  change         Float
+  status         String   @default("completed")
+  createdAt      DateTime @default(now())
+
+  store   Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  cashier User?     @relation(fields: [cashierId], references: [id], onDelete: SetNull)
+  items   SaleItem[]
+}
+
+model SaleItem {
+  id          String   @id @default(cuid())
+  saleId      String
+  productId   String
+  variantId   String?
+  productName String
+  variantName String?
+  quantity    Int
+  price       Float
+  subtotal    Float
+
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant Variant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+}

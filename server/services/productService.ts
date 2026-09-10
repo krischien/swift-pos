@@ -62,6 +62,7 @@ export async function createProduct(input: {
   marginPercentage?: number;
   status?: "active" | "inactive";
   image?: string;
+  unitOfMeasure?: string;
 }) {
   // Generate barcode and QR code from Item Code
   let barcode: string | undefined;
@@ -91,6 +92,7 @@ export async function createProduct(input: {
       marginPercentage: input.marginPercentage,
       status: input.status ?? "active",
       image: input.image,
+      unitOfMeasure: input.unitOfMeasure ?? "PCS",
       barcode,
       qrCode,
     },
@@ -114,6 +116,7 @@ export async function updateProduct(
     image?: string;
     barcode?: string;
     qrCode?: string;
+    unitOfMeasure?: string;
   }>,
 ) {
   // Build update data, handling categoryId separately if needed

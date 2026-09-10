@@ -1,4 +1,5 @@
 import { Product, Variant } from "@/types/pos";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -41,19 +42,25 @@ export const VariantModal = ({ product, open, onClose, onSelect }: VariantModalP
             const basePrice = variant.price;
             const marginPercent = product.marginPercentage || 0;
             const sellingPrice = basePrice * (1 + marginPercent / 100);
+            const isOutOfStock = (variant.stock ?? 0) <= 0;
             
             return (
               <Button
                 key={variant.id}
                 variant={selectedVariant?.id === variant.id ? "default" : "outline"}
+                disabled={isOutOfStock}
                 className="w-full h-auto flex justify-between items-center p-4"
-                onClick={() => setSelectedVariant(variant)}
+                onClick={() => !isOutOfStock && setSelectedVariant(variant)}
               >
                 <div className="text-left">
                   <p className="font-semibold">{variant.name}</p>
-                  <p className="text-xs text-muted-foreground">Stock: {variant.stock}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {isOutOfStock ? "Out of Stock" : `Stock: ${variant.stock}`}
+                  </p>
                 </div>
-                <p className="font-bold text-lg">{formatCurrency(sellingPrice)}</p>
+                <p className={cn("font-bold text-lg", isOutOfStock && "opacity-60")}>
+                  {formatCurrency(sellingPrice)}
+                </p>
               </Button>
             );
           })}

@@ -1,0 +1,51 @@
+---
+description: Dev vs private-server/VPS production security — CORS, JWT, NODE_ENV, deploy env
+alwaysApply: true
+---
+
+# SwiftPOS — dev vs production (private server / VPS)
+
+This branch targets **private server deploy** (e.g. `57.129.115.42:4001`, `https://swiftpos.backbone.ph`), not Vercel-only.
+
+## Local development (`.env` — keep relaxed)
+
+- `NODE_ENV=development` — required for local API; avoids production CORS lockdown
+- `SAAS_CORS_ORIGINS=*` — OK **only** with `NODE_ENV=development`
+- `SAAS_DATABASE_URL=file:./prisma-saas/saas-dev.db` (SQLite)
+- Optional: `RATE_LIMIT_DISABLED=1` for rate-limit testing
+- Web dev: Vite proxy `/api` → `127.0.0.1:4001` — fix proxy/dev issues here, not by loosening prod CORS
+
+**Never copy `.env` to the VPS as-is** (it has `NODE_ENV=development` and `CORS=*`).
+
+## Private server / VPS production (env on the host)
+
+Set on the server process (systemd, PM2, Docker — not committed to git):
+
+| Variable | Requirement |
+|----------|-------------|
+| `NODE_ENV` | **`production`** |
+| `SAAS_CORS_ORIGINS` | **Explicit comma-separated origins** — e.g. `https://swiftpos.backbone.ph,capacitor://localhost,ionic://localhost,http://localhost` (add LAN/http only if needed). **Never `*`** |
+| `JWT_SECRET` | Random, **≥ 32 chars** (server exits if weak when `NODE_ENV=production`) |
+| `SAAS_DATABASE_URL` | **PostgreSQL** recommended for prod (`schema.pg.prisma` + `npm run build:api`); SQLite only for small single-node demos |
+| `SUPER_ADMIN_EMAILS` | Real admin email(s) — see `.env.saas` example |
+| `RATE_LIMIT_DISABLED` | **Unset** — keep rate limits on |
+
+Reference template: `.env.vps.example` (commit to repo). On VPS: `cp .env.vps.example .env.vps` and fill secrets. Run API: `npm run start:api:vps` or PM2 with `NODE_ENV=production`. Mobile builds: `VITE_SAAS_API_URL=http://57.129.115.42:4001` in `package.json` `build:mobile:saas`.
+
+## Vercel (if used later)
+
+Same strict rules; additionally `VERCEL=1` **exits** on empty/`*` CORS. Private VPS only **warns** — ops must set CORS explicitly anyway.
+
+## Before deploy / API changes
+
+1. `npm run build:api` — bundle `server/saas/` → `api/index.js`
+2. On server: migrate Postgres — `npx prisma migrate deploy --schema=prisma-saas/schema.pg.prisma`
+3. Smoke-test: `GET /api/health`, login, one authenticated call from **live web origin** and Capacitor if applicable
+4. Open port **4001** (or reverse proxy HTTPS → API) — see `MOBILE_REMOTE_SERVER.md`
+
+## Agent behavior
+
+- Do not commit production secrets or copy `.env` to server configs
+- Do not disable `validateSecurityEnv`, helmet, or rate limits for deploy convenience
+- When user deploys to VPS, remind: **`NODE_ENV=production` + explicit `SAAS_CORS_ORIGINS`**, not local dev values
+- Fixing local `ECONNRESET`: Vite proxy / `NODE_ENV=development` — not production CORS

@@ -3,7 +3,8 @@ import { Capacitor } from "@capacitor/core";
 const DB_NAME = "quickpos";
 const DB_VERSION = 1;
 const DEFAULT_PASSWORD = "password123";
-const DEFAULT_PASSWORD_HASH = "$2b$10$VwNM8YMo1sKEtKKbZ2tgMOtLdbBL2hjD9VtH003WfLW7C2iU0NICq";
+// bcrypt hash for "password123" (verified with bcrypt.compare)
+const DEFAULT_PASSWORD_HASH = "$2b$10$5VN/mywPiku92kNyt4y23O9l400pcfNf5Clc.ntSv.0n89NQyaZQC";
 
 let db: any = null;
 
@@ -168,6 +169,7 @@ const createTables = async (db: any) => {
       image TEXT,
       barcode TEXT,
       qrCode TEXT,
+      unitOfMeasure TEXT DEFAULT 'PCS',
       FOREIGN KEY (categoryId) REFERENCES Category(id)
     )
   `);
@@ -363,5 +365,10 @@ export const getDatabase = async (): Promise<any> => {
     return await initDatabase();
   }
   return db;
+};
+
+// Used by mobile restore flows to force a fresh connection after import/delete.
+export const resetDatabaseConnection = () => {
+  db = null;
 };
 

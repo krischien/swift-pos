@@ -1,9 +1,10 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStore } from "@/contexts/StoreContext";
 import { Button } from "@/components/ui/button";
 import { NavLink } from "@/components/NavLink";
+import { StoreSwitcher } from "@/components/layout/StoreSwitcher";
 import {
-  Store,
   ShoppingCart,
   Package,
   TrendingUp,
@@ -12,14 +13,37 @@ import {
   Menu,
   Users,
   FolderTree,
+  QrCode,
+  Shield,
+  FileBarChart,
+  Store,
+  ClipboardList,
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { isSaaS } from "@/config/appMode";
+import NotificationBanner from "@/components/NotificationBanner";
+import TrialBanner from "@/components/TrialBanner";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { TierBadge } from "@/components/TierBadge";
+import { useQuery } from "@tanstack/react-query";
+import { getSubscription } from "@/lib/saasSubscriptionApi";
+import { Building2 } from "lucide-react";
 
 const AppLayout = () => {
   const { user, logout } = useAuth();
+  const { stores, activeStoreId } = useStore();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const activeStore = stores.find((s) => s.id === activeStoreId) || stores[0];
+  const isFnb = isSaaS() && activeStore?.businessMode === "fnb";
+
+  const { data: sub } = useQuery({
+    queryKey: ["subscription"],
+    queryFn: getSubscription,
+    enabled: isSaaS() && !!user && user.role !== "super_admin",
+    staleTime: 60_000,
+  });
 
   const handleLogout = () => {
     logout();
@@ -27,12 +51,28 @@ const AppLayout = () => {
   };
 
   const navItems = [
-    { to: "/pos", icon: ShoppingCart, label: "POS", roles: ["admin", "cashier"] },
-    { to: "/inventory", icon: Package, label: "Inventory", roles: ["admin"] },
-    { to: "/sales", icon: TrendingUp, label: "Sales", roles: ["admin"] },
-    { to: "/categories", icon: FolderTree, label: "Categories", roles: ["admin"] },
-    { to: "/users", icon: Users, label: "Users", roles: ["admin"] },
-    { to: "/settings", icon: Settings, label: "Settings", roles: ["admin"] },
+    ...(user?.role === "super_admin"
+      ? [{ to: "/admin", icon: Shield, label: "Super Admin", roles: ["super_admin"] }]
+      : []),
+    { to: "/pos", icon: ShoppingCart, label: "POS", roles: ["admin", "cashier", "owner"] },
+    ...(sub?.features.hqDashboard
+      ? [{ to: "/hq", icon: Building2, label: "HQ", roles: ["owner"] }]
+      : []),
+    ...(!isFnb ? [{ to: "/sticker-generator", icon: QrCode, label: "Sticker Generator", roles: ["owner"] }] : []),
+    ...(isFnb
+      ? [
+          { to: "/ingredients", icon: Package, label: "Ingredients", roles: ["owner"] },
+          { to: "/menu", icon: ClipboardList, label: "Menu", roles: ["owner"] },
+        ]
+      : [
+          { to: "/inventory", icon: Package, label: "Inventory", roles: ["owner"] },
+          { to: "/categories", icon: FolderTree, label: "Categories", roles: ["owner"] },
+        ]),
+    { to: "/sales", icon: TrendingUp, label: "Sales", roles: ["owner", "cashier"] },
+    { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["owner", "admin", "super_admin"] },
+    { to: "/stores", icon: Store, label: "Stores", roles: ["owner"] },
+    { to: "/users", icon: Users, label: "Users", roles: ["owner"] },
+    { to: "/settings", icon: Settings, label: "Settings", roles: ["owner", "super_admin"] },
   ];
 
   const filteredNavItems = navItems.filter((item) =>
@@ -47,6 +87,7 @@ const AppLayout = () => {
           <NavLink
             key={item.to}
             to={item.to}
+            data-testid={`nav${item.to.replace(/\//g, "-")}`}
             className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors ${
               mobile ? "" : ""
             }`}
@@ -63,18 +104,25 @@ const AppLayout = () => {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 bg-sidebar border-r flex-col">
-        <div className="p-6 border-b">
+      {/* Desktop/Tablet Sidebar - hidden on mobile, use Sheet instead */}
+      <aside className="hidden lg:flex w-64 bg-sidebar border-r flex-col shrink-0">
+        <div className="p-4 border-b">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-              <Store className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="font-bold text-lg">QuickPOS</h1>
-              <p className="text-xs text-muted-foreground">{user?.role}</p>
+            <img src="/favico.png" alt="SwiftPOS" className="w-14 h-14" />
+            <div className="min-w-0 flex-1">
+              <h1 className="font-bold text-lg">SwiftPOS</h1>
+              <p className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap" title={activeStore?.name}>
+                <span className="truncate">{isSaaS() && activeStore ? activeStore.name : user?.role}</span>
+                {isSaaS() && <TierBadge tier={sub?.tier} status={sub?.status} />}
+                <OfflineIndicator />
+              </p>
             </div>
           </div>
+          {isSaaS() && stores.length > 1 && (
+            <div className="mt-3">
+              <StoreSwitcher />
+            </div>
+          )}
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
@@ -97,8 +145,8 @@ const AppLayout = () => {
         </div>
       </aside>
 
-      {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-card border-b z-50 flex items-center px-4">
+      {/* Mobile/Tablet Header - hamburger menu for sidebar */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-card border-b z-50 flex items-center px-4">
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon">
@@ -109,13 +157,21 @@ const AppLayout = () => {
             <div className="p-6 border-b">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-                  <Store className="w-6 h-6 text-primary-foreground" />
+                  <img src="/favico.png" alt="SwiftPOS" className="w-6 h-6" />
                 </div>
-                <div>
-                  <h1 className="font-bold text-lg">QuickPOS</h1>
-                  <p className="text-xs text-muted-foreground">{user?.role}</p>
+                <div className="min-w-0 flex-1">
+                  <h1 className="font-bold text-lg">SwiftPOS</h1>
+                  <p className="text-xs text-muted-foreground truncate flex items-center gap-1" title={activeStore?.name}>
+                    {isSaaS() && activeStore ? activeStore.name : user?.role}
+                    {isSaaS() && <TierBadge tier={sub?.tier} status={sub?.status} />}
+                  </p>
                 </div>
               </div>
+              {isSaaS() && stores.length > 1 && (
+                <div className="mt-3">
+                  <StoreSwitcher />
+                </div>
+              )}
             </div>
 
             <nav className="flex-1 p-4 space-y-1">
@@ -139,17 +195,28 @@ const AppLayout = () => {
           </SheetContent>
         </Sheet>
 
-        <div className="flex-1 flex justify-center">
-          <div className="flex items-center gap-2">
-            <Store className="w-5 h-5 text-primary" />
-            <span className="font-bold">QuickPOS</span>
-          </div>
+        <div className="flex-1 flex items-center justify-center gap-2 min-w-0">
+          <img src="/favico.png" alt="SwiftPOS" className="w-5 h-5 shrink-0" />
+          <span className="font-bold truncate">SwiftPOS</span>
+          {isSaaS() && activeStore && (
+            <>
+              <span className="text-muted-foreground hidden sm:inline">·</span>
+              <span className="text-sm text-muted-foreground truncate max-w-[120px] sm:max-w-[180px]">
+                {activeStore.name}
+              </span>
+            </>
+          )}
+          <OfflineIndicator />
         </div>
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto md:mt-0 mt-16">
-        <Outlet />
+      <main className="flex-1 overflow-auto lg:mt-0 mt-16 flex flex-col">
+        <TrialBanner />
+        <NotificationBanner />
+        <div className="flex flex-1 min-h-0 flex-col">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

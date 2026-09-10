@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CategoryTabs } from "@/components/pos/CategoryTabs";
@@ -6,28 +6,87 @@ import { ProductCard } from "@/components/pos/ProductCard";
 import { Cart } from "@/components/pos/Cart";
 import { VariantModal } from "@/components/pos/VariantModal";
 import { CheckoutModal } from "@/components/pos/CheckoutModal";
-import { CartItem, Product, Variant, Category } from "@/types/pos";
+import { CartItem, Product, Variant, Category, MenuItem, MenuCategory } from "@/types/pos";
 import { useAuth } from "@/contexts/AuthContext";
 import { Search, Calendar, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { api } from "@/lib/api";
+import { useDataLayer } from "@/contexts/DataLayerContext";
+import { useStore } from "@/contexts/StoreContext";
 import { useEffect } from "react";
 import { useSettings } from "@/contexts/SettingsContext";
 import { Capacitor } from "@capacitor/core";
 import { printerService } from "@/lib/printer";
 import { formatCurrency } from "@/lib/currency";
+import { changePhpFromCents, phpToCents } from "@/lib/phpMoney";
+import { Skeleton } from "@/components/ui/skeleton";
+import { QuickScanCard } from "@/components/pos/QuickScanCard";
+
+/** Values to compare against sku / itemCode / barcode (whitespace, leading zeros). */
+function scanMatchVariants(raw: string): Set<string> {
+  const t = raw.trim().replace(/\s+/g, "");
+  const digits = t.replace(/\D/g, "");
+  const out = new Set<string>([t]);
+  if (digits.length) {
+    out.add(digits);
+    out.add(digits.replace(/^0+/, "") || "0");
+  }
+  return out;
+}
+
+function fieldMatchesAnyVariant(field: string | undefined | null, variants: Set<string>): boolean {
+  if (field == null || field === "") return false;
+  const fv = String(field).trim().replace(/\s+/g, "");
+  const fvDigits = fv.replace(/\D/g, "");
+  for (const v of variants) {
+    if (v === fv || v === fvDigits) return true;
+    const vd = v.replace(/\D/g, "");
+    if (vd && fvDigits && vd === fvDigits) return true;
+  }
+  return false;
+}
+
+function findProductByScan(products: Product[], scannedData: string): Product | undefined {
+  const variants = scanMatchVariants(scannedData);
+  return products.find(
+    (p) =>
+      fieldMatchesAnyVariant(p.sku, variants) ||
+      fieldMatchesAnyVariant(p.itemCode, variants) ||
+      fieldMatchesAnyVariant(p.barcode, variants),
+  );
+}
+
+function menuItemToProduct(m: MenuItem): Product {
+  return {
+    id: m.id,
+    name: m.name,
+    categoryId: m.menuCategoryId,
+    itemCode: m.barcode ?? "",
+    hasVariants: false,
+    price: m.price,
+    stock: 1_000_000,
+    lowStockThreshold: 0,
+    status: m.status === "inactive" ? "inactive" : "active",
+    image: m.image ?? undefined,
+    barcode: m.barcode ?? undefined,
+  };
+}
 
 const POS = () => {
+  const dataService = useDataLayer();
   const { user } = useAuth();
   const {
     storeName,
     storeAddress,
     autoPrintReceipt,
     showLogoOnReceipt,
+    receiptLogoUrl,
     enableDiscounts,
+    enableTax,
     taxRatePercent,
     selectedPrinter,
+    enablePerKiloPurchase,
+    enableBarcodeScanning,
   } = useSettings();
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -43,26 +102,90 @@ const POS = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [discountPercent, setDiscountPercent] = useState(0);
+  const [productBrowseExpanded, setProductBrowseExpanded] = useState(false);
+
+  const { activeStoreId, stores, storesLoading } = useStore();
+  const storeIdsKey = stores.map((s) => s.id).join(",");
+  const activeStore = stores.find((s) => s.id === activeStoreId);
+  const isFnb = !!activeStore && activeStore.businessMode === "fnb";
+
+  /** Shown when camera/USB scan decodes but no product matches (or catalog empty). */
+  const toastScanNotRecognized = useCallback(
+    (scannedCode: string) => {
+      const label = scannedCode.trim().length > 0 ? scannedCode.trim() : "(empty)";
+      toast({
+        variant: "destructive",
+        title: "Barcode not recognized",
+        description:
+          products.length === 0
+            ? "No catalog loaded for this store. Select a store or wait for it to finish loading."
+            : `No results for "${label}". ${
+                isFnb
+                  ? "In Menu, set a barcode on the item to match this scan."
+                  : "In Inventory, set Item code, SKU, or Barcode to match this scan."
+              }`,
+      });
+    },
+    [products.length, toast, isFnb],
+  );
 
   useEffect(() => {
+    if (enableBarcodeScanning) {
+      setProductBrowseExpanded(false);
+    }
+  }, [enableBarcodeScanning]);
+  useEffect(() => {
+    if (storesLoading) return;
+    setCart([]); // Clear cart when switching stores
+    // Wait for a valid store - cashiers need explicit storeId to load correct products
+    const isValidStore =
+      activeStoreId &&
+      activeStoreId !== "default" &&
+      stores.some((s) => s.id === activeStoreId);
+    if (!isValidStore) {
+      setCategories([]);
+      setProducts([]);
+      setError(
+        storesLoading || stores.length === 0
+          ? null
+          : "Select a store to load products"
+      );
+      return;
+    }
+    let cancelled = false;
     const load = async () => {
       try {
         setLoading(true);
         setError(null);
-        const [cats, prods] = await Promise.all([
-          api.getCategories(),
-          api.getProducts(),
-        ]);
-        setCategories(cats as Category[]);
-        setProducts(prods as Product[]);
+        if (isFnb) {
+          const [mcats, mitems] = await Promise.all([
+            dataService.getMenuCategories(activeStoreId),
+            dataService.getMenuItems(undefined, activeStoreId),
+          ]);
+          if (cancelled) return;
+          setCategories((mcats as MenuCategory[]).map((c) => ({ id: c.id, name: c.name })));
+          setProducts((mitems as MenuItem[]).map(menuItemToProduct));
+        } else {
+          const [cats, prods] = await Promise.all([
+            dataService.getCategories(activeStoreId),
+            dataService.getProducts(undefined, activeStoreId),
+          ]);
+          if (cancelled) return;
+          setCategories(cats as Category[]);
+          setProducts(prods as Product[]);
+        }
       } catch (e: any) {
+        if (cancelled) return;
         setError(e.message ?? "Failed to load products");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-    load();
-  }, []);
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeStoreId, storesLoading, isFnb, storeIdsKey]);
 
   const filteredProducts = products.filter((product) => {
     const matchesCategory = !selectedCategory || product.categoryId === selectedCategory;
@@ -70,7 +193,24 @@ const POS = () => {
     return matchesCategory && matchesSearch && product.status === "active";
   });
 
+  const isProductOutOfStock = (product: Product): boolean => {
+    if (isFnb) return false;
+    if (product.hasVariants && product.variants?.length) {
+      const totalStock = product.variants.reduce((sum, v) => sum + (v.stock ?? 0), 0);
+      return totalStock <= 0;
+    }
+    return (product.stock ?? 0) <= 0;
+  };
+
   const handleProductSelect = (product: Product) => {
+    if (isProductOutOfStock(product)) {
+      toast({
+        variant: "destructive",
+        title: "Out of stock",
+        description: `${product.name} is currently out of stock.`,
+      });
+      return;
+    }
     if (product.hasVariants) {
       setSelectedProduct(product);
       setShowVariantModal(true);
@@ -80,43 +220,72 @@ const POS = () => {
   };
 
   const handleVariantSelect = (variant: Variant) => {
-    if (selectedProduct) {
+    if (selectedProduct && (variant.stock ?? 0) > 0) {
       addToCart(selectedProduct, variant);
     }
   };
 
   const addToCart = (product: Product, variant?: Variant) => {
-    // Calculate selling price
+    if (isFnb) {
+      const price = product.price || 0;
+      const existingItemId = product.id;
+      setCart((prev) => {
+        const existingItem = prev.find((item) => item.id === existingItemId);
+        if (existingItem) {
+          const newQuantity = existingItem.quantity + 1;
+          return prev.map((item) =>
+            item.id === existingItemId
+              ? {
+                  ...item,
+                  quantity: newQuantity,
+                  subtotal: newQuantity * item.price,
+                }
+              : item,
+          );
+        }
+        const newItem: CartItem = {
+          id: existingItemId,
+          menuItemId: product.id,
+          name: product.name,
+          price,
+          quantity: 1,
+          subtotal: price,
+        };
+        return [...prev, newItem];
+      });
+      return;
+    }
+
     let price: number;
     if (variant) {
-      // For variants: variant.price is base price, calculate selling price with margin percentage
       const basePrice = variant.price;
       const marginPercent = product.marginPercentage || 0;
       price = basePrice * (1 + marginPercent / 100);
     } else {
-      // For regular products: use product.price (which is already calculated with margin)
       price = product.price || 0;
     }
 
     const existingItemId = variant
       ? `${product.id}-${variant.id}`
       : product.id;
-    
-    const existingItem = cart.find((item) => item.id === existingItemId);
 
-    if (existingItem) {
-      setCart(
-        cart.map((item) =>
+    const incrementAmount = enablePerKiloPurchase ? 0.1 : 1;
+
+    setCart((prev) => {
+      const existingItem = prev.find((item) => item.id === existingItemId);
+      if (existingItem) {
+        const newQuantity = existingItem.quantity + incrementAmount;
+        return prev.map((item) =>
           item.id === existingItemId
             ? {
                 ...item,
-                quantity: item.quantity + 1,
-                subtotal: (item.quantity + 1) * item.price,
+                quantity: newQuantity,
+                subtotal: newQuantity * item.price,
               }
-            : item
-        )
-      );
-    } else {
+            : item,
+        );
+      }
+      const initialQuantity = enablePerKiloPurchase ? 0.1 : 1;
       const newItem: CartItem = {
         id: existingItemId,
         productId: product.id,
@@ -124,22 +293,151 @@ const POS = () => {
         name: product.name,
         variantName: variant?.name,
         price,
-        quantity: 1,
-        subtotal: price,
+        quantity: initialQuantity,
+        subtotal: initialQuantity * price,
       };
-      setCart([...cart, newItem]);
+      return [...prev, newItem];
+    });
+  };
+
+  // Handle scanned weighted item sticker (from barcode/QR code)
+  const handleScannedWeightedItem = (scannedData: string) => {
+    const applyScanToProduct = (product: Product) => {
+      if (isProductOutOfStock(product)) {
+        toast({
+          variant: "destructive",
+          title: "Out of stock",
+          description: `${product.name} is currently out of stock.`,
+        });
+        return;
+      }
+      if (product.hasVariants) {
+        setSelectedProduct(product);
+        setShowVariantModal(true);
+        toast({
+          title: "Select variant",
+          description: `Choose options for ${product.name}`,
+        });
+      } else {
+        addToCart(product);
+        toast({
+          title: "Added to cart",
+          description: product.name,
+        });
+      }
+    };
+
+    try {
+      const data = JSON.parse(scannedData);
+
+      if (
+        data &&
+        typeof data === "object" &&
+        data.sku &&
+        typeof data.weight === "number" &&
+        typeof data.price === "number"
+      ) {
+        const product = findProductByScan(products, String(data.sku));
+
+        if (!product) {
+          toastScanNotRecognized(String(data.sku));
+          return;
+        }
+
+        const weightedItemId = `weighted-${product.id}-${Date.now()}`;
+
+        const newItem: CartItem = {
+          id: weightedItemId,
+          ...(isFnb ? { menuItemId: product.id } : { productId: product.id }),
+          name: product.name,
+          variantName: data.productName ? undefined : `${data.weight} kg`,
+          price: data.price,
+          quantity: data.weight,
+          subtotal: data.price,
+        };
+
+        setCart((prev) => [...prev, newItem]);
+
+        toast({
+          title: "Item added",
+          description: `${product.name} (${data.weight} kg) added to cart`,
+        });
+      } else if (
+        data &&
+        typeof data === "object" &&
+        data.sku != null &&
+        String(data.sku).length > 0 &&
+        typeof data.price === "number" &&
+        typeof data.weight !== "number"
+      ) {
+        // Sticker generator without per-kilo: { sku, price } only
+        const product = findProductByScan(products, String(data.sku));
+        if (!product) {
+          toastScanNotRecognized(String(data.sku));
+          return;
+        }
+        if (isProductOutOfStock(product)) {
+          toast({
+            variant: "destructive",
+            title: "Out of stock",
+            description: `${product.name} is currently out of stock.`,
+          });
+          return;
+        }
+        if (product.hasVariants) {
+          setSelectedProduct(product);
+          setShowVariantModal(true);
+          toast({
+            title: "Select variant",
+            description: `Choose options for ${product.name}`,
+          });
+          return;
+        }
+        const unitId = `sticker-unit-${product.id}-${Date.now()}`;
+        setCart((prev) => [
+          ...prev,
+          {
+            id: unitId,
+            ...(isFnb ? { menuItemId: product.id } : { productId: product.id }),
+            name: product.name,
+            price: data.price,
+            quantity: 1,
+            subtotal: data.price,
+          },
+        ]);
+        toast({
+          title: "Item added",
+          description: `${product.name} added to cart`,
+        });
+      } else {
+        const product = findProductByScan(products, scannedData);
+        if (product) {
+          applyScanToProduct(product);
+        } else {
+          toastScanNotRecognized(scannedData);
+        }
+      }
+    } catch {
+      const product = findProductByScan(products, scannedData);
+      if (product) {
+        applyScanToProduct(product);
+      } else {
+        toastScanNotRecognized(scannedData);
+      }
     }
   };
 
   const handleUpdateQuantity = (itemId: string, quantity: number) => {
-    if (quantity < 1) {
+    const minQuantity = isFnb ? 1 : enablePerKiloPurchase ? 0.1 : 1;
+    const effectiveQty = isFnb ? Math.max(1, Math.floor(quantity)) : quantity;
+    if (effectiveQty < minQuantity) {
       handleRemoveItem(itemId);
       return;
     }
     setCart(
       cart.map((item) =>
         item.id === itemId
-          ? { ...item, quantity, subtotal: quantity * item.price }
+          ? { ...item, quantity: effectiveQty, subtotal: effectiveQty * item.price }
           : item
       )
     );
@@ -206,9 +504,9 @@ const POS = () => {
       )
       .join("") || `<tr><td colspan="4" style="text-align:center;padding:8px 0;">No items</td></tr>`;
 
-    const headerName = storeName || "QuickPOS Receipt";
+    const headerName = storeName || "SwiftPOS";
     const headerAddress = storeAddress || "";
-    const createdAt = new Date(sale?.createdAt ?? Date.now());
+    const showLogo = showLogoOnReceipt && receiptLogoUrl;
     const totalDisplay = typeof sale?.total === "number" ? sale.total : fallbackTotals.total;
     const amountReceivedDisplay =
       typeof sale?.amountReceived === "number" ? sale.amountReceived : fallbackTotals.amountReceived;
@@ -218,8 +516,9 @@ const POS = () => {
     <html>
       <head>
         <meta charset="utf-8" />
-        <title>Receipt</title>
+        <title></title>
         <style>
+          @page { margin: 0; size: auto; }
           body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 16px; color: #111827; }
           h1 { font-size: 18px; margin: 0 0 8px; text-align: center; }
           .meta { font-size: 12px; margin-bottom: 12px; text-align: center; }
@@ -229,18 +528,15 @@ const POS = () => {
           tfoot td { border-top: 1px solid #ddd; font-weight: bold; }
         </style>
       </head>
-      <body>
-        ${
-          showLogoOnReceipt
-            ? `<div style="text-align:center;margin-bottom:4px;font-weight:bold;">${headerName}</div>`
-            : ""
-        }
+      <body>      
+        ${showLogo ? `<div style="text-align:center;margin-bottom:8px;"><img src="${receiptLogoUrl}" alt="Logo" style="max-width:120px;max-height:80px;object-fit:contain;" /></div>` : ""}
         <h1>${headerName}</h1>
         <div class="meta">
           ${headerAddress ? `<div>${headerAddress}</div>` : ""}
           <div>Ticket: <strong>${sale?.ticketNumber ?? ticketNumber ?? ""}</strong></div>
-          <div>Date: ${createdAt.toLocaleString()}</div>
           <div>Cashier: ${sale?.cashierName ?? user?.name ?? ""}</div>
+          <div>Payment: ${(sale?.paymentMethod ?? "cash").toString().toUpperCase()}</div>
+          ${String(sale?.paymentMethod ?? "cash").toLowerCase() === "gcash" ? `<div>GCash Txn ID: ${sale?.gcashTransactionId ?? "—"}</div>` : ""}
         </div>
         <table>
           <thead>
@@ -352,32 +648,37 @@ const POS = () => {
     }
   };
 
-  const handleCompleteCheckout = async (amountReceived: number) => {
+  const handleCompleteCheckout = async (result: { amountReceived: number; paymentMethod: string; gcashTransactionId?: string }) => {
+    const { amountReceived, paymentMethod, gcashTransactionId } = result;
     const cartSnapshot = cart.map((item) => ({ ...item }));
     const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
-    const taxRate = (typeof taxRatePercent === "number" ? taxRatePercent : 12) / 100;
+    const taxRate = enableTax ? (typeof taxRatePercent === "number" ? taxRatePercent : 12) / 100 : 0;
     const effectiveDiscount = enableDiscounts ? discountPercent : 0;
     const discountAmount = subtotal * (effectiveDiscount / 100);
     const netSubtotal = Math.max(0, subtotal - discountAmount);
     const taxAmount = netSubtotal * taxRate;
     const total = netSubtotal + taxAmount;
-    const change = amountReceived - total;
+    const change = changePhpFromCents(phpToCents(amountReceived), phpToCents(total));
 
     try {
       if (!user) {
         throw new Error("No logged-in user");
       }
 
-      const sale = await api.createSale({
-        cartItems: cart,
-        cashierId: user.id,
-        cashierName: user.name,
-        paymentMethod: "cash",
-        amountReceived,
-        taxRate,
-        discountPercent: effectiveDiscount,
-        ticketNumber: ticketNumber ?? undefined,
-      });
+      const sale = await dataService.createSale(
+        {
+          cartItems: cart,
+          cashierId: user.id,
+          cashierName: user.name,
+          paymentMethod: paymentMethod === "gcash" ? "gcash" : "cash",
+          amountReceived,
+          taxRate,
+          discountPercent: effectiveDiscount,
+          ticketNumber: ticketNumber ?? undefined,
+          gcashTransactionId: paymentMethod === "gcash" ? gcashTransactionId || undefined : undefined,
+        },
+        activeStoreId !== "default" ? activeStoreId : undefined,
+      );
 
       toast({
         title: "Sale completed",
@@ -431,9 +732,9 @@ const POS = () => {
   });
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
       {/* Header - desktop/tablet only */}
-      <header className="bg-card border-b p-4 items-center justify-between hidden md:flex">
+      <header className="bg-card border-b p-4 items-center justify-between hidden md:flex shrink-0">
         <div className="flex items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold">Point of Sale</h1>
@@ -451,48 +752,140 @@ const POS = () => {
         </div>
       </header>
 
-      <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden md:h-[calc(100vh-96px)] md:max-h-[calc(100vh-96px)]">
-        {/* Products Section */}
-        <div className="flex-1 flex flex-col md:overflow-hidden">
-          <div className="p-4 space-y-4 border-b bg-background">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-12 text-base"
-              />
-            </div>
-            <CategoryTabs
-              categories={categories}
-              selectedCategory={selectedCategory}
-              onSelectCategory={setSelectedCategory}
-            />
-          </div>
-
-          <div className="flex-1 overflow-auto p-4">
-            {loading && <p className="text-sm text-muted-foreground">Loading products...</p>}
-            {error && !loading && (
-              <p className="text-sm text-destructive">Failed to load: {error}</p>
-            )}
-            {!loading && !error && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                {filteredProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onSelect={handleProductSelect}
-                  />
-                ))}
+      <div className="flex flex-1 min-h-0 flex-col md:flex-row md:overflow-hidden">
+        {/* Main column ~2/3 — scan / search / products */}
+        <div className="flex-1 flex flex-col min-h-0 md:min-w-0 md:flex-[2_1_0%] md:overflow-hidden bg-background">
+          {enableBarcodeScanning ? (
+            <>
+              <div className="shrink-0 p-4 md:p-5 space-y-4 border-b border-border bg-background">
+                <QuickScanCard
+                  onScan={handleScannedWeightedItem}
+                  browseExpanded={productBrowseExpanded}
+                  onBrowseProducts={() => setProductBrowseExpanded(true)}
+                  onBackToScan={() => setProductBrowseExpanded(false)}
+                  inlineCollapsedHint={false}
+                />
+                {!productBrowseExpanded && (
+                  <p className="md:hidden px-1 text-center text-xs leading-relaxed text-muted-foreground">
+                    Scan to add items. Tap Browse products above to search or pick from the grid.
+                  </p>
+                )}
+                {productBrowseExpanded && (
+                  <>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        placeholder="Search products..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10 h-12 text-base border-primary/40 focus-visible:ring-primary/30"
+                      />
+                    </div>
+                    <CategoryTabs
+                      categories={categories}
+                      selectedCategory={selectedCategory}
+                      onSelectCategory={setSelectedCategory}
+                    />
+                  </>
+                )}
               </div>
-            )}
-          </div>
+
+              {!productBrowseExpanded ? (
+                <div className="hidden md:flex flex-1 min-h-[8rem] items-center justify-center px-8 py-12 bg-background">
+                  <p className="max-w-md text-center text-xs leading-relaxed text-muted-foreground">
+                    Scan to add items. Tap Browse products above to search or pick from the grid.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex-1 overflow-auto p-4 md:p-5 min-h-0">
+                  {loading ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                      {Array.from({ length: 10 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="h-auto flex flex-col p-4 bg-pos-product rounded-lg border"
+                        >
+                          <Skeleton className="w-full aspect-square mb-3 rounded-lg" />
+                          <Skeleton className="h-4 w-3/4 mb-2" />
+                          <Skeleton className="h-4 w-1/2" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : error ? (
+                    <p className="text-sm text-destructive">Failed to load: {error}</p>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                      {filteredProducts.map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          onSelect={handleProductSelect}
+                          isOutOfStock={isProductOutOfStock(product)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="shrink-0 p-4 md:p-5 space-y-4 border-b border-border bg-background">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    placeholder="Search products..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 h-12 text-base"
+                  />
+                </div>
+                <CategoryTabs
+                  categories={categories}
+                  selectedCategory={selectedCategory}
+                  onSelectCategory={setSelectedCategory}
+                />
+              </div>
+
+              <div className="flex-1 overflow-auto p-4 md:p-5 min-h-0">
+                {loading && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="h-auto flex flex-col p-4 bg-pos-product rounded-lg border"
+                      >
+                        <Skeleton className="w-full aspect-square mb-3 rounded-lg" />
+                        <Skeleton className="h-4 w-3/4 mb-2" />
+                        <Skeleton className="h-4 w-1/2" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {error && !loading && (
+                  <p className="text-sm text-destructive">Failed to load: {error}</p>
+                )}
+                {!loading && !error && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                    {filteredProducts.map((product) => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        onSelect={handleProductSelect}
+                        isOutOfStock={isProductOutOfStock(product)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Cart Section - desktop/tablet */}
-        <div className="hidden md:flex md:flex-col md:w-96 lg:w-[420px] md:h-full">
+        {/* Cart column ~1/3 — full viewport height beside products */}
+        <div className="hidden min-h-0 min-w-[280px] max-w-[min(440px,36%)] shrink-0 flex flex-col border-l border-border bg-pos-cart md:flex md:h-full md:max-h-full md:self-stretch">
           <Cart
+            variant="sidebar"
             items={cart}
             onUpdateQuantity={handleUpdateQuantity}
             onRemoveItem={handleRemoveItem}
@@ -501,6 +894,8 @@ const POS = () => {
             discountPercent={discountPercent}
             onDiscountChange={setDiscountPercent}
             taxRatePercent={taxRatePercent}
+            enableTax={enableTax}
+            enablePerKiloPurchase={enablePerKiloPurchase && !isFnb}
           />
         </div>
       </div>
@@ -530,6 +925,8 @@ const POS = () => {
             discountPercent={discountPercent}
             onDiscountChange={setDiscountPercent}
             taxRatePercent={taxRatePercent}
+            enableTax={enableTax}
+            enablePerKiloPurchase={enablePerKiloPurchase && !isFnb}
           />
         </SheetContent>
       </Sheet>
@@ -551,10 +948,10 @@ const POS = () => {
         total={
           (() => {
             const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
-            const taxRate = (typeof taxRatePercent === "number" ? taxRatePercent : 12) / 100;
             const effectiveDiscount = enableDiscounts ? discountPercent : 0;
             const discountAmount = subtotal * (effectiveDiscount / 100);
             const netSubtotal = Math.max(0, subtotal - discountAmount);
+            const taxRate = enableTax ? (typeof taxRatePercent === "number" ? taxRatePercent : 12) / 100 : 0;
             return netSubtotal * (1 + taxRate);
           })()
         }

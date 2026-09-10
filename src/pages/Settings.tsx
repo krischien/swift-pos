@@ -23,11 +23,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Bluetooth, Loader2, Printer as PrinterIcon, RefreshCcw, Database, Download, RotateCcw, Upload } from "lucide-react";
+import { Bluetooth, Loader2, Printer as PrinterIcon, RefreshCcw, Database, Download, RotateCcw, Upload, Sprout } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useStore } from "@/contexts/StoreContext";
 import { useToast } from "@/hooks/use-toast";
 import { printerService, type PrinterDevice } from "@/lib/printer";
 import { api } from "@/lib/api";
+import { isSaaS } from "@/config/appMode";
+import { getStore, updateStore } from "@/lib/saasStoreApi";
+import { getOrg, updateOrg } from "@/lib/saasOrgApi";
 import {
   createMobileBackup,
   exportMobileBackup,
@@ -35,9 +39,13 @@ import {
   restoreMobileBackup,
   type MobileBackup,
 } from "@/lib/mobileBackup";
+import { useAuth } from "@/contexts/AuthContext";
+import { adminApi } from "@/lib/saasAdminApi";
+import { SubscriptionSettingsCard } from "@/components/SubscriptionSettingsCard";
 
 const Settings = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const {
     storeName,
     storeAddress,
@@ -45,14 +53,22 @@ const Settings = () => {
     setStoreAddress,
     autoPrintReceipt,
     showLogoOnReceipt,
+    receiptLogoUrl,
     setAutoPrintReceipt,
     setShowLogoOnReceipt,
+    setReceiptLogoUrl,
+    enableTax,
+    setEnableTax,
     taxRatePercent,
     setTaxRatePercent,
     enableDiscounts,
     enableBarcodeScanning,
+    enablePerKiloPurchase,
+    stickerCodeType,
     setEnableDiscounts,
     setEnableBarcodeScanning,
+    setEnablePerKiloPurchase,
+    setStickerCodeType,
     selectedPrinter,
     setSelectedPrinter,
   } = useSettings();
@@ -70,7 +86,13 @@ const Settings = () => {
   const [exportingMobileBackup, setExportingMobileBackup] = useState(false);
   const [selectedMobileBackup, setSelectedMobileBackup] = useState<string>("");
   const [showMobileRestoreDialog, setShowMobileRestoreDialog] = useState(false);
+  const [savingStore, setSavingStore] = useState(false);
+  const [loadingStore, setLoadingStore] = useState(false);
+  const [orgPhone, setOrgPhone] = useState("");
+  const [orgEmail, setOrgEmail] = useState("");
+  const [seedingDemo, setSeedingDemo] = useState(false);
   const isNative = Capacitor.isNativePlatform();
+  const { activeStoreId, stores, setStores } = useStore();
 
   const handleScanPrinters = async () => {
     if (!isNative) {
@@ -242,7 +264,10 @@ const Settings = () => {
     try {
       const backupList = await listMobileBackups();
       setMobileBackups(backupList);
-      if (backupList.length > 0 && !selectedMobileBackup) {
+      const filenames = new Set(backupList.map((b) => b.filename));
+      if (backupList.length === 0) {
+        setSelectedMobileBackup("");
+      } else if (!selectedMobileBackup || !filenames.has(selectedMobileBackup)) {
         setSelectedMobileBackup(backupList[0].filename);
       }
     } catch (error: any) {
@@ -327,12 +352,89 @@ const Settings = () => {
   };
 
   useEffect(() => {
-    if (!isNative) {
-      loadBackups();
-    } else {
+    if (isNative) {
       loadMobileBackups();
+    } else if (!isSaaS()) {
+      loadBackups();
     }
   }, [isNative]);
+
+  // Load store and org info from database when in SaaS mode
+  useEffect(() => {
+    if (!isSaaS() || !activeStoreId || activeStoreId === "default") return;
+    setLoadingStore(true);
+    Promise.all([getStore(activeStoreId), getOrg()])
+      .then(([store, org]) => {
+        setStoreName(store.name);
+        // Address comes from org (reflects to store)
+        const addr = org?.address ?? store.address ?? "";
+        setStoreAddress(addr);
+        setOrgPhone(org?.phone ?? "");
+        setOrgEmail(org?.email ?? "");
+      })
+      .catch(() => {
+        // Silently ignore - user may not have access
+      })
+      .finally(() => setLoadingStore(false));
+  }, [isSaaS(), activeStoreId]);
+
+  const handleSaveStoreInfo = async () => {
+    if (!isSaaS()) return;
+    setSavingStore(true);
+    try {
+      const [updatedStore, updatedOrg] = await Promise.all([
+        updateStore(
+          { name: storeName },
+          activeStoreId !== "default" ? activeStoreId : undefined
+        ),
+        updateOrg({
+          phone: orgPhone || undefined,
+          email: orgEmail || undefined,
+          address: storeAddress || undefined,
+        }),
+      ]);
+      setStoreName(updatedStore.name);
+      setStoreAddress(updatedOrg?.address ?? updatedStore.address ?? "");
+      setOrgPhone(updatedOrg?.phone ?? "");
+      setOrgEmail(updatedOrg?.email ?? "");
+      setStores(
+        stores.map((s) =>
+          s.id === updatedStore.id ? { ...s, name: updatedStore.name } : s
+        )
+      );
+      toast({
+        title: "Store information saved",
+        description: "Changes have been saved to your store.",
+      });
+    } catch (error: unknown) {
+      toast({
+        variant: "destructive",
+        title: "Failed to save",
+        description: error instanceof Error ? error.message : "Could not update store information.",
+      });
+    } finally {
+      setSavingStore(false);
+    }
+  };
+
+  const handleSeedDemo = async () => {
+    setSeedingDemo(true);
+    try {
+      const result = await adminApi.seedDemo();
+      toast({
+        title: "Demo data seeded",
+        description: `Created ${result.orgName} with ${result.storeCount} stores and ${result.salesCount} sales. Log in with owner@demo.com, maria@demo.com, or juan@demo.com (password: ${result.password})`,
+      });
+    } catch (e: any) {
+      toast({
+        variant: "destructive",
+        title: "Seed failed",
+        description: e.message ?? "Failed to seed demo data",
+      });
+    } finally {
+      setSeedingDemo(false);
+    }
+  };
 
   return (
     <div className="p-6 space-y-6 max-w-4xl">
@@ -341,30 +443,104 @@ const Settings = () => {
         <p className="text-muted-foreground">Manage your POS system preferences</p>
       </div>
 
+      {isSaaS() && user?.role === "owner" && <SubscriptionSettingsCard />}
+
+      {isSaaS() && (user?.role === "super_admin" || user?.role === "owner") && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sprout className="h-5 w-5" />
+              Demo Data
+            </CardTitle>
+            <CardDescription>
+              Seed a Demo Organization with 2 stores, sample products, and 10 days of sales history. Useful for demos and testing.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              variant="outline"
+              onClick={handleSeedDemo}
+              disabled={seedingDemo}
+            >
+              {seedingDemo ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Sprout className="mr-2 h-4 w-4" />
+              )}
+              Seed Demo Data
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Store Information</CardTitle>
-          <CardDescription>Used as the header on printed receipts.</CardDescription>
+          <CardDescription>
+            {isSaaS()
+              ? "Store name and organization contact info. Address reflects to all stores and receipts."
+              : "Used as the header on printed receipts."}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-1">
-            <Label htmlFor="store-name">Store name</Label>
-            <Input
-              id="store-name"
-              placeholder="QuickPOS"
-              value={storeName}
-              onChange={(e) => setStoreName(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="store-address">Store address</Label>
-            <Input
-              id="store-address"
-              placeholder="123 Main St, City"
-              value={storeAddress}
-              onChange={(e) => setStoreAddress(e.target.value)}
-            />
-          </div>
+          {loadingStore ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading store information...
+            </div>
+          ) : (
+            <>
+              <div className="space-y-1">
+                <Label htmlFor="store-name">Store name</Label>
+                <Input
+                  id="store-name"
+                  placeholder="SwiftPOS"
+                  value={storeName}
+                  onChange={(e) => setStoreName(e.target.value)}
+                />
+              </div>
+              {isSaaS() && (
+                <>
+                  <div className="space-y-1">
+                    <Label htmlFor="org-phone">Phone</Label>
+                    <Input
+                      id="org-phone"
+                      placeholder="+63 912 345 6789"
+                      value={orgPhone}
+                      onChange={(e) => setOrgPhone(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="org-email">Email</Label>
+                    <Input
+                      id="org-email"
+                      type="email"
+                      placeholder="store@example.com"
+                      value={orgEmail}
+                      onChange={(e) => setOrgEmail(e.target.value)}
+                    />
+                  </div>
+                </>
+              )}
+              <div className="space-y-1">
+                <Label htmlFor="store-address">{isSaaS() ? "Address" : "Store address"}</Label>
+                <Input
+                  id="store-address"
+                  placeholder="123 Main St, City"
+                  value={storeAddress}
+                  onChange={(e) => setStoreAddress(e.target.value)}
+                />
+              </div>
+            </>
+          )}
+          {isSaaS() && !loadingStore && (
+            <Button onClick={handleSaveStoreInfo} disabled={savingStore}>
+              {savingStore ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Save changes
+            </Button>
+          )}
         </CardContent>
       </Card>
 
@@ -400,6 +576,42 @@ const Settings = () => {
               checked={enableBarcodeScanning}
               onCheckedChange={setEnableBarcodeScanning}
             />
+          </div>
+          <Separator />
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="per-kilo">Per Kilo Purchase</Label>
+              <p className="text-sm text-muted-foreground">
+                Allow decimal quantities (e.g., 1.5 kg) instead of whole numbers
+              </p>
+            </div>
+            <Switch
+              id="per-kilo"
+              checked={enablePerKiloPurchase}
+              onCheckedChange={setEnablePerKiloPurchase}
+            />
+          </div>
+          <Separator />
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="sticker-code-type">Sticker Code Type</Label>
+              <p className="text-sm text-muted-foreground">
+                Choose QR code or barcode for sticker generator
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`text-sm ${stickerCodeType === "barcode" ? "font-medium" : "text-muted-foreground"}`}>
+                Barcode
+              </span>
+              <Switch
+                id="sticker-code-type"
+                checked={stickerCodeType === "qr"}
+                onCheckedChange={(checked) => setStickerCodeType(checked ? "qr" : "barcode")}
+              />
+              <span className={`text-sm ${stickerCodeType === "qr" ? "font-medium" : "text-muted-foreground"}`}>
+                QR Code
+              </span>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -520,27 +732,111 @@ const Settings = () => {
             />
           </div>
           <Separator />
+          <div className="space-y-3">
+            <Label>Receipt Logo</Label>
+            <p className="text-sm text-muted-foreground">
+              Upload a logo image to display on receipts (recommended: square image, max 300×300px)
+            </p>
+            <div className="flex items-center gap-4">
+              {receiptLogoUrl ? (
+                <div className="flex items-center gap-3">
+                  <img
+                    src={receiptLogoUrl}
+                    alt="Receipt logo"
+                    className="h-20 w-20 rounded border object-contain bg-muted"
+                  />
+                  <div className="flex gap-2">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      id="receipt-logo-upload"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = () => setReceiptLogoUrl(reader.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                        e.target.value = "";
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      onClick={() => document.getElementById("receipt-logo-upload")?.click()}
+                    >
+                      Change
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setReceiptLogoUrl(null)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    id="receipt-logo-upload"
+                    className="max-w-xs"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = () => setReceiptLogoUrl(reader.result as string);
+                        reader.readAsDataURL(file);
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+          <Separator />
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="tax-rate">Tax rate (%)</Label>
+              <Label htmlFor="enable-tax">Enable tax</Label>
               <p className="text-sm text-muted-foreground">
-                Applied to the net subtotal after discounts. Defaults to 12%.
+                When enabled, tax is applied to the net subtotal after discounts.
               </p>
             </div>
-            <Input
-              id="tax-rate"
-              type="number"
-              className="w-24"
-              min={0}
-              max={100}
-              value={taxRatePercent}
-              onChange={(e) => setTaxRatePercent(Number(e.target.value))}
+            <Switch
+              id="enable-tax"
+              checked={enableTax}
+              onCheckedChange={setEnableTax}
             />
           </div>
+          {enableTax && (
+            <div className="flex items-center justify-between pt-2">
+              <div className="space-y-0.5">
+                <Label htmlFor="tax-rate">Tax rate (%)</Label>
+                <p className="text-sm text-muted-foreground">
+                  Applied to the net subtotal. Defaults to 12%.
+                </p>
+              </div>
+              <Input
+                id="tax-rate"
+                type="number"
+                className="w-24"
+                min={0}
+                max={100}
+                value={taxRatePercent}
+                onChange={(e) => setTaxRatePercent(Number(e.target.value))}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {!isNative && (
+      {!isNative && !isSaaS() && (
         <Card>
           <CardHeader>
             <CardTitle>Data Backup & Restore</CardTitle>

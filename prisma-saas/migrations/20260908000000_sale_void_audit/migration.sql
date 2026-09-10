@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Sale" ADD COLUMN "voidedAt" DATETIME;
+ALTER TABLE "Sale" ADD COLUMN "voidedById" TEXT;
+ALTER TABLE "Sale" ADD COLUMN "voidedByName" TEXT;

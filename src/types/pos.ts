@@ -1,10 +1,13 @@
-export type UserRole = "admin" | "cashier";
+export type UserRole = "admin" | "cashier" | "owner" | "super_admin";
+
+export type BusinessMode = "retail" | "fnb";
 
 export interface User {
   id: string;
   name: string;
   email: string;
   role: UserRole;
+  storeIds?: string[];
 }
 
 export interface Category {
@@ -37,11 +40,15 @@ export interface Product {
   image?: string;
   barcode?: string;
   qrCode?: string;
+  unitOfMeasure?: string;
 }
 
 export interface CartItem {
   id: string;
-  productId: string;
+  /** Retail line — mutually exclusive with menuItemId. */
+  productId?: string;
+  /** F&B line — mutually exclusive with productId. */
+  menuItemId?: string;
   variantId?: string;
   name: string;
   variantName?: string;
@@ -60,16 +67,61 @@ export interface Sale {
   change: number;
   createdAt: Date;
   items: SaleItem[];
+  status?: string;
+  voidedAt?: Date | string | null;
+  voidedById?: string | null;
+  voidedByName?: string | null;
 }
 
 export interface SaleItem {
   id: string;
   saleId: string;
-  productId: string;
+  productId?: string | null;
+  menuItemId?: string | null;
   variantId?: string;
   productName: string;
   variantName?: string;
   quantity: number;
   price: number;
   subtotal: number;
+}
+
+export interface Ingredient {
+  id: string;
+  storeId: string;
+  name: string;
+  sku?: string | null;
+  barcode?: string | null;
+  stock: number;
+  lowStockThreshold: number;
+  unitOfMeasure?: string | null;
+  status: string;
+}
+
+export interface MenuCategory {
+  id: string;
+  storeId: string;
+  name: string;
+}
+
+export interface RecipeLine {
+  id: string;
+  menuItemId: string;
+  ingredientId: string;
+  quantity: number;
+  wastagePercent?: number | null;
+  ingredient?: Ingredient;
+}
+
+export interface MenuItem {
+  id: string;
+  storeId: string;
+  menuCategoryId: string;
+  name: string;
+  price: number;
+  status: string;
+  image?: string | null;
+  barcode?: string | null;
+  recipeLines?: RecipeLine[];
+  menuCategory?: MenuCategory;
 }

@@ -14,11 +14,12 @@ export const mobileServices = {
       console.log("Attempting login for:", payload.email);
       const db = await getDatabase();
       console.log("Database connection obtained");
-      
+
+      const normalizedEmail = String(payload.email || "").trim().toLowerCase();
       // Try to query for user
       let result: any;
       try {
-        result = await dbQuery(db, "SELECT * FROM User WHERE email = ?", [payload.email]);
+        result = await dbQuery(db, "SELECT * FROM User WHERE LOWER(email) = ?", [normalizedEmail]);
         console.log("Query result:", result);
       } catch (queryError) {
         console.error("Query error:", queryError);
@@ -147,6 +148,7 @@ export const mobileServices = {
       image: row.image,
       barcode: row.barcode,
       qrCode: row.qrCode,
+      unitOfMeasure: row.unitOfMeasure || "PCS",
     })) as Product[];
 
     // Load variants for products that have them
@@ -173,14 +175,15 @@ export const mobileServices = {
     marginPercentage?: number;
     status?: "active" | "inactive";
     image?: string;
+    unitOfMeasure?: string;
   }): Promise<Product> {
     const db = await getDatabase();
     const id = generateId();
 
     await dbExecute(
       db,
-      `INSERT INTO Product (id, name, categoryId, itemCode, sku, hasVariants, basePrice, price, stock, lowStockThreshold, marginPercentage, status, image, barcode, qrCode)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO Product (id, name, categoryId, itemCode, sku, hasVariants, basePrice, price, stock, lowStockThreshold, marginPercentage, status, image, barcode, qrCode, unitOfMeasure)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         payload.name,
@@ -197,6 +200,7 @@ export const mobileServices = {
         payload.image || null,
         payload.barcode || null,
         payload.qrCode || null,
+        payload.unitOfMeasure || "PCS",
       ]
     );
 
@@ -220,6 +224,7 @@ export const mobileServices = {
       image?: string;
       barcode?: string;
       qrCode?: string;
+      unitOfMeasure?: string;
     }>
   ): Promise<Product> {
     const db = await getDatabase();
@@ -273,6 +278,10 @@ export const mobileServices = {
     if (payload.image !== undefined) {
       updates.push("image = ?");
       values.push(payload.image);
+    }
+    if (payload.unitOfMeasure !== undefined) {
+      updates.push("unitOfMeasure = ?");
+      values.push(payload.unitOfMeasure);
     }
 
     if (updates.length > 0) {

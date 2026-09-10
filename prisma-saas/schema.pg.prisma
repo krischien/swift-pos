@@ -1,0 +1,267 @@
+// SaaS schema - PostgreSQL (Neon, Vercel production)
+// Run: npx prisma generate --schema=prisma-saas/schema.pg.prisma
+// Push (initial): npx prisma db push --schema=prisma-saas/schema.pg.prisma
+
+generator client {
+  provider      = "prisma-client-js"
+  // Same path as SQLite dev client — Vercel/Postgres builds overwrite this for serverless bundle.
+  output        = "../node_modules/.prisma/saas-client"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("SAAS_DATABASE_URL")
+}
+
+model Organization {
+  id               String    @id @default(cuid())
+  name             String
+  /// Denormalized: tindahan | negosyo | kumpanya | suspended
+  plan             String    @default("tindahan")
+  phone            String?
+  email            String?
+  address          String?
+  stripeCustomerId String?
+  billingDueDate   DateTime?
+  trialEndsAt      DateTime?
+  createdAt        DateTime  @default(now())
+
+  users           User[]
+  stores          Store[]
+  notifications   OrganizationNotification[]
+  billingPayments OrganizationBillingPayment[]
+  subscription    OrganizationSubscription?
+}
+
+/// Org-level subscription (one per organization)
+model OrganizationSubscription {
+  id                   String    @id @default(cuid())
+  organizationId       String    @unique
+  /// tindahan | negosyo | kumpanya
+  tier                 String    @default("tindahan")
+  /// trialing | active | pending_payment | past_due | cancelled | expired
+  status               String    @default("trialing")
+  trialStart           DateTime?
+  trialEnd             DateTime?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  monthlyPriceCentavos Int       @default(49900)
+  setupFeePaid         Boolean   @default(false)
+  /// Last plan chosen on /pricing while awaiting admin activation
+  requestedTier        String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model OrganizationNotification {
+  id             String   @id @default(cuid())
+  organizationId String
+  message        String
+  type           String   @default("info")
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model OrganizationBillingPayment {
+  id             String   @id @default(cuid())
+  organizationId String
+  period         String
+  amountCents    Int?
+  method         String?
+  note           String?
+  recordedById   String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  recordedBy   User?        @relation("BillingPaymentRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, period])
+}
+
+model Store {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  address        String?
+  receiptLogoUrl String?
+  businessMode   String   @default("retail")
+  createdAt      DateTime @default(now())
+
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  categories     Category[]
+  products       Product[]
+  sales          Sale[]
+  userAccess     UserStore[]
+  ingredients    Ingredient[]
+  menuCategories MenuCategory[]
+  menuItems      MenuItem[]
+}
+
+model User {
+  id             String   @id @default(cuid())
+  organizationId String?
+  name           String
+  email          String   @unique
+  password       String
+  role           String
+  createdAt      DateTime @default(now())
+
+  organization              Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sales                     Sale[] @relation("SaleCashier")
+  voidedSales               Sale[] @relation("SaleVoidedBy")
+  storeAccess               UserStore[]
+  billingPaymentsRecorded   OrganizationBillingPayment[] @relation("BillingPaymentRecordedBy")
+}
+
+model UserStore {
+  userId  String
+  storeId String
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store   Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@id([userId, storeId])
+}
+
+model Category {
+  id      String   @id @default(cuid())
+  storeId String
+  name    String
+
+  store    Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  products Product[]
+}
+
+model Product {
+  id                 String         @id @default(cuid())
+  storeId            String
+  name               String
+  categoryId         String
+  itemCode           String?
+  sku                String?
+  hasVariants        Boolean        @default(false)
+  basePrice          Float?
+  price              Float?
+  stock              Int?
+  lowStockThreshold  Int            @default(0)
+  marginPercentage   Float?
+  status             String         @default("active")
+  image              String?
+  barcode            String?
+  qrCode             String?
+  unitOfMeasure      String?        @default("PCS")
+
+  store    Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  variants Variant[]
+  saleItems SaleItem[]
+}
+
+model Variant {
+  id        String   @id @default(cuid())
+  productId String
+  name      String
+  price     Float
+  stock     Int
+
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  saleItems SaleItem[]
+}
+
+model Sale {
+  id                 String   @id @default(cuid())
+  storeId            String
+  ticketNumber       String?
+  cashierId          String?
+  cashierName        String
+  total              Float
+  paymentMethod      String   @default("cash")
+  amountReceived     Float
+  change             Float
+  status             String   @default("completed")
+  gcashTransactionId String?
+  voidedAt           DateTime?
+  voidedById         String?
+  voidedByName       String?
+  createdAt          DateTime @default(now())
+
+  store   Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  cashier User?     @relation("SaleCashier", fields: [cashierId], references: [id], onDelete: SetNull)
+  voidedBy User?    @relation("SaleVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  items   SaleItem[]
+}
+
+model Ingredient {
+  id                String   @id @default(cuid())
+  storeId           String
+  name              String
+  sku               String?
+  barcode           String?
+  stock             Int      @default(0)
+  lowStockThreshold Int      @default(0)
+  unitOfMeasure     String?  @default("PCS")
+  status            String   @default("active")
+
+  store       Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  recipeLines RecipeLine[]
+}
+
+model MenuCategory {
+  id      String @id @default(cuid())
+  storeId String
+  name    String
+
+  store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  menuItems MenuItem[]
+}
+
+model MenuItem {
+  id             String @id @default(cuid())
+  storeId        String
+  menuCategoryId String
+  name           String
+  price          Float
+  status         String @default("active")
+  image          String?
+  barcode        String?
+
+  store        Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  menuCategory MenuCategory @relation(fields: [menuCategoryId], references: [id], onDelete: Cascade)
+  recipeLines  RecipeLine[]
+  saleItems    SaleItem[]
+}
+
+model RecipeLine {
+  id             String  @id @default(cuid())
+  menuItemId     String
+  ingredientId   String
+  quantity       Float
+  wastagePercent Float?
+
+  menuItem   MenuItem   @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@unique([menuItemId, ingredientId])
+}
+
+model SaleItem {
+  id          String   @id @default(cuid())
+  saleId      String
+  productId   String?
+  menuItemId  String?
+  variantId   String?
+  productName String
+  variantName String?
+  quantity    Int
+  price       Float
+  subtotal    Float
+
+  sale     Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product  Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  menuItem MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
+  variant  Variant?  @relation(fields: [variantId], references: [id], onDelete: SetNull)
+}
