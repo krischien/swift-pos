@@ -36,10 +36,14 @@ Multi-store, cloud-connected. Requires your SaaS API to be running and reachable
 VITE_APP_MODE=saas
 # Local dev: use your machine's IP (phone and PC on same network)
 VITE_SAAS_API_URL=http://192.168.1.100:4001
-# Production: use HTTPS
-# VITE_SAAS_API_URL=https://your-api.example.com
+# Production (Vercel + Neon): copy template and use prod script
+# cp .env.saas-production .env.saas.local
+# VITE_SAAS_API_URL=https://app.yourdomain.com
+# npm run build:mobile:saas:prod
+#
+# See docs/DEPLOY_VERCEL_NEON.md for full prod setup.
 
-# 2. Build and sync
+# 2. Build and sync (dev / VPS remote)
 npm run build:mobile:saas
 
 # Or step by step

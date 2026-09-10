@@ -67,6 +67,10 @@ export interface Sale {
   change: number;
   createdAt: Date;
   items: SaleItem[];
+  status?: string;
+  voidedAt?: Date | string | null;
+  voidedById?: string | null;
+  voidedByName?: string | null;
 }
 
 export interface SaleItem {

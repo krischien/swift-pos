@@ -211,6 +211,7 @@ export async function listSales(storeId: string, options: ListSalesOptions = {})
     include: {
       items: true,
       cashier: true,
+      voidedBy: true,
     },
     orderBy: {
       createdAt: "desc",
@@ -224,11 +225,46 @@ export async function getSaleById(id: string, storeId: string) {
     include: {
       items: true,
       cashier: true,
+      voidedBy: true,
     },
   });
 }
 
-export async function voidSale(id: string, storeId: string) {
+export interface VoidSaleActor {
+  userId: string;
+  role: string;
+  name: string;
+}
+
+/** UTC calendar day boundary for "today" void rules. */
+function isSameUtcDay(a: Date, b: Date): boolean {
+  return (
+    a.getUTCFullYear() === b.getUTCFullYear() &&
+    a.getUTCMonth() === b.getUTCMonth() &&
+    a.getUTCDate() === b.getUTCDate()
+  );
+}
+
+function assertCanVoidSale(
+  sale: { cashierId: string | null; createdAt: Date; status?: string },
+  actor: VoidSaleActor,
+) {
+  if (actor.role === "owner") return;
+
+  if (actor.role === "cashier") {
+    if (sale.cashierId !== actor.userId) {
+      throw new Error("Forbidden: cashiers can only void their own sales");
+    }
+    if (!isSameUtcDay(sale.createdAt, new Date())) {
+      throw new Error("Forbidden: cashiers can only void sales from today");
+    }
+    return;
+  }
+
+  throw new Error("Forbidden: you are not allowed to void sales");
+}
+
+export async function voidSale(id: string, storeId: string, actor: VoidSaleActor) {
   const sale = await saasPrisma.sale.findFirst({
     where: { id, storeId },
     include: { items: true },
@@ -237,6 +273,10 @@ export async function voidSale(id: string, storeId: string) {
   if ((sale as { status?: string }).status === "void") {
     throw new Error("Sale is already voided");
   }
+
+  assertCanVoidSale(sale, actor);
+
+  const voidedAt = new Date();
 
   return saasPrisma.$transaction(async (tx) => {
     for (const item of sale.items) {
@@ -271,8 +311,13 @@ export async function voidSale(id: string, storeId: string) {
     }
     return tx.sale.update({
       where: { id },
-      data: { status: "void" },
-      include: { items: true, cashier: true },
+      data: {
+        status: "void",
+        voidedAt,
+        voidedById: actor.userId,
+        voidedByName: actor.name,
+      },
+      include: { items: true, cashier: true, voidedBy: true },
     });
   });
 }

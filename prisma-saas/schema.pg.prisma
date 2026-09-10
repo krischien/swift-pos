@@ -4,7 +4,8 @@
 
 generator client {
   provider      = "prisma-client-js"
-  output        = "./generated/saas-client"
+  // Same path as SQLite dev client — Vercel/Postgres builds overwrite this for serverless bundle.
+  output        = "../node_modules/.prisma/saas-client"
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
@@ -111,7 +112,8 @@ model User {
   createdAt      DateTime @default(now())
 
   organization              Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  sales                     Sale[]
+  sales                     Sale[] @relation("SaleCashier")
+  voidedSales               Sale[] @relation("SaleVoidedBy")
   storeAccess               UserStore[]
   billingPaymentsRecorded   OrganizationBillingPayment[] @relation("BillingPaymentRecordedBy")
 }
@@ -182,10 +184,14 @@ model Sale {
   change             Float
   status             String   @default("completed")
   gcashTransactionId String?
+  voidedAt           DateTime?
+  voidedById         String?
+  voidedByName       String?
   createdAt          DateTime @default(now())
 
   store   Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  cashier User?     @relation(fields: [cashierId], references: [id], onDelete: SetNull)
+  cashier User?     @relation("SaleCashier", fields: [cashierId], references: [id], onDelete: SetNull)
+  voidedBy User?    @relation("SaleVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
   items   SaleItem[]
 }
 

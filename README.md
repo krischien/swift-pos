@@ -140,6 +140,7 @@ Commands are defined in `package.json`. Common ones:
 | `npm run build:mobile:saas` | `build:saas` then `cap sync android`. |
 | `npm run build:mobile:saas:emulator` | SaaS build with API URL `http://10.0.2.2:4001` (Android emulator → host). |
 | `npm run build:mobile:saas:local` / `:remote` / `:adb` | Preset `VITE_SAAS_API_URL` for LAN, remote server, or adb reverse scenarios. |
+| `npm run build:mobile:saas:prod` | Production mobile build — set `VITE_SAAS_API_URL` in `.env.saas.local` (see `.env.saas-production`). |
 | `npm run mobile:emulator:tunnel` | `adb reverse` to forward port 4001 for device ↔ host API. |
 | `npm run cap:open` | Open the Android project in Android Studio. |
 | `npm run cap:sync` / `cap:sync:solo` / `cap:sync:saas` | Build + sync web assets into native projects. |
@@ -150,6 +151,9 @@ Commands are defined in `package.json`. Common ones:
 | ------- | ------------- |
 | `npm run build:api` | Bundle SaaS API with esbuild to `api/index.js` for serverless or Node hosting. |
 | `npm run vercel:build` | SaaS frontend build + Prisma generate step + API bundle for Vercel-style pipelines. |
+| `npm run prisma:migrate:saas:prod` | Apply Postgres migrations to Neon (`schema.pg.prisma`). |
+
+**Production deploy (Vercel + Neon):** see [`docs/DEPLOY_VERCEL_NEON.md`](docs/DEPLOY_VERCEL_NEON.md). Env template: [`.env.vercel.example`](.env.vercel.example). Use a **separate** Vercel project and Neon DB from demo.
 
 **Environment**
 

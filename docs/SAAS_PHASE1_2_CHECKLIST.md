@@ -125,7 +125,7 @@ Delete or archive once SaaS is the only customer path:
 | [x] | `/admin/*` routes + `superAdminMiddleware` |
 | [x] | Org billing ledger, payment monitoring (`quick-scale`) |
 | [ ] | Verify `SUPER_ADMIN_EMAILS` on Vercel includes `admin@demo.com` |
-| [ ] | Document internal ops runbook in `DEPLOY_VERCEL_NEON.md` |
+| [x] | Document internal ops runbook in `DEPLOY_VERCEL_NEON.md` |
 
 ### Phase 1 verification
 

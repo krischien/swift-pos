@@ -47,6 +47,7 @@ import { getBillingContact, TRIAL_DAYS } from "./config/tiers.js";
 
 const app = express();
 const port = process.env.SAAS_PORT || 4001;
+const isVercel = process.env.VERCEL === "1";
 
 /** Production / Vercel — permissive CORS (`*` or unset) is disabled (Phase 1.3). */
 
@@ -105,6 +106,29 @@ app.use(
   })
 );
 app.use(express.json({ limit: "1mb" }));
+
+/** Vercel serverless: validate env + bootstrap once per cold start (no app.listen). */
+let vercelBootPromise: Promise<void> | null = null;
+if (isVercel) {
+  app.use(async (_req, _res, next) => {
+    if (!vercelBootPromise) {
+      vercelBootPromise = (async () => {
+        validateSecurityEnv();
+        try {
+          await runBootstrapSeed();
+        } catch (e) {
+          console.error("[Bootstrap] Failed:", e);
+        }
+      })();
+    }
+    try {
+      await vercelBootPromise;
+    } catch (e) {
+      console.error("[Bootstrap]", e);
+    }
+    next();
+  });
+}
 
 app.use((req, _res, next) => {
   console.log(`[SAAS ${new Date().toISOString()}] ${req.method} ${req.path}`);
@@ -975,12 +999,26 @@ protectedRouter.post("/api/sales/:id/void", async (req: AuthRequest, res) => {
   try {
     const storeId = (req as any).storeId;
     if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    const sale = await saleService.voidSale(req.params.id, storeId);
+    const auth = req.auth;
+    if (!auth?.userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const user = await saasPrisma.user.findUnique({
+      where: { id: auth.userId },
+      select: { name: true },
+    });
+    const actor = {
+      userId: auth.userId,
+      role: auth.role,
+      name: user?.name ?? auth.email,
+    };
+
+    const sale = await saleService.voidSale(req.params.id, storeId, actor);
     if (!sale) return res.status(404).json({ message: "Sale not found" });
     res.json(sale);
   } catch (error: unknown) {
     const msg = (error as Error).message;
     if (msg?.includes("already voided")) return res.status(400).json({ message: msg });
+    if (msg?.startsWith("Forbidden:")) return res.status(403).json({ message: msg.replace(/^Forbidden:\s*/, "") });
     console.error(error);
     res.status(500).json({ message: "Failed to void sale" });
   }
@@ -1532,4 +1570,9 @@ async function start() {
     if (net) console.log(`  For mobile: use http://${net.address}:${port}`);
   });
 }
-start();
+
+if (!isVercel) {
+  void start();
+}
+
+export default app;

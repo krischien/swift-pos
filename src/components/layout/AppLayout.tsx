@@ -68,7 +68,7 @@ const AppLayout = () => {
           { to: "/inventory", icon: Package, label: "Inventory", roles: ["owner"] },
           { to: "/categories", icon: FolderTree, label: "Categories", roles: ["owner"] },
         ]),
-    { to: "/sales", icon: TrendingUp, label: "Sales", roles: ["owner"] },
+    { to: "/sales", icon: TrendingUp, label: "Sales", roles: ["owner", "cashier"] },
     { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["owner", "admin", "super_admin"] },
     { to: "/stores", icon: Store, label: "Stores", roles: ["owner"] },
     { to: "/users", icon: Users, label: "Users", roles: ["owner"] },

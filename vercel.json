@@ -23,7 +23,7 @@
     "api/index.js": {
       "maxDuration": 30,
       "memory": 1024,
-      "includeFiles": "prisma-saas/generated/**"
+      "includeFiles": "node_modules/.prisma/saas-client/**"
     }
   }
 }

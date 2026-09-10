@@ -371,6 +371,108 @@ export const securityTests = [
       expectStatus(status, 401, "Unauthenticated void");
     },
   },
+  {
+    id: "sale-void-cashier-own-today",
+    category: "RBAC",
+    name: "Cashier can void own sale from today with audit fields",
+    async run({ sessions }) {
+      const products = await apiFetch("/api/products", {
+        token: sessions.cashier.token,
+        storeId: sessions.cashier.storeId,
+      });
+      if (!Array.isArray(products.body) || products.body.length === 0) {
+        return { skipped: true, reason: "No products for cashier store" };
+      }
+      const product = products.body[0];
+      const price = product.basePrice ?? product.price ?? 100;
+      const subtotal = price;
+      const total = subtotal + subtotal * 0.1;
+      const { status: createStatus, body: sale } = await apiFetch("/api/sales", {
+        token: sessions.cashier.token,
+        method: "POST",
+        storeId: sessions.cashier.storeId,
+        body: {
+          cartItems: [
+            {
+              productId: product.id,
+              productName: product.name,
+              quantity: 1,
+              price,
+              subtotal,
+            },
+          ],
+          taxRate: 0.1,
+          amountReceived: total,
+          paymentMethod: "cash",
+          cashierId: sessions.cashier.user.id,
+          cashierName: sessions.cashier.user.name ?? sessions.cashier.user.email,
+        },
+      });
+      if (createStatus !== 201) {
+        throw new Error(`Failed to create sale for void test: ${createStatus}`);
+      }
+      const { status, body } = await apiFetch(`/api/sales/${sale.id}/void`, {
+        token: sessions.cashier.token,
+        method: "POST",
+        storeId: sessions.cashier.storeId,
+      });
+      expectStatus(status, 200, "Cashier void own sale");
+      if ((body?.status ?? "").toLowerCase() !== "void") {
+        throw new Error("Expected void status on response");
+      }
+      if (!body?.voidedById || !body?.voidedAt) {
+        throw new Error("Void response missing audit fields");
+      }
+    },
+  },
+  {
+    id: "sale-void-cashier-blocked-other",
+    category: "RBAC",
+    name: "Cashier cannot void another cashier's sale (403)",
+    async run({ sessions }) {
+      const products = await apiFetch("/api/products", {
+        token: sessions.owner.token,
+        storeId: sessions.owner.storeId,
+      });
+      if (!Array.isArray(products.body) || products.body.length === 0) {
+        return { skipped: true, reason: "No products for owner store" };
+      }
+      const product = products.body[0];
+      const price = product.basePrice ?? product.price ?? 100;
+      const subtotal = price;
+      const total = subtotal + subtotal * 0.1;
+      const { status: createStatus, body: sale } = await apiFetch("/api/sales", {
+        token: sessions.owner.token,
+        method: "POST",
+        storeId: sessions.owner.storeId,
+        body: {
+          cartItems: [
+            {
+              productId: product.id,
+              productName: product.name,
+              quantity: 1,
+              price,
+              subtotal,
+            },
+          ],
+          taxRate: 0.1,
+          amountReceived: total,
+          paymentMethod: "cash",
+          cashierId: sessions.owner.user.id,
+          cashierName: sessions.owner.user.name ?? "Owner",
+        },
+      });
+      if (createStatus !== 201) {
+        throw new Error(`Failed to create owner sale for void test: ${createStatus}`);
+      }
+      const { status } = await apiFetch(`/api/sales/${sale.id}/void`, {
+        token: sessions.cashier.token,
+        method: "POST",
+        storeId: sessions.cashier.storeId,
+      });
+      expectStatus(status, 403, "Cashier void other sale");
+    },
+  },
 
   // --- Signup abuse ---
   {

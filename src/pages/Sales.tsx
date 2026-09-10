@@ -35,6 +35,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useDataLayer } from "@/contexts/DataLayerContext";
 import { useStore } from "@/contexts/StoreContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { isSaaS } from "@/config/appMode";
 import { getSubscription } from "@/lib/saasSubscriptionApi";
 import { formatCurrency } from "@/lib/currency";
@@ -107,6 +108,26 @@ function escapeCsvCell(value: string | number | null | undefined): string {
   return s;
 }
 
+function isSameUtcDay(a: Date, b: Date): boolean {
+  return (
+    a.getUTCFullYear() === b.getUTCFullYear() &&
+    a.getUTCMonth() === b.getUTCMonth() &&
+    a.getUTCDate() === b.getUTCDate()
+  );
+}
+
+function canVoidSale(
+  sale: { status?: string; cashierId?: string; createdAt: string | Date },
+  userId: string | undefined,
+  isCashier: boolean,
+): boolean {
+  if ((sale.status ?? "").toLowerCase() === "void") return false;
+  if (!isCashier) return true;
+  if (!userId) return false;
+  if (sale.cashierId !== userId) return false;
+  return isSameUtcDay(new Date(sale.createdAt), new Date());
+}
+
 function downloadFilteredSalesCsv(rows: any[]) {
   const header = [
     "Transaction ID",
@@ -116,6 +137,8 @@ function downloadFilteredSalesCsv(rows: any[]) {
     "Date & Time",
     "Sale Total",
     "Status",
+    "Voided By",
+    "Voided At",
     "Item",
     "Variant",
     "Qty",
@@ -134,6 +157,8 @@ function downloadFilteredSalesCsv(rows: any[]) {
       escapeCsvCell(new Date(sale.createdAt).toLocaleString()),
       escapeCsvCell(formatCurrency(sale.total ?? 0)),
       escapeCsvCell(voided ? "Voided" : "Active"),
+      escapeCsvCell(voided ? (sale.voidedByName ?? "") : ""),
+      escapeCsvCell(voided && sale.voidedAt ? new Date(sale.voidedAt).toLocaleString() : ""),
     ];
     const items = Array.isArray(sale.items) ? sale.items : [];
     if (items.length === 0) {
@@ -175,6 +200,8 @@ function downloadFilteredSalesCsv(rows: any[]) {
 const Sales = () => {
   const dataService = useDataLayer();
   const { activeStoreId } = useStore();
+  const { user } = useAuth();
+  const isCashier = user?.role === "cashier";
   const { data: subscription } = useQuery({
     queryKey: ["subscription"],
     queryFn: getSubscription,
@@ -230,8 +257,15 @@ const Sales = () => {
   };
 
   useEffect(() => {
-    void loadSales();
-  }, [activeStoreId]);
+    if (isCashier) {
+      const { from, to, label } = getQuickRangeBounds("today");
+      setQuickRange("today");
+      setActiveRangeLabel(label);
+      void loadSales(from?.toISOString(), to?.toISOString());
+    } else {
+      void loadSales();
+    }
+  }, [activeStoreId, isCashier, user?.id]);
 
   const getRangeForExport = (range: ExportRange) => {
     const now = new Date();
@@ -708,6 +742,10 @@ const Sales = () => {
   const filteredSales = useMemo(() => {
     let result = sales;
 
+    if (isCashier && user?.id) {
+      result = result.filter((s) => s.cashierId === user.id);
+    }
+
     if (paymentFilter && paymentFilter !== "all") {
       result = result.filter((s) => (s.paymentMethod || "cash").toString().toLowerCase() === paymentFilter.toLowerCase());
     }
@@ -730,7 +768,7 @@ const Sales = () => {
     }
 
     return result;
-  }, [sales, searchQuery, paymentFilter]);
+  }, [sales, searchQuery, paymentFilter, isCashier, user?.id]);
 
   const totalPages = Math.max(1, Math.ceil(filteredSales.length / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -958,14 +996,19 @@ const Sales = () => {
     <div className="p-6 space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Sales History</h1>
+          <h1 className="text-3xl font-bold">{isCashier ? "My Sales Today" : "Sales History"}</h1>
           <p className="text-muted-foreground">
-            View and manage your sales transactions{activeRangeLabel ? ` (${activeRangeLabel})` : ""}
+            {isCashier
+              ? "View and void your sales from today"
+              : `View and manage your sales transactions${activeRangeLabel ? ` (${activeRangeLabel})` : ""}`}
           </p>
+          {!isCashier && (
           <p className="text-xs text-muted-foreground mt-1">
             Dashboard metrics and charts exclude voided sales. The table can show all, non-voided, or voided only.
           </p>
+          )}
         </div>
+        {!isCashier && (
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
@@ -1073,8 +1116,11 @@ const Sales = () => {
             </DialogContent>
           </Dialog>
         </div>
+        )}
       </div>
 
+      {!isCashier && (
+      <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => (
@@ -1396,9 +1442,11 @@ const Sales = () => {
           )}
         </CardContent>
       </Card>
+      </>
+      )}
 
       <div className="space-y-4">
-        {!error && (
+        {!error && !isCashier && (
           <div className="flex flex-wrap items-center gap-2 justify-between">
             <Popover open={txnRangeOpen} onOpenChange={handleTxnRangeOpenChange}>
               <PopoverTrigger asChild>
@@ -1615,6 +1663,12 @@ const Sales = () => {
                         <div className="flex flex-wrap items-center gap-2">
                           <span>#{String(sale.id).slice(-6).padStart(6, "0")}</span>
                           {voided && <Badge variant="destructive">Voided</Badge>}
+                          {voided && sale.voidedByName && (
+                            <p className="text-xs text-muted-foreground">
+                              Voided by {sale.voidedByName}
+                              {sale.voidedAt ? ` · ${new Date(sale.voidedAt).toLocaleString()}` : ""}
+                            </p>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>{sale.cashierName}</TableCell>
@@ -1631,7 +1685,7 @@ const Sales = () => {
                           <Button variant="ghost" size="sm" onClick={() => openSaleDetails(sale)}>
                             View Details
                           </Button>
-                          {dataService.voidSale && !voided && (
+                          {dataService.voidSale && canVoidSale(sale, user?.id, isCashier) && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1714,6 +1768,12 @@ const Sales = () => {
                       <p className="text-xs text-muted-foreground">
                         {new Date(sale.createdAt).toLocaleString()}
                       </p>
+                      {voided && sale.voidedByName && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Voided by {sale.voidedByName}
+                          {sale.voidedAt ? ` · ${new Date(sale.voidedAt).toLocaleString()}` : ""}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right shrink-0">
                       <p className="font-bold text-lg">{formatCurrency(sale.total)}</p>
@@ -1741,7 +1801,7 @@ const Sales = () => {
                     >
                       View Details
                     </Button>
-                    {dataService.voidSale && !voided && (
+                    {dataService.voidSale && canVoidSale(sale, user?.id, isCashier) && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -1859,6 +1919,15 @@ const Sales = () => {
                       "Active"
                     )}
                   </p>
+                  {(detailsSale.status ?? "").toLowerCase() === "void" &&
+                    (detailsSale.voidedByName || detailsSale.voidedAt) && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Voided by {detailsSale.voidedByName ?? "Unknown"}
+                        {detailsSale.voidedAt
+                          ? ` at ${new Date(detailsSale.voidedAt).toLocaleString()}`
+                          : ""}
+                      </p>
+                    )}
                 </div>
               </div>
               <div className="rounded-lg border">
@@ -1891,7 +1960,7 @@ const Sales = () => {
                     </TableBody>
                   </Table>
               </div>
-              {dataService.voidSale && (detailsSale.status ?? "").toLowerCase() !== "void" && (
+              {dataService.voidSale && canVoidSale(detailsSale, user?.id, isCashier) && (
                 <div className="flex justify-end pt-4">
                   <Button
                     variant="destructive"
