@@ -2,8 +2,8 @@
   "buildCommand": "npm run vercel:build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/api", "destination": "/api/index.cjs" },
-    { "source": "/api/:path*", "destination": "/api/index.cjs" },
+    { "source": "/api", "destination": "/api/index" },
+    { "source": "/api/:path*", "destination": "/api/index" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
@@ -21,9 +21,12 @@
     }
   ],
   "functions": {
-    "api/index.cjs": {
+    "api/index.js": {
       "maxDuration": 30,
-      "includeFiles": "node_modules/.prisma/saas-client/**"
+      "includeFiles": [
+        "api/_handler.cjs",
+        "node_modules/.prisma/saas-client/**"
+      ]
     }
   }
 }
