@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import type { AuthRequest } from "../middleware/auth.js";
 import { saasPrisma } from "../db.js";
 import { runSeedDemo } from "../services/seedDemoService.js";
+import { runSeedVercelDemo } from "../services/seedVercelDemoService.js";
 import {
   computeNextBillingDueAfterPaidMonth,
   looksBillingRelatedMessage,
@@ -1261,6 +1262,27 @@ router.post("/seed-demo", async (_req: AuthRequest, res) => {
           ? String((error as { message: unknown }).message)
           : "Failed to seed demo data";
     console.error("[admin seed-demo]", error);
+    res.status(500).json({ message: msg });
+  }
+});
+
+/** Seed existing bootstrap org: grocery + F&B + pet, 50 sales/store over 7 days. */
+router.post("/seed-vercel-demo", async (_req: AuthRequest, res) => {
+  try {
+    const result = await runSeedVercelDemo();
+    res.json({
+      message: "Vercel demo catalog seeded",
+      password: "password123",
+      ...result,
+    });
+  } catch (error: unknown) {
+    const msg =
+      error instanceof Error
+        ? error.message
+        : typeof error === "object" && error !== null && "message" in error
+          ? String((error as { message: unknown }).message)
+          : "Failed to seed Vercel demo";
+    console.error("[admin seed-vercel-demo]", error);
     res.status(500).json({ message: msg });
   }
 });

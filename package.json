@@ -46,6 +46,8 @@
     "prisma:generate:saas:dev": "prisma generate --schema=prisma-saas/schema.dev.prisma",
     "saas:seed": "tsx --env-file=.env server/saas/seed.ts",
     "saas:seed-demo": "tsx --env-file=.env server/saas/seed-demo.ts",
+    "saas:seed-demo:prod": "npx prisma generate --schema=prisma-saas/schema.pg.prisma && tsx server/saas/seed-demo.ts",
+    "saas:seed-vercel-demo:prod": "npx prisma generate --schema=prisma-saas/schema.pg.prisma && tsx server/saas/seed-vercel-demo.ts",
     "saas:seed-second-org": "tsx --env-file=.env server/saas/scripts/seedSecondOrg.ts",
     "saas:backfill-subscriptions": "tsx --env-file=.env server/saas/scripts/backfillSubscriptions.ts",
     "prisma:generate": "prisma generate",
