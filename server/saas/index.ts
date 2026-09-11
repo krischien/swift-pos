@@ -923,8 +923,14 @@ protectedRouter.get("/api/products", async (req: AuthRequest, res) => {
     });
     res.json(products);
   } catch (error: unknown) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to fetch products" });
+    const detail = error instanceof Error ? error.message : String(error);
+    console.error("[products]", detail, error);
+    res.status(500).json({
+      message: "Failed to fetch products",
+      ...(process.env.VERCEL === "1" && detail.includes("does not exist")
+        ? { hint: "Run prisma db push on production Neon (redeploy triggers this automatically)." }
+        : {}),
+    });
   }
 });
 
