@@ -4,14 +4,12 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __require = /* @__PURE__ */ ((x2) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x2, {
-  get: (a, b2) => (typeof require !== "undefined" ? require : a)[b2]
-}) : x2)(function(x2) {
-  if (typeof require !== "undefined") return require.apply(this, arguments);
-  throw Error('Dynamic require of "' + x2 + '" is not supported');
-});
-var __commonJS = (cb, mod) => function __require2() {
+var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+};
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
 };
 var __copyProps = (to2, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
@@ -29,6 +27,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // node_modules/.prisma/saas-client/runtime/library.js
 var require_library = __commonJS({
@@ -112,7 +111,7 @@ var require_library = __commonJS({
     });
     var Go = Z((mf, Uo) => {
       "use strict";
-      var Gu = __require("os"), Bo = __require("tty"), de = Xn(), { env: Q } = process, Qe;
+      var Gu = require("os"), Bo = require("tty"), de = Xn(), { env: Q } = process, Qe;
       de("no-color") || de("no-colors") || de("color=false") || de("color=never") ? Qe = 0 : (de("color") || de("colors") || de("color=true") || de("color=always")) && (Qe = 1);
       "FORCE_COLOR" in Q && (Q.FORCE_COLOR === "true" ? Qe = 1 : Q.FORCE_COLOR === "false" ? Qe = 0 : Qe = Q.FORCE_COLOR.length === 0 ? 1 : Math.min(parseInt(Q.FORCE_COLOR, 10), 3));
       function ei(e) {
@@ -208,7 +207,7 @@ var require_library = __commonJS({
     });
     var ts = Z((Qf, Kr) => {
       "use strict";
-      var Zu = __require("fs"), es = __require("path"), Xu = __require("os"), ec = Xo(), tc = ec.version, rc = /(?:^|^)\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?(?:$|$)/mg;
+      var Zu = require("fs"), es = require("path"), Xu = require("os"), ec = Xo(), tc = ec.version, rc = /(?:^|^)\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?(?:$|$)/mg;
       function nc(e) {
         let t = {}, r = e.toString();
         r = r.replace(/\r\n?/mg, `
@@ -439,7 +438,7 @@ var require_library = __commonJS({
       Qt.length = 0;
     }
     var L = Gn;
-    var Io = k(__require("fs"));
+    var Io = k(require("fs"));
     function Qn() {
       let e = process.env.PRISMA_QUERY_ENGINE_LIBRARY;
       if (!(e && Io.default.existsSync(e)) && process.arch === "ia32") throw new Error('The default query engine type (Node-API, "library") is currently not supported for 32bit Node. Please set `engineType = "binary"` in the "generator" block of your "schema.prisma" file (or use the environment variables "PRISMA_CLIENT_ENGINE_TYPE=binary" and/or "PRISMA_CLI_QUERY_ENGINE_TYPE=binary".)');
@@ -450,9 +449,9 @@ var require_library = __commonJS({
       let r = t === "url";
       return e.includes("windows") ? r ? "query_engine.dll.node" : `query_engine-${e}.dll.node` : e.includes("darwin") ? r ? `${$r}.dylib.node` : `${$r}-${e}.dylib.node` : r ? `${$r}.so.node` : `${$r}-${e}.so.node`;
     }
-    var _o = k(__require("child_process"));
-    var zn = k(__require("fs/promises"));
-    var Gr = k(__require("os"));
+    var _o = k(require("child_process"));
+    var zn = k(require("fs/promises"));
+    var Gr = k(require("os"));
     var _e = Symbol.for("@ts-pattern/matcher");
     var Su = Symbol.for("@ts-pattern/isVariadic");
     var Vr = "@ts-pattern/anonymous-select-key";
@@ -616,7 +615,7 @@ var require_library = __commonJS({
         return this;
       }
     };
-    var Fo = __require("util");
+    var Fo = require("util");
     var Ou = { warn: ke("prisma:warn") };
     var ku = { warn: () => !process.env.PRISMA_DISABLE_WARNINGS };
     function Br(e, ...t) {
@@ -779,7 +778,7 @@ ${c}`);
       return (0, zo.default)(e, e, { fallback: X });
     }
     var Ku = k(si());
-    var $ = k(__require("path"));
+    var $ = k(require("path"));
     var zu = k(si());
     var Lf = L("prisma:engines");
     function Yo() {
@@ -810,7 +809,7 @@ ${c}`);
     $.default.join(__dirname, "../libquery_engine-rhel-openssl-1.1.x.so.node");
     $.default.join(__dirname, "../libquery_engine-rhel-openssl-3.0.x.so.node");
     $.default.join(__dirname, "../query_engine-windows.dll.node");
-    var ai = k(__require("fs"));
+    var ai = k(require("fs"));
     var Zo = L("chmodPlusX");
     function li(e) {
       if (process.platform === "win32") return;
@@ -833,8 +832,8 @@ ${s}
 Details: ${t.message}`;
     }
     var di = k(ts());
-    var zr = k(__require("fs"));
-    var ht = k(__require("path"));
+    var zr = k(require("fs"));
+    var ht = k(require("path"));
     function rs(e) {
       let t = e.ignoreProcessEnv ? {} : process.env, r = (n) => n.match(/(.?\${(?:[a-zA-Z0-9_]+)?})/g)?.reduce(function(o, s) {
         let a = /(.?)\${([a-zA-Z0-9_]+)?}/g.exec(s);
@@ -915,7 +914,7 @@ Env vars from ${X(l)} overwrite the ones from ${X(a)}
       let e;
       ((E) => (E.findUnique = "findUnique", E.findUniqueOrThrow = "findUniqueOrThrow", E.findFirst = "findFirst", E.findFirstOrThrow = "findFirstOrThrow", E.findMany = "findMany", E.create = "create", E.createMany = "createMany", E.createManyAndReturn = "createManyAndReturn", E.update = "update", E.updateMany = "updateMany", E.upsert = "upsert", E.delete = "delete", E.deleteMany = "deleteMany", E.groupBy = "groupBy", E.count = "count", E.aggregate = "aggregate", E.findRaw = "findRaw", E.aggregateRaw = "aggregateRaw"))(e = t.ModelAction ||= {});
     })(Je ||= {});
-    var Zt = k(__require("path"));
+    var Zt = k(require("path"));
     function mi(e) {
       return Zt.default.sep === Zt.default.posix.sep ? e : e.split(Zt.default.sep).join(Zt.default.posix.sep);
     }
@@ -1925,7 +1924,7 @@ ${(0, ps.default)(pc(n), 2)}
       return it.isDecimal(e) ? true : e !== null && typeof e == "object" && typeof e.s == "number" && typeof e.e == "number" && typeof e.toFixed == "function" && Array.isArray(e.d);
     }
     var Ms = k(fi());
-    var Ns = k(__require("fs"));
+    var Ns = k(require("fs"));
     var Ds = { keyword: De, entity: De, value: (e) => H(rt(e)), punctuation: rt, directive: De, function: De, variable: (e) => H(rt(e)), string: (e) => H(qe(e)), boolean: ke, number: De, comment: Gt };
     var mp = (e) => e;
     var un = {};
@@ -3297,10 +3296,10 @@ Note that ${s.bold("include")} statements only accept relation fields.`, a;
       };
     }
     var Wl = k(oi());
-    var Hl = __require("async_hooks");
-    var Kl = __require("events");
-    var zl = k(__require("fs"));
-    var Fr = k(__require("path"));
+    var Hl = require("async_hooks");
+    var Kl = require("events");
+    var zl = k(require("fs"));
+    var Fr = k(require("path"));
     var oe = class e {
       constructor(t, r) {
         if (t.length - 1 !== r.length) throw t.length === 0 ? new TypeError("Expected at least 1 string") : new TypeError(`Expected ${t.length} strings to have ${t.length - 1} values`);
@@ -3790,8 +3789,8 @@ Learn how: https://pris.ly/d/${Va[t]}-build`;
       let e = Ga();
       return { id: e, prettyName: Hd[e] || e, isEdge: ["workerd", "deno", "netlify", "edge-light"].includes(e) };
     }
-    var Ka = k(__require("fs"));
-    var Er = k(__require("path"));
+    var Ka = k(require("fs"));
+    var Er = k(require("path"));
     function On(e) {
       let { runtimeBinaryTarget: t } = e;
       return `Add "${t}" to \`binaryTargets\` in the "schema.prisma" file and run \`prisma generate\` after saving it:
@@ -4231,7 +4230,7 @@ ${r}`, A(n, true));
         l.on("error", a), l.end(t.body ?? "");
       });
     }
-    var am = typeof __require < "u" ? __require : () => {
+    var am = typeof require < "u" ? require : () => {
     };
     var ro = class {
       constructor(t = {}) {
@@ -4445,8 +4444,8 @@ ${r}`, A(n, true));
     function pl(e) {
       if (e?.kind === "itx") return e.options.id;
     }
-    var so = k(__require("os"));
-    var dl = k(__require("path"));
+    var so = k(require("os"));
+    var dl = k(require("path"));
     var oo = Symbol("PrismaLibraryEngineCache");
     function pm() {
       let e = globalThis;
@@ -5475,7 +5474,7 @@ var require_saas_client = __commonJS({
       JsonNull: objectEnumValues2.classes.JsonNull,
       AnyNull: objectEnumValues2.classes.AnyNull
     };
-    var path = __require("path");
+    var path = require("path");
     exports2.Prisma.TransactionIsolationLevel = makeStrictEnum2({
       ReadUncommitted: "ReadUncommitted",
       ReadCommitted: "ReadCommitted",
@@ -5725,7 +5724,7 @@ var require_saas_client = __commonJS({
       "inlineSchemaHash": "37e0455bf58f025f09b9814c6fcb9c0c5aa33e49fa1b156ec8cf14c71470198b",
       "copyEngine": true
     };
-    var fs2 = __require("fs");
+    var fs2 = require("fs");
     config2.dirname = __dirname;
     if (!fs2.existsSync(path.join(__dirname, "schema.prisma"))) {
       const alternativePaths = [
@@ -5759,11 +5758,16 @@ var require_saas_client = __commonJS({
 });
 
 // server/saas/index.ts
-import express from "express";
-import cors from "cors";
-import os2 from "os";
-import bcrypt5 from "bcryptjs";
-import jwt2 from "jsonwebtoken";
+var saas_exports = {};
+__export(saas_exports, {
+  default: () => saas_default
+});
+module.exports = __toCommonJS(saas_exports);
+var import_express2 = __toESM(require("express"), 1);
+var import_cors = __toESM(require("cors"), 1);
+var import_os = __toESM(require("os"), 1);
+var import_bcryptjs5 = __toESM(require("bcryptjs"), 1);
+var import_jsonwebtoken2 = __toESM(require("jsonwebtoken"), 1);
 
 // server/saas/db.ts
 var import_saas_client = __toESM(require_saas_client(), 1);
@@ -5776,7 +5780,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 // server/saas/middleware/auth.ts
-import jwt from "jsonwebtoken";
+var import_jsonwebtoken = __toESM(require("jsonwebtoken"), 1);
 var JWT_SECRET = process.env.JWT_SECRET || "change-me-in-production";
 var SUPER_ADMIN_EMAILS = (process.env.SUPER_ADMIN_EMAILS || "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
 function authMiddleware(req, res, next) {
@@ -5786,7 +5790,7 @@ function authMiddleware(req, res, next) {
   }
   const token = authHeader.slice(7);
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = import_jsonwebtoken.default.verify(token, JWT_SECRET);
     req.auth = decoded;
     next();
   } catch {
@@ -6264,11 +6268,11 @@ function ownerMiddleware(req, res, next) {
 }
 
 // server/saas/routes/admin.ts
-import { Router } from "express";
-import bcrypt2 from "bcryptjs";
+var import_express = require("express");
+var import_bcryptjs2 = __toESM(require("bcryptjs"), 1);
 
 // server/saas/services/seedDemoService.ts
-import bcrypt from "bcryptjs";
+var import_bcryptjs = __toESM(require("bcryptjs"), 1);
 
 // src/lib/mockData.ts
 var mockCategories = [
@@ -6747,7 +6751,7 @@ async function runSeedDemo() {
       businessMode: "fnb"
     }
   });
-  const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, 10);
+  const hashedPassword = await import_bcryptjs.default.hash(DEFAULT_PASSWORD, 10);
   const owner = await saasPrisma.user.create({
     data: {
       organizationId: org.id,
@@ -7082,7 +7086,7 @@ async function runSeedDemo() {
   for (const email of superAdminEmails) {
     const existing = await saasPrisma.user.findUnique({ where: { email } });
     if (!existing) {
-      const hashed = await bcrypt.hash(adminPassword, 10);
+      const hashed = await import_bcryptjs.default.hash(adminPassword, 10);
       await saasPrisma.user.create({
         data: {
           organizationId: null,
@@ -7136,7 +7140,7 @@ var LEGACY_NON_BILLING_PLANS = [
   "suspended",
   "Suspended"
 ];
-var router = Router();
+var router = (0, import_express.Router)();
 function parseAdminStoreIdQuery(raw2) {
   const v = Array.isArray(raw2) ? raw2[0] : raw2;
   if (v == null || typeof v !== "string") return null;
@@ -7189,7 +7193,7 @@ router.post("/organizations", async (req, res) => {
         if (storeId) await saasPrisma.store.delete({ where: { id: storeId } });
         return res.status(400).json({ message: "Email already registered" });
       }
-      const hashedPassword = await bcrypt2.hash(ownerPassword, 10);
+      const hashedPassword = await import_bcryptjs2.default.hash(ownerPassword, 10);
       const user = await saasPrisma.user.create({
         data: {
           organizationId: org.id,
@@ -7940,7 +7944,7 @@ router.post("/api/admin/organizations/:id/users", async (req, res) => {
       (sid) => org.stores.some((s) => s.id === sid)
     );
     const storesToAssign = validStoreIds.length > 0 ? validStoreIds : org.stores.map((s) => s.id);
-    const hashedPassword = await bcrypt2.hash(password, 10);
+    const hashedPassword = await import_bcryptjs2.default.hash(password, 10);
     const user = await saasPrisma.user.create({
       data: {
         organizationId: orgId,
@@ -7993,7 +7997,7 @@ router.patch("/api/admin/organizations/:orgId/users/:userId", async (req, res) =
       updateData.email = lower;
     }
     if (password !== void 0 && password.length > 0) {
-      updateData.password = await bcrypt2.hash(password, 10);
+      updateData.password = await import_bcryptjs2.default.hash(password, 10);
     }
     if (role !== void 0) updateData.role = role;
     const updated = await saasPrisma.user.update({
@@ -8188,14 +8192,14 @@ async function deleteCategory(id2, storeId) {
 }
 
 // server/utils/barcodeGenerator.ts
-import JsBarcode from "jsbarcode";
-import QRCode from "qrcode";
-import { createCanvas } from "canvas";
+var import_jsbarcode = __toESM(require("jsbarcode"), 1);
+var import_qrcode = __toESM(require("qrcode"), 1);
+var import_canvas = require("canvas");
 async function generateBarcode(itemCode) {
   return new Promise((resolve, reject) => {
     try {
-      const canvas = createCanvas(200, 100);
-      JsBarcode(canvas, itemCode, {
+      const canvas = (0, import_canvas.createCanvas)(200, 100);
+      (0, import_jsbarcode.default)(canvas, itemCode, {
         format: "CODE128",
         width: 2,
         height: 80,
@@ -8212,7 +8216,7 @@ async function generateBarcode(itemCode) {
 }
 async function generateQRCode(itemCode) {
   try {
-    const dataUrl = await QRCode.toDataURL(itemCode, {
+    const dataUrl = await import_qrcode.default.toDataURL(itemCode, {
       width: 200,
       margin: 2,
       errorCorrectionLevel: "M"
@@ -8393,7 +8397,7 @@ async function deleteVariant(id2, storeId) {
 }
 
 // server/saas/services/userService.ts
-import bcrypt3 from "bcryptjs";
+var import_bcryptjs3 = __toESM(require("bcryptjs"), 1);
 async function getUsersByOrganization(organizationId) {
   return saasPrisma.user.findMany({
     where: { organizationId },
@@ -8444,7 +8448,7 @@ async function createUser(organizationId, storeIds, input) {
     where: { email: input.email.toLowerCase() }
   });
   if (existing) throw new Error("Email already registered");
-  const hashedPassword = await bcrypt3.hash(input.password, 10);
+  const hashedPassword = await import_bcryptjs3.default.hash(input.password, 10);
   return saasPrisma.$transaction(async (tx) => {
     const user = await tx.user.create({
       data: {
@@ -8472,7 +8476,7 @@ async function updateUser(id2, organizationId, input) {
   const { storeIds, ...rest } = input;
   const data = { ...rest };
   if (input.password) {
-    data.password = await bcrypt3.hash(input.password, 10);
+    data.password = await import_bcryptjs3.default.hash(input.password, 10);
   }
   if (input.email) {
     data.email = input.email.toLowerCase();
@@ -8513,7 +8517,7 @@ async function deleteUser(id2, organizationId) {
 }
 
 // server/saas/services/bootstrapSeedService.ts
-import bcrypt4 from "bcryptjs";
+var import_bcryptjs4 = __toESM(require("bcryptjs"), 1);
 var DEFAULT_PASSWORD2 = "password123";
 var DEMO_CREDENTIALS = {
   admin: { email: "admin@demo.com", password: DEFAULT_PASSWORD2, role: "super_admin" },
@@ -8523,7 +8527,7 @@ var DEMO_CREDENTIALS = {
 async function runBootstrapSeed() {
   const userCount = await saasPrisma.user.count();
   if (userCount > 0) return false;
-  const hashedPassword = await bcrypt4.hash(DEFAULT_PASSWORD2, 10);
+  const hashedPassword = await import_bcryptjs4.default.hash(DEFAULT_PASSWORD2, 10);
   await saasPrisma.user.create({
     data: {
       organizationId: null,
@@ -8595,7 +8599,7 @@ async function ensureDemoQuickLoginUsers() {
   const needCashier = !existingCashier;
   const needAdmin = !existingAdmin;
   if (!needOwner && !needCashier && !needAdmin) return;
-  const hashedPassword = await bcrypt4.hash(DEFAULT_PASSWORD2, 10);
+  const hashedPassword = await import_bcryptjs4.default.hash(DEFAULT_PASSWORD2, 10);
   if (needAdmin) {
     await saasPrisma.user.create({
       data: {
@@ -8939,10 +8943,10 @@ function validateSecurityEnv() {
 }
 
 // server/saas/middleware/rateLimit.ts
-import rateLimit from "express-rate-limit";
+var import_express_rate_limit = __toESM(require("express-rate-limit"), 1);
 var disabled = process.env.RATE_LIMIT_DISABLED === "1";
 function limiter(windowMs, max) {
-  return rateLimit({
+  return (0, import_express_rate_limit.default)({
     windowMs,
     max: disabled ? 1e4 : max,
     standardHeaders: true,
@@ -9007,8 +9011,8 @@ function validateSignupBody(body) {
 }
 
 // server/saas/index.ts
-import helmet from "helmet";
-var app = express();
+var import_helmet = __toESM(require("helmet"), 1);
+var app = (0, import_express2.default)();
 var port = process.env.SAAS_PORT || 4001;
 var isVercel = process.env.VERCEL === "1";
 var corsOriginsRaw = process.env.SAAS_CORS_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean) ?? [];
@@ -9052,14 +9056,14 @@ function corsOriginOption() {
     callback(null, false);
   };
 }
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use((0, import_helmet.default)({ contentSecurityPolicy: false }));
 app.use(
-  cors({
+  (0, import_cors.default)({
     origin: corsOriginOption(),
     credentials: true
   })
 );
-app.use(express.json({ limit: "1mb" }));
+app.use(import_express2.default.json({ limit: "1mb" }));
 var vercelBootPromise = null;
 if (isVercel) {
   app.use(async (_req, _res, next) => {
@@ -9101,7 +9105,7 @@ app.post("/api/demo/reset-passwords", demoLimiter, async (_req, res) => {
   }
   try {
     const DEMO_EMAILS = ["admin@demo.com", "owner@demo.com", "cashier@demo.com"];
-    const hashedPassword = await bcrypt5.hash("password123", 10);
+    const hashedPassword = await import_bcryptjs5.default.hash("password123", 10);
     let updated = 0;
     for (const email of DEMO_EMAILS) {
       const user = await saasPrisma.user.findUnique({ where: { email } });
@@ -9173,7 +9177,7 @@ app.post("/api/auth/signup", signupLimiter, async (req, res) => {
         name: storeName
       }
     });
-    const hashedPassword = await bcrypt5.hash(adminPassword, 10);
+    const hashedPassword = await import_bcryptjs5.default.hash(adminPassword, 10);
     const user = await saasPrisma.user.create({
       data: {
         organizationId: org.id,
@@ -9186,7 +9190,7 @@ app.post("/api/auth/signup", signupLimiter, async (req, res) => {
     await saasPrisma.userStore.create({
       data: { userId: user.id, storeId: store.id }
     });
-    const token = jwt2.sign(
+    const token = import_jsonwebtoken2.default.sign(
       {
         userId: user.id,
         email: user.email,
@@ -9222,7 +9226,7 @@ app.post("/api/auth/login", loginLimiter, async (req, res) => {
     if (user.role === "super_admin" && !isSuperAdmin(user.email)) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
-    const passwordMatches = await bcrypt5.compare(password, user.password);
+    const passwordMatches = await import_bcryptjs5.default.compare(password, user.password);
     if (!passwordMatches) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
@@ -9251,7 +9255,7 @@ app.post("/api/auth/login", loginLimiter, async (req, res) => {
     const stores = storeIds.length ? await saasPrisma.store.findMany({
       where: { id: { in: storeIds } }
     }) : [];
-    const token = jwt2.sign(
+    const token = import_jsonwebtoken2.default.sign(
       {
         userId: user.id,
         email: user.email,
@@ -9274,7 +9278,7 @@ app.post("/api/auth/login", loginLimiter, async (req, res) => {
     res.status(500).json({ message: "Login failed" });
   }
 });
-var ownerRouter = express.Router();
+var ownerRouter = import_express2.default.Router();
 ownerRouter.use(authMiddleware);
 ownerRouter.use(suspendedCheckMiddleware);
 ownerRouter.use(tenantMiddleware);
@@ -9675,7 +9679,7 @@ ownerRouter.delete("/api/variants/:id", async (req, res) => {
     res.status(400).json({ message: error.message ?? "Failed to delete variant" });
   }
 });
-var protectedRouter = express.Router();
+var protectedRouter = import_express2.default.Router();
 protectedRouter.use(authMiddleware);
 protectedRouter.use(suspendedCheckMiddleware);
 protectedRouter.use(tenantMiddleware);
@@ -9916,7 +9920,7 @@ protectedRouter.post("/api/sales", async (req, res) => {
     res.status(400).json({ message: error.message ?? "Failed to create sale" });
   }
 });
-var orgRouter = express.Router();
+var orgRouter = import_express2.default.Router();
 orgRouter.use(authMiddleware);
 orgRouter.use(suspendedCheckMiddleware);
 orgRouter.get("/api/org", async (req, res) => {
@@ -10239,7 +10243,7 @@ orgRouter.post("/api/demo/seed", demoLimiter, async (req, res) => {
   }
 });
 app.use(orgRouter);
-var adminRoutes = express.Router();
+var adminRoutes = import_express2.default.Router();
 adminRoutes.use(authMiddleware);
 adminRoutes.use(superAdminMiddleware);
 adminRoutes.use(admin_default);
@@ -10248,7 +10252,7 @@ app.use(protectedRouter);
 app.use(ownerRouter);
 async function resetDemoPasswords() {
   const DEMO_EMAILS = ["admin@demo.com", "owner@demo.com", "cashier@demo.com"];
-  const hashedPassword = await bcrypt5.hash("password123", 10);
+  const hashedPassword = await import_bcryptjs5.default.hash("password123", 10);
   let updated = 0;
   for (const email of DEMO_EMAILS) {
     const user = await saasPrisma.user.findUnique({ where: { email } });
@@ -10340,7 +10344,7 @@ async function start() {
   }
   app.listen(port, "0.0.0.0", () => {
     console.log(`SaaS API server running on http://localhost:${port}`);
-    const net = Object.values(os2.networkInterfaces()).flat().find((i) => i && !i.internal && i.family === "IPv4");
+    const net = Object.values(import_os.default.networkInterfaces()).flat().find((i) => i && !i.internal && i.family === "IPv4");
     if (net) console.log(`  For mobile: use http://${net.address}:${port}`);
   });
 }
@@ -10348,9 +10352,6 @@ if (!isVercel) {
   void start();
 }
 var saas_default = app;
-export {
-  saas_default as default
-};
 /*! Bundled license information:
 
 .prisma/saas-client/runtime/library.js:
