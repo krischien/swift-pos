@@ -23,7 +23,6 @@
   "functions": {
     "api/index.cjs": {
       "maxDuration": 30,
-      "memory": 1024,
       "includeFiles": "node_modules/.prisma/saas-client/**"
     }
   }
