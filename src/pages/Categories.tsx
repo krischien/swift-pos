@@ -13,6 +13,7 @@ import { FolderPlus, Search, Trash2, Edit, ChevronLeft, ChevronRight } from "luc
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDataLayer } from "@/contexts/DataLayerContext";
+import { validateDisplayName } from "@/lib/validateDisplayName";
 import { useStore } from "@/contexts/StoreContext";
 import { isSaaS } from "@/config/appMode";
 import { Category } from "@/types/pos";
@@ -116,8 +117,11 @@ const Categories = () => {
   };
 
   const handleSave = async () => {
-    if (!formName.trim()) {
-      setFormError("Category name is required");
+    let safeName: string;
+    try {
+      safeName = validateDisplayName(formName, "Category name");
+    } catch (e: unknown) {
+      setFormError(e instanceof Error ? e.message : "Invalid category name");
       return;
     }
 
@@ -126,16 +130,16 @@ const Categories = () => {
       setFormError(null);
 
       if (isEditing) {
-        await dataService.updateCategory(editingCategory.id, { name: formName.trim() });
+        await dataService.updateCategory(editingCategory.id, { name: safeName });
         toast({
           title: "Category updated",
-          description: `${formName} has been updated successfully.`,
+          description: `${safeName} has been updated successfully.`,
         });
       } else {
-        await dataService.createCategory({ name: formName.trim() });
+        await dataService.createCategory({ name: safeName });
         toast({
           title: "Category created",
-          description: `${formName} has been created successfully.`,
+          description: `${safeName} has been created successfully.`,
         });
       }
 

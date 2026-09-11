@@ -28,7 +28,7 @@ import { ensureSqliteSaasDatabaseUrl } from "./validateDatabaseEnv.js";
 import { isProductionRuntime, validateSecurityEnv } from "./validateSecurityEnv.js";
 import { loginLimiter, signupLimiter, demoLimiter } from "./middleware/rateLimit.js";
 import { validateSignupBody } from "./utils/validateSignup.js";
-import { requireTrimString, optionalTrimString } from "./utils/sanitizeInput.js";
+import { requireTrimString, optionalTrimString, validateDisplayName } from "./utils/sanitizeInput.js";
 import helmet from "helmet";
 import {
   createTrialSubscription,
@@ -370,7 +370,7 @@ ownerRouter.post("/api/categories", async (req: AuthRequest, res) => {
     const storeId = (req as any).storeId;
     if (!storeId) return res.status(400).json({ message: "storeId is required" });
     const { name } = req.body as { name?: string };
-    const safeName = requireTrimString(name, "Category name");
+    const safeName = validateDisplayName(name, "Category name");
     const category = await categoryService.createCategory(storeId, safeName);
     res.status(201).json(category);
   } catch (error: unknown) {
@@ -384,7 +384,7 @@ ownerRouter.put("/api/categories/:id", async (req: AuthRequest, res) => {
     const storeId = (req as any).storeId;
     if (!storeId) return res.status(400).json({ message: "storeId is required" });
     const { name } = req.body as { name?: string };
-    const safeName = requireTrimString(name, "Category name");
+    const safeName = validateDisplayName(name, "Category name");
     const category = await categoryService.updateCategory(req.params.id, storeId, safeName);
     res.json(category);
   } catch (error: unknown) {
@@ -607,8 +607,8 @@ ownerRouter.post("/api/menu-categories", async (req: AuthRequest, res) => {
     if (!storeId) return res.status(400).json({ message: "storeId is required" });
     await fnbService.requireFnbStore(storeId);
     const { name } = req.body as { name?: string };
-    if (!name?.trim()) return res.status(400).json({ message: "Category name is required" });
-    const row = await fnbService.createMenuCategory(storeId, name);
+    const safeName = validateDisplayName(name, "Menu category name");
+    const row = await fnbService.createMenuCategory(storeId, safeName);
     res.status(201).json(row);
   } catch (error: unknown) {
     console.error(error);
@@ -622,8 +622,8 @@ ownerRouter.patch("/api/menu-categories/:id", async (req: AuthRequest, res) => {
     if (!storeId) return res.status(400).json({ message: "storeId is required" });
     await fnbService.requireFnbStore(storeId);
     const { name } = req.body as { name?: string };
-    if (!name?.trim()) return res.status(400).json({ message: "Category name is required" });
-    const row = await fnbService.updateMenuCategory(req.params.id, storeId, name);
+    const safeName = validateDisplayName(name, "Menu category name");
+    const row = await fnbService.updateMenuCategory(req.params.id, storeId, safeName);
     res.json(row);
   } catch (error: unknown) {
     console.error(error);

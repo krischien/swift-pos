@@ -263,7 +263,7 @@ export const securityTests = [
   {
     id: "injection-xss-category-name",
     category: "Input hardening",
-    name: "XSS-like category name is stored safely (no 500)",
+    name: "XSS-like category name is rejected with 400",
     async run({ sessions }) {
       const { status } = await apiFetch("/api/categories", {
         token: sessions.owner.token,
@@ -271,13 +271,13 @@ export const securityTests = [
         storeId: sessions.owner.storeId,
         body: { name: "<script>alert('xss')</script>" },
       });
-      if (status >= 500) throw new Error(`XSS category name caused ${status}`);
+      expectStatus(status, 400, "XSS category name rejected");
     },
   },
   {
     id: "injection-sql-category-name",
     category: "Input hardening",
-    name: "SQL-like category name does not cause 500",
+    name: "SQL-like category name is rejected with 400",
     async run({ sessions }) {
       const { status } = await apiFetch("/api/categories", {
         token: sessions.owner.token,
@@ -285,13 +285,13 @@ export const securityTests = [
         storeId: sessions.owner.storeId,
         body: { name: "'; DROP TABLE categories;--" },
       });
-      if (status >= 500) throw new Error(`SQL injection string caused ${status}`);
+      expectStatus(status, 400, "SQL injection category name rejected");
     },
   },
   {
     id: "oversized-body-categories",
     category: "Input hardening",
-    name: "Oversized category name does not cause 500",
+    name: "Oversized category name is rejected with 400",
     async run({ sessions }) {
       const { status } = await apiFetch("/api/categories", {
         token: sessions.owner.token,
@@ -299,7 +299,7 @@ export const securityTests = [
         storeId: sessions.owner.storeId,
         body: { name: "x".repeat(100_000) },
       });
-      if (status >= 500) throw new Error(`Oversized body caused ${status}`);
+      expectStatus(status, 400, "Oversized category name rejected");
     },
   },
 

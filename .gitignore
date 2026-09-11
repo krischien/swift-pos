@@ -17,6 +17,7 @@ saas-api-handler.cjs
 .env.local
 .env.saas.local
 .env.vps
+.vercel
 
 # Editor directories and files
 .vscode/*

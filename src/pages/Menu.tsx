@@ -41,6 +41,7 @@ import { isSaaS } from "@/config/appMode";
 import { useDataLayer } from "@/contexts/DataLayerContext";
 import { useStore } from "@/contexts/StoreContext";
 import type { Ingredient, MenuCategory, MenuItem } from "@/types/pos";
+import { validateDisplayName } from "@/lib/validateDisplayName";
 import { formatCurrency } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 
@@ -135,17 +136,24 @@ const Menu = () => {
   };
 
   const saveCategory = async () => {
-    if (!catName.trim()) {
-      toast({ variant: "destructive", title: "Name required" });
+    let safeName: string;
+    try {
+      safeName = validateDisplayName(catName, "Menu category name");
+    } catch (e: unknown) {
+      toast({
+        variant: "destructive",
+        title: "Invalid name",
+        description: e instanceof Error ? e.message : "Menu category name is not allowed",
+      });
       return;
     }
     try {
       setCatSaving(true);
       if (editingCat) {
-        await dataService.updateMenuCategory(editingCat.id, { name: catName.trim() }, sid);
+        await dataService.updateMenuCategory(editingCat.id, { name: safeName }, sid);
         toast({ title: "Category updated" });
       } else {
-        await dataService.createMenuCategory({ name: catName.trim() }, sid);
+        await dataService.createMenuCategory({ name: safeName }, sid);
         toast({ title: "Category created" });
       }
       setCatDialogOpen(false);

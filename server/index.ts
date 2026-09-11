@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import bcrypt from "bcryptjs";
+import { validateDisplayName } from "./saas/utils/sanitizeInput.js";
 import {
   listCategories as listCategoriesService,
   createCategory as createCategoryService,
@@ -103,12 +104,8 @@ app.get("/api/categories", async (_req, res) => {
 app.post("/api/categories", async (req, res) => {
   try {
     const { name } = req.body as { name: string };
-
-    if (!name || !name.trim()) {
-      return res.status(400).json({ message: "Category name is required" });
-    }
-
-    const category = await createCategoryService(name.trim());
+    const safeName = validateDisplayName(name, "Category name");
+    const category = await createCategoryService(safeName);
     res.status(201).json(category);
   } catch (error: any) {
     console.error(error);
@@ -119,12 +116,8 @@ app.post("/api/categories", async (req, res) => {
 app.put("/api/categories/:id", async (req, res) => {
   try {
     const { name } = req.body as { name: string };
-
-    if (!name || !name.trim()) {
-      return res.status(400).json({ message: "Category name is required" });
-    }
-
-    const category = await updateCategoryService(req.params.id, name.trim());
+    const safeName = validateDisplayName(name, "Category name");
+    const category = await updateCategoryService(req.params.id, safeName);
     res.json(category);
   } catch (error: any) {
     console.error(error);
