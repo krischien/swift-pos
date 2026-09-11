@@ -25,6 +25,7 @@ import { normalizeBusinessMode } from "./utils/businessMode.js";
 import * as fnbService from "./services/fnbService.js";
 import { FnbStoreError } from "./services/fnbService.js";
 import { ensureSqliteSaasDatabaseUrl } from "./validateDatabaseEnv.js";
+import { ensurePostgresSchema } from "./ensurePostgresSchema.js";
 import {
   isProductionRuntime,
   SecurityConfigError,
@@ -119,6 +120,11 @@ if (isVercel) {
     if (!vercelBootPromise) {
       vercelBootPromise = (async () => {
         validateSecurityEnv();
+        try {
+          await ensurePostgresSchema();
+        } catch (e) {
+          console.error("[Schema] Postgres ensure failed:", e);
+        }
         try {
           await runBootstrapSeed();
         } catch (e) {
