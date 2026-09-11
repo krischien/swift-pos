@@ -1,13 +1,17 @@
 #!/usr/bin/env node
 /**
- * Vercel API build: bundle Express app to api/_handler.cjs (utility file, not a function).
- * api/index.js is the committed Vercel entry that require()s the handler.
- * Do NOT output api/index.js here — @vercel/node only recognizes .js/.ts in `functions` config.
+ * Vercel API build: bundle Express app to lib/saas-api.cjs (outside /api so Vercel file trace includes it).
+ * api/index.js is the committed Vercel entry that require()s the bundle.
  */
 import { execSync } from "node:child_process";
-import { unlinkSync } from "node:fs";
+import { mkdirSync, unlinkSync } from "node:fs";
 
-const stale = ["api/index.cjs", "saas-api-handler.cjs", "api/handler.cjs"];
+const stale = [
+  "api/index.cjs",
+  "api/_handler.cjs",
+  "saas-api-handler.cjs",
+  "api/handler.cjs",
+];
 for (const file of stale) {
   try {
     unlinkSync(file);
@@ -16,7 +20,9 @@ for (const file of stale) {
   }
 }
 
+mkdirSync("lib", { recursive: true });
+
 execSync(
-  "npx esbuild server/saas/index.ts --bundle --platform=node --format=cjs --outfile=api/_handler.cjs --packages=external",
+  "npx esbuild server/saas/index.ts --bundle --platform=node --format=cjs --outfile=lib/saas-api.cjs --packages=external",
   { stdio: "inherit" },
 );

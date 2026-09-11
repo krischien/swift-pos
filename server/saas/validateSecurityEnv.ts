@@ -3,6 +3,13 @@ const DEFAULT_JWT_SECRETS = new Set([
   "change-me-in-production-use-long-random-string",
 ]);
 
+export class SecurityConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SecurityConfigError";
+  }
+}
+
 export function isProductionRuntime(): boolean {
   return process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
 }
@@ -16,6 +23,14 @@ function parseCorsOrigins(): { allowAll: boolean; explicit: string[] } {
   };
 }
 
+function failSecurity(message: string): never {
+  console.error(`[Security] ${message}`);
+  if (process.env.VERCEL === "1") {
+    throw new SecurityConfigError(message);
+  }
+  process.exit(1);
+}
+
 export function validateSecurityEnv(): void {
   const jwtSecret = (process.env.JWT_SECRET ?? "").trim();
   const { allowAll, explicit } = parseCorsOrigins();
@@ -26,17 +41,15 @@ export function validateSecurityEnv(): void {
       DEFAULT_JWT_SECRETS.has(jwtSecret) ||
       jwtSecret.length < 32
     ) {
-      console.error(
-        "[Security] JWT_SECRET must be a random string of at least 32 characters in production (not the default).",
+      failSecurity(
+        "JWT_SECRET must be a random string of at least 32 characters in production (not the default).",
       );
-      process.exit(1);
     }
 
     if (process.env.VERCEL === "1" && (allowAll || explicit.length === 0)) {
-      console.error(
-        "[Security] SAAS_CORS_ORIGINS must list explicit origins on Vercel (your app URL + capacitor://localhost). Do not use * or leave empty.",
+      failSecurity(
+        "SAAS_CORS_ORIGINS must list explicit origins on Vercel (your app URL + capacitor://localhost). Do not use * or leave empty.",
       );
-      process.exit(1);
     }
 
     if (process.env.NODE_ENV === "production" && !process.env.VERCEL && (allowAll || explicit.length === 0)) {

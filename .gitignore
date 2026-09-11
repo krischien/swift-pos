@@ -10,7 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
-api/_handler.cjs
+lib/saas-api.cjs
 saas-api-handler.cjs
 *.local
 .env

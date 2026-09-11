@@ -25,7 +25,11 @@ import { normalizeBusinessMode } from "./utils/businessMode.js";
 import * as fnbService from "./services/fnbService.js";
 import { FnbStoreError } from "./services/fnbService.js";
 import { ensureSqliteSaasDatabaseUrl } from "./validateDatabaseEnv.js";
-import { isProductionRuntime, validateSecurityEnv } from "./validateSecurityEnv.js";
+import {
+  isProductionRuntime,
+  SecurityConfigError,
+  validateSecurityEnv,
+} from "./validateSecurityEnv.js";
 import { loginLimiter, signupLimiter, demoLimiter } from "./middleware/rateLimit.js";
 import { validateSignupBody } from "./utils/validateSignup.js";
 import { requireTrimString, optionalTrimString, validateDisplayName } from "./utils/sanitizeInput.js";
@@ -111,7 +115,7 @@ app.use(express.json({ limit: "1mb" }));
 /** Vercel serverless: validate env + bootstrap once per cold start (no app.listen). */
 let vercelBootPromise: Promise<void> | null = null;
 if (isVercel) {
-  app.use(async (_req, _res, next) => {
+  app.use(async (_req, res, next) => {
     if (!vercelBootPromise) {
       vercelBootPromise = (async () => {
         validateSecurityEnv();
@@ -125,6 +129,14 @@ if (isVercel) {
     try {
       await vercelBootPromise;
     } catch (e) {
+      if (e instanceof SecurityConfigError) {
+        res.status(503).json({
+          ok: false,
+          message: e.message,
+          hint: "Set JWT_SECRET (32+ chars) and SAAS_CORS_ORIGINS in Vercel → Settings → Environment Variables, then redeploy.",
+        });
+        return;
+      }
       console.error("[Bootstrap]", e);
     }
     next();

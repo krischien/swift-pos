@@ -44,6 +44,12 @@ function getBaseFromEnv(): string {
 }
 
 export function getSaasApiBase(): string {
+  // Vercel / production web: SPA and API share one origin — always use relative /api/*
+  // (VITE_SAAS_API_URL is only for Capacitor/mobile builds, not browser deploys.)
+  if (!import.meta.env.DEV && !Capacitor.isNativePlatform()) {
+    return "";
+  }
+
   let base = getBaseFromEnv();
   if (Capacitor.isNativePlatform() && !base) {
     // Demo fallback (SQLite): use host URL for emulator/simulator

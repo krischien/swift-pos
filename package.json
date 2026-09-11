@@ -56,7 +56,7 @@
     "build:mobile:saas:local": "cross-env VITE_APP_MODE=saas VITE_SAAS_API_URL=http://192.168.1.7:4001 vite build --mode saas && npx cap sync android",
     "build:mobile:saas:emulator": "cross-env VITE_APP_MODE=saas VITE_SAAS_API_URL=http://10.0.2.2:4001 vite build --mode saas && npx cap sync android",
     "build:mobile:saas:adb": "cross-env VITE_APP_MODE=saas VITE_SAAS_API_URL=http://localhost:4001 vite build --mode saas && npx cap sync android",
-    "build:mobile:saas:prod": "cross-env VITE_APP_MODE=saas vite build --mode saas && npx cap sync android",
+    "build:mobile:saas:prod": "node scripts/check-mobile-prod-env.mjs && cross-env VITE_APP_MODE=saas vite build --mode saas && npx cap sync android",
     "mobile:emulator:tunnel": "adb reverse tcp:4001 tcp:4001",
     "cap:sync": "npm run build && npx cap sync android",
     "cap:sync:solo": "npm run build:solo && npx cap sync android",
