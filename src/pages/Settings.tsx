@@ -64,10 +64,14 @@ const Settings = () => {
     enableDiscounts,
     enableBarcodeScanning,
     enablePerKiloPurchase,
+    enableCylinderTracking,
+    collectCylinderDeposits,
     stickerCodeType,
     setEnableDiscounts,
     setEnableBarcodeScanning,
     setEnablePerKiloPurchase,
+    setEnableCylinderTracking,
+    setCollectCylinderDeposits,
     setStickerCodeType,
     selectedPrinter,
     setSelectedPrinter,
@@ -591,6 +595,42 @@ const Settings = () => {
               onCheckedChange={setEnablePerKiloPurchase}
             />
           </div>
+          {isSaaS() && (
+            <>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="cylinder-tracking">LPG Canister Tracking</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Track filled cylinders on hand, outstanding loans, and empty returns
+                  </p>
+                </div>
+                <Switch
+                  id="cylinder-tracking"
+                  checked={enableCylinderTracking}
+                  onCheckedChange={setEnableCylinderTracking}
+                />
+              </div>
+              {enableCylinderTracking && (
+                <>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="cylinder-deposits">Collect Deposits at Sale</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Add refundable deposit to checkout total for new canister loans
+                      </p>
+                    </div>
+                    <Switch
+                      id="cylinder-deposits"
+                      checked={collectCylinderDeposits}
+                      onCheckedChange={setCollectCylinderDeposits}
+                    />
+                  </div>
+                </>
+              )}
+            </>
+          )}
           <Separator />
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">

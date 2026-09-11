@@ -1,11 +1,14 @@
-import { CartItem } from "@/types/pos";
+import { CartItem, Product } from "@/types/pos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Minus, Plus, X, ShoppingCart } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency } from "@/lib/currency";
 import { cn } from "@/lib/utils";
+import { computeCylinderDeposit } from "@/lib/cylinderCheckout";
 
 interface CartProps {
   items: CartItem[];
@@ -18,6 +21,10 @@ interface CartProps {
   taxRatePercent?: number;
   enableTax?: boolean;
   enablePerKiloPurchase?: boolean;
+  enableCylinderTracking?: boolean;
+  collectCylinderDeposits?: boolean;
+  products?: Product[];
+  onToggleBroughtEmpty?: (itemId: string, broughtEmpty: boolean) => void;
   /** Fills parent column: scroll area grows between header and totals (desktop sidebar). */
   variant?: "sheet" | "sidebar";
 }
@@ -33,20 +40,32 @@ export const Cart = ({
   taxRatePercent = 12,
   enableTax = true,
   enablePerKiloPurchase = false,
+  enableCylinderTracking = false,
+  collectCylinderDeposits = true,
+  products = [],
+  onToggleBroughtEmpty,
   variant = "sheet",
 }: CartProps) => {
   const isSidebar = variant === "sidebar";
   const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+  const depositTotal = computeCylinderDeposit(items, products, {
+    enabled: enableCylinderTracking,
+    collectDeposits: collectCylinderDeposits,
+  });
   const effectiveDiscount = discountsEnabled ? discountPercent : 0;
   const discountAmount = subtotal * (effectiveDiscount / 100);
   const netSubtotal = Math.max(0, subtotal - discountAmount);
   const taxRate = enableTax ? taxRatePercent / 100 : 0;
   const tax = netSubtotal * taxRate;
-  const total = netSubtotal + tax;
+  const total = netSubtotal + tax + depositTotal;
 
   const itemNodes = (
     <div className="space-y-3">
-      {items.map((item) => (
+      {items.map((item) => {
+        const product = item.productId ? products.find((p) => p.id === item.productId) : undefined;
+        const showExchange =
+          enableCylinderTracking && product?.tracksCylinder && onToggleBroughtEmpty;
+        return (
         <div key={item.id} className="rounded-lg border bg-card p-3">
           <div className="mb-2 flex items-start justify-between">
             <div className="flex-1">
@@ -107,8 +126,21 @@ export const Cart = ({
               <p className="font-bold text-primary">{formatCurrency(item.subtotal)}</p>
             </div>
           </div>
+          {showExchange && (
+            <div className="mt-2 flex items-center gap-2">
+              <Checkbox
+                id={`brought-empty-${item.id}`}
+                checked={Boolean(item.broughtEmpty)}
+                onCheckedChange={(checked) => onToggleBroughtEmpty(item.id, checked === true)}
+              />
+              <Label htmlFor={`brought-empty-${item.id}`} className="text-xs font-normal cursor-pointer">
+                Customer brought empty (exchange)
+              </Label>
+            </div>
+          )}
         </div>
-      ))}
+      );
+      })}
     </div>
   );
 
@@ -210,6 +242,12 @@ export const Cart = ({
             <div className="flex justify-between">
               <span className="text-muted-foreground">Tax ({taxRatePercent}%)</span>
               <span className="font-semibold tabular-nums">{formatCurrency(tax)}</span>
+            </div>
+          )}
+          {depositTotal > 0 && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Canister deposit</span>
+              <span className="font-semibold tabular-nums">{formatCurrency(depositTotal)}</span>
             </div>
           )}
           <Separator className="my-1" />

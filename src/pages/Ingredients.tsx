@@ -11,7 +11,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Trash2, Edit } from "lucide-react";
+import { Plus, Search, Trash2, Edit, AlertTriangle, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import {
+  hasSimpleZeroStock,
+  isSimpleLowStock,
+  needsIngredientAttention,
+} from "@/lib/inventoryStockStatus";
 import {
   Dialog,
   DialogContent,
@@ -29,11 +41,41 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { isSaaS } from "@/config/appMode";
 import { useDataLayer } from "@/contexts/DataLayerContext";
 import { useStore } from "@/contexts/StoreContext";
 import type { Ingredient } from "@/types/pos";
+
+function IngredientStockBadge({ ing }: { ing: Ingredient }) {
+  if (hasSimpleZeroStock(ing)) {
+    return <Badge className="bg-slate-500 hover:bg-slate-500 text-white border-slate-500">Out of Stock</Badge>;
+  }
+  if (isSimpleLowStock(ing)) {
+    return <Badge className="bg-amber-500 hover:bg-amber-500 text-white border-amber-500">Low Stock</Badge>;
+  }
+  return <Badge variant="outline" className="text-muted-foreground">OK</Badge>;
+}
+
+function IngredientStatusBadge({ status }: { status: string }) {
+  const normalized = status?.toLowerCase() ?? "";
+  if (normalized === "active") {
+    return (
+      <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white border-emerald-600">
+        Active
+      </Badge>
+    );
+  }
+  if (normalized === "inactive") {
+    return <Badge variant="secondary">Inactive</Badge>;
+  }
+  return (
+    <Badge variant="outline" className="capitalize">
+      {status || "—"}
+    </Badge>
+  );
+}
 
 const Ingredients = () => {
   const dataService = useDataLayer();
@@ -45,6 +87,7 @@ const Ingredients = () => {
   const [rows, setRows] = useState<Ingredient[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [stockFilter, setStockFilter] = useState<"all" | "lowStock" | "outOfStock">("all");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Ingredient | null>(null);
   const [formName, setFormName] = useState("");
@@ -200,11 +243,18 @@ const Ingredients = () => {
     );
   }
 
-  const filtered = rows.filter(
-    (r) =>
+  const outOfStockCount = rows.filter((r) => hasSimpleZeroStock(r)).length;
+  const lowStockCount = rows.filter((r) => isSimpleLowStock(r)).length;
+
+  const filtered = rows.filter((r) => {
+    const matchesSearch =
       r.name.toLowerCase().includes(search.toLowerCase()) ||
-      (r.sku ?? "").toLowerCase().includes(search.toLowerCase()),
-  );
+      (r.sku ?? "").toLowerCase().includes(search.toLowerCase());
+    if (!matchesSearch) return false;
+    if (stockFilter === "lowStock") return needsIngredientAttention(r);
+    if (stockFilter === "outOfStock") return hasSimpleZeroStock(r);
+    return true;
+  });
 
   return (
     <div className="p-6 space-y-6">
@@ -219,14 +269,33 @@ const Ingredients = () => {
         </Button>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-        <Input
-          placeholder="Search by name or SKU..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
-        />
+      <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
+        <div className="relative max-w-md flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Input
+            placeholder="Search by name or SKU..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              View: {stockFilter === "all" ? "All" : stockFilter === "outOfStock" ? "Out of Stock" : "Low Stock"}
+              <ChevronDown className="ml-2 h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuItem onClick={() => setStockFilter("all")}>All</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setStockFilter("outOfStock")}>Out of Stock</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setStockFilter("lowStock")}>Low Stock</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <div className="flex gap-4 text-sm font-medium">
+          <span className="text-slate-600">Out of Stock: {outOfStockCount}</span>
+          <span className="text-amber-600">Low Stock: {lowStockCount}</span>
+        </div>
       </div>
 
       {loading ? (
@@ -274,19 +343,35 @@ const Ingredients = () => {
                 <TableHead>Stock</TableHead>
                 <TableHead>Low</TableHead>
                 <TableHead>UOM</TableHead>
+                <TableHead>Stock level</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((r) => (
+              {filtered.map((r) => {
+                const isOut = hasSimpleZeroStock(r);
+                const isLow = isSimpleLowStock(r);
+                return (
                 <TableRow key={r.id}>
                   <TableCell className="font-medium">{r.name}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">{r.sku ?? "—"}</TableCell>
-                  <TableCell>{r.stock}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {(isOut || isLow) && (
+                        <AlertTriangle className={cn("h-4 w-4", isOut ? "text-destructive" : "text-amber-500")} />
+                      )}
+                      <span className={cn((isOut || isLow) && "font-semibold text-destructive")}>{r.stock}</span>
+                    </div>
+                  </TableCell>
                   <TableCell>{r.lowStockThreshold}</TableCell>
                   <TableCell>{r.unitOfMeasure ?? "—"}</TableCell>
-                  <TableCell className="capitalize text-sm">{r.status}</TableCell>
+                  <TableCell>
+                    <IngredientStockBadge ing={r} />
+                  </TableCell>
+                  <TableCell>
+                    <IngredientStatusBadge status={r.status} />
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(r)}>
@@ -298,7 +383,8 @@ const Ingredients = () => {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         </div>
@@ -323,8 +409,9 @@ const Ingredients = () => {
                 <Input value={formStock} onChange={(e) => setFormStock(e.target.value)} inputMode="numeric" />
               </div>
               <div className="space-y-1">
-                <Label>Low threshold</Label>
+                <Label>Low stock alert</Label>
                 <Input value={formLow} onChange={(e) => setFormLow(e.target.value)} inputMode="numeric" />
+                <p className="text-xs text-muted-foreground">Alert when stock falls to this level or below</p>
               </div>
             </div>
             <div className="space-y-1">

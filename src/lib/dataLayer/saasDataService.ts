@@ -211,6 +211,22 @@ export const createSaasDataService = (): DataService => {
         storeId: sid ?? storeId(),
       }) as Promise<any>,
 
+    getCylinderLoans: (params, sid) => {
+      const url = new URL("/api/cylinder-loans", getSaasApiBase() || window.location.origin);
+      if (params?.status) url.searchParams.set("status", params.status);
+      const effectiveStoreId = sid ?? storeId();
+      if (effectiveStoreId) url.searchParams.set("storeId", effectiveStoreId);
+      return saasRequest(url.toString(), effectiveStoreId ? { storeId: effectiveStoreId } : undefined) as Promise<any>;
+    },
+    getCylinderStats: (sid) =>
+      saasRequest("/api/cylinder-stats", { storeId: sid ?? storeId() }) as Promise<any>,
+    returnCylinderLoan: (loanId, options, sid) =>
+      saasRequest(`/api/cylinder-loans/${loanId}/return`, {
+        method: "POST",
+        body: JSON.stringify(options ?? {}),
+        storeId: sid ?? storeId(),
+      }) as Promise<any>,
+
     getUsers: () =>
       saasRequest("/api/org/users") as Promise<any>,
     createUser: (payload, sid) =>

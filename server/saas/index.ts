@@ -14,6 +14,7 @@ import adminRouter from "./routes/admin.js";
 import * as categoryService from "./services/categoryService.js";
 import * as productService from "./services/productService.js";
 import * as saleService from "./services/saleService.js";
+import * as cylinderService from "./services/cylinderService.js";
 import { changePhpFromCents, paymentCoversTotal, phpToCents } from "../utils/money.js";
 import * as variantService from "./services/variantService.js";
 import * as userService from "./services/userService.js";
@@ -1039,6 +1040,7 @@ protectedRouter.post("/api/sales", async (req: AuthRequest, res) => {
       quantity: number;
       price: number;
       subtotal: number;
+      broughtEmpty?: boolean;
     }>;
     if (!cartItems?.length) {
       return res.status(400).json({ message: "cartItems or items is required" });
@@ -1066,6 +1068,7 @@ protectedRouter.post("/api/sales", async (req: AuthRequest, res) => {
       quantity: item.quantity,
       price: item.price,
       subtotal: item.subtotal,
+      broughtEmpty: item.broughtEmpty,
     }));
     const rawPaymentMethod = (body.paymentMethod as string)?.toLowerCase();
     const paymentMethod = rawPaymentMethod === "gcash" ? "gcash" : "cash";
@@ -1080,11 +1083,60 @@ protectedRouter.post("/api/sales", async (req: AuthRequest, res) => {
       items,
       ticketNumber: body.ticketNumber as string | undefined,
       gcashTransactionId: body.gcashTransactionId as string | undefined,
+      customerName: body.customerName as string | undefined,
+      customerPhone: body.customerPhone as string | undefined,
+      collectDeposits: body.collectDeposits as boolean | undefined,
     });
     res.status(201).json(sale);
   } catch (error: unknown) {
     console.error(error);
     res.status(400).json({ message: (error as Error).message ?? "Failed to create sale" });
+  }
+});
+
+protectedRouter.get("/api/cylinder-loans", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    const status = (req.query.status as string) || "out";
+    const valid = ["out", "returned", "written_off", "all"];
+    const loans = await cylinderService.listCylinderLoans(
+      storeId,
+      valid.includes(status) ? (status as "out" | "returned" | "written_off" | "all") : "out",
+    );
+    res.json(loans);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to list cylinder loans" });
+  }
+});
+
+protectedRouter.get("/api/cylinder-stats", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    const stats = await cylinderService.getCylinderStats(storeId);
+    res.json(stats);
+  } catch (error: unknown) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch cylinder stats" });
+  }
+});
+
+protectedRouter.post("/api/cylinder-loans/:id/return", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    if (!storeId) return res.status(400).json({ message: "storeId is required" });
+    const body = req.body as { refundDeposit?: boolean };
+    const loan = await cylinderService.returnCylinderLoan(storeId, req.params.id, {
+      refundDeposit: Boolean(body?.refundDeposit),
+    });
+    res.json(loan);
+  } catch (error: unknown) {
+    const msg = (error as Error).message;
+    if (msg?.includes("not found")) return res.status(404).json({ message: msg });
+    console.error(error);
+    res.status(500).json({ message: "Failed to return cylinder" });
   }
 });
 

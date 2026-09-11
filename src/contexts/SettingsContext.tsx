@@ -21,10 +21,14 @@ interface SettingsState {
   enableDiscounts: boolean;
   enableBarcodeScanning: boolean;
   enablePerKiloPurchase: boolean;
+  enableCylinderTracking: boolean;
+  collectCylinderDeposits: boolean;
   stickerCodeType: "qr" | "barcode";
   setEnableDiscounts: (value: boolean) => void;
   setEnableBarcodeScanning: (value: boolean) => void;
   setEnablePerKiloPurchase: (value: boolean) => void;
+  setEnableCylinderTracking: (value: boolean) => void;
+  setCollectCylinderDeposits: (value: boolean) => void;
   setStickerCodeType: (value: "qr" | "barcode") => void;
   selectedPrinter: PrinterDevice | null;
   setSelectedPrinter: (device: PrinterDevice | null) => void;
@@ -41,6 +45,8 @@ interface StoredSettings {
   enableDiscounts: boolean;
   enableBarcodeScanning: boolean;
   enablePerKiloPurchase: boolean;
+  enableCylinderTracking: boolean;
+  collectCylinderDeposits: boolean;
   stickerCodeType: "qr" | "barcode";
   printerName: string | null;
   printerAddress: string | null;
@@ -63,6 +69,8 @@ const getDefaultSettings = (isNativePlatform: boolean): StoredSettings => ({
   enableDiscounts: true,
   enableBarcodeScanning: false,
   enablePerKiloPurchase: isNativePlatform,
+  enableCylinderTracking: false,
+  collectCylinderDeposits: true,
   stickerCodeType: "qr",
   printerName: null,
   printerAddress: null,
@@ -86,6 +94,8 @@ const applyToState = (
     setEnableDiscountsState: (v: boolean) => void;
     setEnableBarcodeScanningState: (v: boolean) => void;
     setEnablePerKiloPurchaseState: (v: boolean) => void;
+    setEnableCylinderTrackingState: (v: boolean) => void;
+    setCollectCylinderDepositsState: (v: boolean) => void;
     setStickerCodeTypeState: (v: "qr" | "barcode") => void;
     setPrinterNameState: (v: string | null) => void;
     setPrinterAddressState: (v: string | null) => void;
@@ -105,6 +115,12 @@ const applyToState = (
   );
   setters.setEnablePerKiloPurchaseState(
     typeof s.enablePerKiloPurchase === "boolean" ? s.enablePerKiloPurchase : isNativePlatform,
+  );
+  setters.setEnableCylinderTrackingState(
+    typeof s.enableCylinderTracking === "boolean" ? s.enableCylinderTracking : false,
+  );
+  setters.setCollectCylinderDepositsState(
+    typeof s.collectCylinderDeposits === "boolean" ? s.collectCylinderDeposits : true,
   );
   setters.setStickerCodeTypeState(
     s.stickerCodeType === "barcode" || s.stickerCodeType === "qr" ? s.stickerCodeType : "qr",
@@ -126,6 +142,8 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   const [enableDiscounts, setEnableDiscountsState] = useState(true);
   const [enableBarcodeScanning, setEnableBarcodeScanningState] = useState(false);
   const [enablePerKiloPurchase, setEnablePerKiloPurchaseState] = useState(isNativePlatform);
+  const [enableCylinderTracking, setEnableCylinderTrackingState] = useState(false);
+  const [collectCylinderDeposits, setCollectCylinderDepositsState] = useState(true);
   const [stickerCodeType, setStickerCodeTypeState] = useState<"qr" | "barcode">("qr");
   const [printerName, setPrinterNameState] = useState<string | null>(null);
   const [printerAddress, setPrinterAddressState] = useState<string | null>(null);
@@ -148,6 +166,8 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
             setEnableDiscountsState,
             setEnableBarcodeScanningState,
             setEnablePerKiloPurchaseState,
+            setEnableCylinderTrackingState,
+            setCollectCylinderDepositsState,
             setStickerCodeTypeState,
             setPrinterNameState,
             setPrinterAddressState,
@@ -180,6 +200,8 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
           setEnableDiscountsState,
           setEnableBarcodeScanningState,
           setEnablePerKiloPurchaseState,
+          setEnableCylinderTrackingState,
+          setCollectCylinderDepositsState,
           setStickerCodeTypeState,
           setPrinterNameState,
           setPrinterAddressState,
@@ -206,6 +228,8 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     enableDiscounts,
     enableBarcodeScanning,
     enablePerKiloPurchase,
+    enableCylinderTracking,
+    collectCylinderDeposits,
     stickerCodeType,
     printerName,
     printerAddress,
@@ -232,7 +256,7 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
         // ignore storage errors
       }
     },
-    [activeStoreId, storeName, storeAddress, autoPrintReceipt, showLogoOnReceipt, receiptLogoUrl, enableTax, taxRatePercent, enableDiscounts, enableBarcodeScanning, enablePerKiloPurchase, stickerCodeType, printerName, printerAddress],
+    [activeStoreId, storeName, storeAddress, autoPrintReceipt, showLogoOnReceipt, receiptLogoUrl, enableTax, taxRatePercent, enableDiscounts, enableBarcodeScanning, enablePerKiloPurchase, enableCylinderTracking, collectCylinderDeposits, stickerCodeType, printerName, printerAddress],
   );
 
   const setStoreName = (name: string) => {
@@ -277,6 +301,16 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   const setEnablePerKiloPurchase = (value: boolean) => {
     setEnablePerKiloPurchaseState(value);
     persist({ enablePerKiloPurchase: value });
+  };
+
+  const setEnableCylinderTracking = (value: boolean) => {
+    setEnableCylinderTrackingState(value);
+    persist({ enableCylinderTracking: value });
+  };
+
+  const setCollectCylinderDeposits = (value: boolean) => {
+    setCollectCylinderDepositsState(value);
+    persist({ collectCylinderDeposits: value });
   };
 
   const setStickerCodeType = (value: "qr" | "barcode") => {
@@ -331,10 +365,14 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
         enableDiscounts,
         enableBarcodeScanning,
         enablePerKiloPurchase,
+        enableCylinderTracking,
+        collectCylinderDeposits,
         stickerCodeType,
         setEnableDiscounts,
         setEnableBarcodeScanning,
         setEnablePerKiloPurchase,
+        setEnableCylinderTracking,
+        setCollectCylinderDeposits,
         setStickerCodeType,
         selectedPrinter,
         setSelectedPrinter,

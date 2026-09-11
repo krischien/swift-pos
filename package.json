@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:saas:web": "vite --mode saas",
-    "start:saas": "concurrently -n server,web -c blue,green \"npm run dev:saas\" \"npm run dev:saas:web\"",
+    "start:saas": "concurrently -n server,web -c blue,green \"npm run dev:saas:sqlite\" \"npm run dev:saas:web\"",
     "start:saas:e2e": "concurrently -n server,web -c blue,green \"cross-env RATE_LIMIT_DISABLED=1 npm run dev:saas\" \"cross-env VITE_E2E=true npm run dev:saas:web\"",
     "e2e": "node scripts/e2e-run-with-summary.mjs --headed",
     "e2e:headless": "node scripts/e2e-run-with-summary.mjs",

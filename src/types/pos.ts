@@ -41,6 +41,10 @@ export interface Product {
   barcode?: string;
   qrCode?: string;
   unitOfMeasure?: string;
+  tracksCylinder?: boolean;
+  cylinderSize?: string | null;
+  depositAmount?: number;
+  emptyStock?: number;
 }
 
 export interface CartItem {
@@ -55,6 +59,8 @@ export interface CartItem {
   price: number;
   quantity: number;
   subtotal: number;
+  /** Customer brought empty canister — exchange at sale */
+  broughtEmpty?: boolean;
 }
 
 export interface Sale {
@@ -111,6 +117,34 @@ export interface RecipeLine {
   quantity: number;
   wastagePercent?: number | null;
   ingredient?: Ingredient;
+}
+
+export interface CylinderLoan {
+  id: string;
+  storeId: string;
+  saleId: string;
+  productId: string;
+  quantity: number;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  depositAmount: number;
+  depositRefunded: boolean;
+  status: "out" | "returned" | "written_off";
+  outAt: string;
+  returnedAt?: string | null;
+  product?: { id: string; name: string; cylinderSize?: string | null };
+  sale?: { id: string; ticketNumber?: string | null; createdAt: string; cashierName?: string | null };
+}
+
+export interface CylinderStats {
+  filledOnHand: number;
+  onCustomer: number;
+  emptyOnHand: number;
+  depositLiability: number;
+  lowFilledCount: number;
+  outOfFilledCount: number;
+  lowEmptyCount: number;
+  outOfEmptyCount: number;
 }
 
 export interface MenuItem {

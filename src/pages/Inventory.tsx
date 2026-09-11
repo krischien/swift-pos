@@ -19,7 +19,7 @@ import { getSubscription } from "@/lib/saasSubscriptionApi";
 import { api } from "@/lib/api";
 import { useDataLayer } from "@/contexts/DataLayerContext";
 import { useStore } from "@/contexts/StoreContext";
-import { Category, Product, Variant } from "@/types/pos";
+import { Category, Product, Variant, CylinderLoan } from "@/types/pos";
 import { formatCurrency } from "@/lib/currency";
 import { useSettings } from "@/contexts/SettingsContext";
 import {
@@ -45,11 +45,18 @@ import {
 import { OCRScanDialog } from "@/components/inventory/OCRScanDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   isLowStock,
   hasZeroStock,
   outOfStockVariantCount,
   needsStockAttention,
+  hasCylinderEmptyZero,
+  hasCylinderFilledZero,
+  isCylinderEmptyLow,
+  isCylinderFilledLow,
+  hasCylinderStockOut,
 } from "@/lib/inventoryStockStatus";
 
 const Inventory = () => {
@@ -68,7 +75,8 @@ const Inventory = () => {
   useEffect(() => {
     if (isFnb) navigate("/ingredients", { replace: true });
   }, [isFnb, navigate]);
-  const { storeName, storeAddress } = useSettings();
+  const { storeName, storeAddress, enableCylinderTracking, collectCylinderDeposits } = useSettings();
+  const cylinderTrackingOn = isSaaS() && enableCylinderTracking;
   const [search, setSearch] = useState("");
   const [stockFilter, setStockFilter] = useState<"all" | "lowStock" | "outOfStock">("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -90,6 +98,12 @@ const Inventory = () => {
   const [formMarginPercentage, setFormMarginPercentage] = useState("");
   const [formImage, setFormImage] = useState("");
   const [formUnitOfMeasure, setFormUnitOfMeasure] = useState("PCS");
+  const [formTracksCylinder, setFormTracksCylinder] = useState(false);
+  const [formCylinderSize, setFormCylinderSize] = useState("");
+  const [formDepositAmount, setFormDepositAmount] = useState("");
+  const [cylinderLoans, setCylinderLoans] = useState<CylinderLoan[]>([]);
+  const [loadingLoans, setLoadingLoans] = useState(false);
+  const [returningLoanId, setReturningLoanId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -120,6 +134,23 @@ const Inventory = () => {
     void load();
   }, [activeStoreId]);
 
+  const loadCylinderLoans = async () => {
+    if (!cylinderTrackingOn || !dataService.getCylinderLoans) return;
+    try {
+      setLoadingLoans(true);
+      const loans = await dataService.getCylinderLoans({ status: "out" });
+      setCylinderLoans(loans);
+    } catch {
+      setCylinderLoans([]);
+    } finally {
+      setLoadingLoans(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadCylinderLoans();
+  }, [activeStoreId, cylinderTrackingOn]);
+
   // Auto-calculate selling price from base price and margin percentage
   useEffect(() => {
     if (formBasePrice) {
@@ -147,6 +178,9 @@ const Inventory = () => {
       return needsStockAttention(p);
     }
     if (stockFilter === "outOfStock") {
+      if (cylinderTrackingOn && p.tracksCylinder) {
+        return hasCylinderStockOut(p);
+      }
       return hasZeroStock(p);
     }
     return true; // "all" - show all products
@@ -163,8 +197,24 @@ const Inventory = () => {
   }, [currentPage, totalPages]);
   
   // Calculate counts (from all products) - low stock excludes out of stock
-  const outOfStockCount = products.filter((product) => hasZeroStock(product)).length;
-  const lowStockCount = products.filter((product) => isLowStock(product)).length;
+  const outOfStockCount = products.filter((product) =>
+    cylinderTrackingOn && product.tracksCylinder
+      ? hasCylinderStockOut(product)
+      : hasZeroStock(product),
+  ).length;
+  const lowStockCount = products.filter((product) => {
+    if (cylinderTrackingOn && product.tracksCylinder) {
+      return (
+        (isCylinderFilledLow(product) && !hasCylinderFilledZero(product)) ||
+        (isCylinderEmptyLow(product) && !hasCylinderEmptyZero(product))
+      );
+    }
+    return isLowStock(product);
+  }).length;
+
+  const cylinderStockAlerts = cylinderTrackingOn
+    ? products.filter((p) => p.tracksCylinder && needsStockAttention(p))
+    : [];
   
   const isEditing = !!editingProduct;
 
@@ -179,6 +229,9 @@ const Inventory = () => {
     setFormMarginPercentage("0");
     setFormImage("");
     setFormUnitOfMeasure("PCS");
+    setFormTracksCylinder(false);
+    setFormCylinderSize("");
+    setFormDepositAmount("");
     // Generate a simple item code we can later use for QR codes
     const code = `ITM-${Date.now().toString(36).toUpperCase().slice(-6)}`;
     setFormItemCode(code);
@@ -206,8 +259,32 @@ const Inventory = () => {
     setFormMarginPercentage(product.marginPercentage?.toString() ?? "0");
     setFormImage(product.image ?? "");
     setFormUnitOfMeasure(product.unitOfMeasure ?? "PCS");
+    setFormTracksCylinder(Boolean(product.tracksCylinder));
+    setFormCylinderSize(product.cylinderSize ?? "");
+    setFormDepositAmount(product.depositAmount != null ? String(product.depositAmount) : "");
     setFormError(null);
     setFormOpen(true);
+  };
+
+  const handleReturnCylinder = async (loan: CylinderLoan) => {
+    if (!dataService.returnCylinderLoan) return;
+    let refundDeposit = false;
+    if (collectCylinderDeposits && loan.depositAmount > 0) {
+      refundDeposit = window.confirm(
+        `Return canister and refund ${formatCurrency(loan.depositAmount)} deposit?\n\nChoose Cancel to return without refunding the deposit.`,
+      );
+    } else if (!window.confirm("Mark this canister as returned?")) {
+      return;
+    }
+    try {
+      setReturningLoanId(loan.id);
+      await dataService.returnCylinderLoan(loan.id, { refundDeposit });
+      await Promise.all([load(), loadCylinderLoans()]);
+    } catch (e: unknown) {
+      alert((e as Error).message ?? "Failed to return canister");
+    } finally {
+      setReturningLoanId(null);
+    }
   };
 
   const handleSaveProduct = async () => {
@@ -233,6 +310,13 @@ const Inventory = () => {
         marginPercentage: formMarginPercentage ? parseFloat(formMarginPercentage) : undefined,
         image: formImage || undefined,
         unitOfMeasure: formUnitOfMeasure || "PCS",
+        ...(cylinderTrackingOn
+          ? {
+              tracksCylinder: formTracksCylinder,
+              cylinderSize: formTracksCylinder ? formCylinderSize.trim() || undefined : undefined,
+              depositAmount: formTracksCylinder && formDepositAmount ? parseFloat(formDepositAmount) : 0,
+            }
+          : {}),
       };
 
       if (isEditing && editingProduct) {
@@ -258,6 +342,9 @@ const Inventory = () => {
       setFormMarginPercentage("");
       setFormImage("");
       setFormUnitOfMeasure("PCS");
+      setFormTracksCylinder(false);
+      setFormCylinderSize("");
+      setFormDepositAmount("");
 
       await load();
     } catch (e: any) {
@@ -1363,6 +1450,52 @@ const Inventory = () => {
                   />
                   <p className="text-xs text-muted-foreground">Profit margin as a percentage (e.g., 25 for 25%)</p>
                 </div>
+                {cylinderTrackingOn && (
+                  <div className="space-y-3 rounded-lg border p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="tracks-cylinder">Returnable canister</Label>
+                        <p className="text-xs text-muted-foreground">LPG/butane cylinder with loan tracking</p>
+                      </div>
+                      <Switch
+                        id="tracks-cylinder"
+                        checked={formTracksCylinder}
+                        onCheckedChange={setFormTracksCylinder}
+                      />
+                    </div>
+                    {formTracksCylinder && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">Size label</p>
+                          <Input
+                            value={formCylinderSize}
+                            onChange={(e) => setFormCylinderSize(e.target.value)}
+                            placeholder="11kg, 2.7kg"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">Deposit (₱)</p>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={formDepositAmount}
+                            onChange={(e) => setFormDepositAmount(e.target.value)}
+                            placeholder="0.00"
+                          />
+                        </div>
+                        <p className="col-span-2 text-xs text-muted-foreground">
+                          Low stock alert uses the product&apos;s low threshold for both filled and empty pools.
+                        </p>
+                        {isEditing && editingProduct?.emptyStock != null && (
+                          <div className="col-span-2 text-xs text-muted-foreground">
+                            Empty on hand: {editingProduct.emptyStock}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
                 {formError && (
                   <p className="text-sm text-destructive">{formError}</p>
                 )}
@@ -1385,6 +1518,95 @@ const Inventory = () => {
           </Dialog>
         </div>
       </div>
+
+      {cylinderTrackingOn && cylinderStockAlerts.length > 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <h2 className="font-semibold text-amber-900 dark:text-amber-100">Canister stock alerts</h2>
+          </div>
+          <ul className="text-sm space-y-1">
+            {cylinderStockAlerts.map((p) => {
+              const filled = p.stock ?? 0;
+              const empty = p.emptyStock ?? 0;
+              const issues: string[] = [];
+              if (filled <= 0) issues.push("no filled cylinders");
+              else if (filled <= p.lowStockThreshold) issues.push(`filled low (${filled})`);
+              if (empty <= 0) issues.push("no empties for exchange");
+              else if (empty <= p.lowStockThreshold) issues.push(`empty low (${empty})`);
+              return (
+                <li key={p.id}>
+                  <span className="font-medium">{p.name}</span>
+                  {p.cylinderSize ? ` (${p.cylinderSize})` : ""}: {issues.join("; ")}
+                </li>
+              );
+            })}
+          </ul>
+          <p className="text-xs text-muted-foreground">
+            Reorder when filled stock is low; empty stock affects exchange sales at POS.
+          </p>
+        </div>
+      )}
+
+      {cylinderTrackingOn && (
+        <div className="rounded-lg border bg-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold">Outstanding canisters</h2>
+            <Badge variant="secondary">{cylinderLoans.length} out</Badge>
+          </div>
+          {loadingLoans ? (
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          ) : cylinderLoans.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No canisters currently with customers.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Qty</TableHead>
+                    <TableHead>Deposit</TableHead>
+                    <TableHead>Since</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cylinderLoans.map((loan) => (
+                    <TableRow key={loan.id}>
+                      <TableCell>
+                        {loan.product?.name}
+                        {loan.product?.cylinderSize ? ` (${loan.product.cylinderSize})` : ""}
+                      </TableCell>
+                      <TableCell>
+                        {loan.customerName || "—"}
+                        {loan.customerPhone ? (
+                          <span className="block text-xs text-muted-foreground">{loan.customerPhone}</span>
+                        ) : null}
+                      </TableCell>
+                      <TableCell>{loan.quantity}</TableCell>
+                      <TableCell>{formatCurrency(loan.depositAmount)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(loan.outAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={returningLoanId === loan.id}
+                          onClick={() => void handleReturnCylinder(loan)}
+                        >
+                          {returningLoanId === loan.id ? "Returning..." : "Return"}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-4">
         <div className="relative flex-1">
@@ -1546,19 +1768,40 @@ const Inventory = () => {
                           )}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            {hasZeroStockVariant && (
-                              <AlertTriangle className="w-4 h-4 text-destructive" />
-                            )}
-                            {isProductLowStock && !hasZeroStockVariant && (
-                              <AlertTriangle className="w-4 h-4 text-destructive" />
-                            )}
-                            <span className={cn(
-                              (isProductLowStock || hasZeroStockVariant) && "text-destructive font-semibold"
-                            )}>
-                              {totalStock}
-                            </span>
-                          </div>
+                          {cylinderTrackingOn && product.tracksCylinder ? (
+                            <div className="space-y-1 text-sm">
+                              <div className="flex items-center gap-2">
+                                {(hasCylinderFilledZero(product) || isCylinderFilledLow(product)) && (
+                                  <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+                                )}
+                                <span className={cn(hasCylinderFilledZero(product) && "text-destructive font-semibold")}>
+                                  Filled: {product.stock ?? 0}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-muted-foreground">
+                                {(hasCylinderEmptyZero(product) || isCylinderEmptyLow(product)) && (
+                                  <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                                )}
+                                <span className={cn(hasCylinderEmptyZero(product) && "text-destructive font-semibold")}>
+                                  Empty: {product.emptyStock ?? 0}
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              {hasZeroStockVariant && (
+                                <AlertTriangle className="w-4 h-4 text-destructive" />
+                              )}
+                              {isProductLowStock && !hasZeroStockVariant && (
+                                <AlertTriangle className="w-4 h-4 text-destructive" />
+                              )}
+                              <span className={cn(
+                                (isProductLowStock || hasZeroStockVariant) && "text-destructive font-semibold"
+                              )}>
+                                {totalStock}
+                              </span>
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>
                           {formatCurrency(product.hasVariants ? product.variants?.[0]?.price : product.price)}
@@ -1580,6 +1823,12 @@ const Inventory = () => {
                             ) : isProductLowStock ? (
                               <Badge className="bg-amber-500 hover:bg-amber-500 text-white border-amber-500">Low Stock</Badge>
                             ) : null}
+                            {cylinderTrackingOn && product.tracksCylinder && hasCylinderEmptyZero(product) && (
+                              <Badge className="bg-slate-500 hover:bg-slate-500 text-white border-slate-500">No Empties</Badge>
+                            )}
+                            {cylinderTrackingOn && product.tracksCylinder && isCylinderEmptyLow(product) && !hasCylinderEmptyZero(product) && (
+                              <Badge className="bg-amber-500 hover:bg-amber-500 text-white border-amber-500">Low Empty</Badge>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-right space-x-1">

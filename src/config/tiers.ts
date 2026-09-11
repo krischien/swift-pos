@@ -132,8 +132,8 @@ export function getTierFeatures(tier: string | null | undefined) {
 }
 
 export const BILLING_DEFAULTS = {
-  gcash: process.env.VITE_BILLING_GCASH ?? "0923 835 1690",
-  bank: process.env.VITE_BILLING_BANK ?? "BDO — Account details on request",
-  phone: process.env.VITE_BILLING_CONTACT_PHONE ?? "+63 923 835 1690",
-  email: process.env.VITE_BILLING_CONTACT_EMAIL ?? "hello@backbone.ph",
+  gcash: import.meta.env.VITE_BILLING_GCASH ?? "09489197447",
+  bank: import.meta.env.VITE_BILLING_BANK ?? "BDO — Account details on request",
+  phone: import.meta.env.VITE_BILLING_CONTACT_PHONE ?? "+63 923 835 1690",
+  email: import.meta.env.VITE_BILLING_CONTACT_EMAIL ?? "hello@backbone.ph",
 };

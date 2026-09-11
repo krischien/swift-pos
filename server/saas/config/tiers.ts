@@ -129,7 +129,7 @@ export function getTierFeatures(tier: string | null | undefined) {
 
 export function getBillingContact() {
   return {
-    gcash: process.env.BILLING_GCASH ?? "0923 835 1690",
+    gcash: process.env.BILLING_GCASH ?? "09489197447",
     bank: process.env.BILLING_BANK ?? "BDO — Account details on request",
     phone: process.env.BILLING_CONTACT_PHONE ?? "+63 923 835 1690",
     email: process.env.BILLING_CONTACT_EMAIL ?? "hello@backbone.ph",

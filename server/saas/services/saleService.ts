@@ -1,5 +1,6 @@
 import { saasPrisma } from "../db.js";
 import { changePhpFromCents, paymentCoversTotal, phpToCents } from "../../utils/money.js";
+import { processCylinderLinesOnSale, voidCylinderLoansForSale } from "./cylinderService.js";
 
 export interface CartItemInput {
   productId?: string;
@@ -10,6 +11,8 @@ export interface CartItemInput {
   quantity: number;
   price: number;
   subtotal: number;
+  /** Exchange: customer brought empty canister — no loan created */
+  broughtEmpty?: boolean;
 }
 
 export interface CreateSaleInput {
@@ -25,6 +28,9 @@ export interface CreateSaleInput {
   gcashTransactionId?: string;
   /** When set (e.g. demo seed), persists on the sale row for reports/charts */
   createdAt?: Date;
+  customerName?: string;
+  customerPhone?: string;
+  collectDeposits?: boolean;
 }
 
 function consumptionUnits(recipeQty: number, saleQty: number, wastagePercent: number | null): number {
@@ -86,8 +92,15 @@ export async function createSale(input: CreateSaleInput) {
       },
     });
 
+    const cylinderLines: Array<{
+      productId: string;
+      quantity: number;
+      saleItemId?: string;
+      broughtEmpty?: boolean;
+    }> = [];
+
     for (const item of items) {
-      await tx.saleItem.create({
+      const saleItem = await tx.saleItem.create({
         data: {
           saleId: sale.id,
           productId: item.productId ?? null,
@@ -100,6 +113,22 @@ export async function createSale(input: CreateSaleInput) {
           subtotal: item.subtotal,
         },
       });
+
+      if (item.productId && item.broughtEmpty) {
+        cylinderLines.push({
+          productId: item.productId,
+          quantity: item.quantity,
+          saleItemId: saleItem.id,
+          broughtEmpty: true,
+        });
+      } else if (item.productId) {
+        cylinderLines.push({
+          productId: item.productId,
+          quantity: item.quantity,
+          saleItemId: saleItem.id,
+          broughtEmpty: false,
+        });
+      }
 
       if (item.menuItemId) {
         const menuItem = await tx.menuItem.findFirst({
@@ -145,6 +174,17 @@ export async function createSale(input: CreateSaleInput) {
           });
         }
       }
+    }
+
+    if (cylinderLines.length) {
+      await processCylinderLinesOnSale(tx, {
+        storeId,
+        saleId: sale.id,
+        customerName: input.customerName,
+        customerPhone: input.customerPhone,
+        collectDeposits: input.collectDeposits,
+        lines: cylinderLines,
+      });
     }
 
     return tx.sale.findUnique({
@@ -309,6 +349,9 @@ export async function voidSale(id: string, storeId: string, actor: VoidSaleActor
         }
       }
     }
+
+    await voidCylinderLoansForSale(tx, id);
+
     return tx.sale.update({
       where: { id },
       data: {

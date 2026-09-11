@@ -62,6 +62,10 @@ export async function createProduct(
     barcode?: string;
     qrCode?: string;
     unitOfMeasure?: string;
+    tracksCylinder?: boolean;
+    cylinderSize?: string;
+    depositAmount?: number;
+    emptyStock?: number;
   }
 ) {
   // Verify category belongs to store
@@ -98,6 +102,10 @@ export async function createProduct(
       status: input.status ?? "active",
       image: input.image,
       unitOfMeasure: input.unitOfMeasure ?? "PCS",
+      tracksCylinder: input.tracksCylinder ?? false,
+      cylinderSize: input.cylinderSize,
+      depositAmount: input.depositAmount ?? 0,
+      emptyStock: input.emptyStock ?? 0,
       barcode,
       qrCode,
     },
@@ -123,6 +131,10 @@ export async function updateProduct(
     barcode?: string;
     qrCode?: string;
     unitOfMeasure?: string;
+    tracksCylinder?: boolean;
+    cylinderSize?: string | null;
+    depositAmount?: number;
+    emptyStock?: number;
   }>
 ) {
   const existing = await saasPrisma.product.findFirst({ where: { id, storeId } });

@@ -51,6 +51,17 @@ export interface DataService {
   createSale: (payload: CreateSalePayload, storeId?: string) => Promise<Sale>;
   voidSale?: (id: string, storeId?: string) => Promise<Sale | null>;
 
+  getCylinderLoans?: (
+    params?: { status?: "out" | "returned" | "written_off" | "all" },
+    storeId?: string,
+  ) => Promise<import("@/types/pos").CylinderLoan[]>;
+  getCylinderStats?: (storeId?: string) => Promise<import("@/types/pos").CylinderStats>;
+  returnCylinderLoan?: (
+    loanId: string,
+    options?: { refundDeposit?: boolean },
+    storeId?: string,
+  ) => Promise<import("@/types/pos").CylinderLoan>;
+
   // F&B (SaaS fnb stores only)
   getIngredients: (storeId?: string) => Promise<Ingredient[]>;
   createIngredient: (
@@ -113,6 +124,10 @@ export interface CreateProductPayload {
   barcode?: string;
   qrCode?: string;
   unitOfMeasure?: string;
+  tracksCylinder?: boolean;
+  cylinderSize?: string;
+  depositAmount?: number;
+  emptyStock?: number;
 }
 
 export type UpdateProductPayload = Partial<CreateProductPayload> & {
@@ -180,7 +195,11 @@ export interface CreateSalePayload {
     quantity: number;
     price: number;
     subtotal: number;
+    broughtEmpty?: boolean;
   }>;
+  customerName?: string;
+  customerPhone?: string;
+  collectDeposits?: boolean;
   items?: Array<{
     productId?: string;
     menuItemId?: string;

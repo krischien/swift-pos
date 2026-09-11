@@ -501,6 +501,25 @@ export function createOfflineSaasDataService(): DataService {
       if (!isOnline()) throw new Error("Go online to manage recipes.");
       return real.replaceMenuItemRecipe(menuItemId, payload, sid);
     },
+
+    getCylinderLoans: real.getCylinderLoans
+      ? async (params, sid) => {
+          if (!isOnline()) throw new Error("Connect to view canister loans.");
+          return real.getCylinderLoans!(params, sid);
+        }
+      : undefined,
+    getCylinderStats: real.getCylinderStats
+      ? async (sid) => {
+          if (!isOnline()) throw new Error("Connect to view canister stats.");
+          return real.getCylinderStats!(sid);
+        }
+      : undefined,
+    returnCylinderLoan: real.returnCylinderLoan
+      ? async (loanId, options, sid) => {
+          if (!isOnline()) throw new Error("Connect to return canisters.");
+          return real.returnCylinderLoan!(loanId, options, sid);
+        }
+      : undefined,
   };
 
   return cachedOfflineService;

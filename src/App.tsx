@@ -32,6 +32,7 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminOrganizations from "./pages/admin/Organizations";
 import AdminOrgDetail from "./pages/admin/OrgDetail";
 import ProductRanking from "./pages/admin/ProductRanking";
+import PaymentMonitoring from "./pages/admin/PaymentMonitoring";
 import Pricing from "./pages/Pricing";
 import PaymentInstructions from "./pages/PaymentInstructions";
 import HQDashboard from "./pages/HQDashboard";

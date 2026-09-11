@@ -102,6 +102,7 @@ model Store {
   ingredients    Ingredient[]
   menuCategories MenuCategory[]
   menuItems      MenuItem[]
+  cylinderLoans  CylinderLoan[]
 }
 
 model User {
@@ -156,11 +157,17 @@ model Product {
   barcode            String?
   qrCode             String?
   unitOfMeasure      String?        @default("PCS")
+  /// LPG/butane: track returnable canister obligations from sales
+  tracksCylinder     Boolean        @default(false)
+  cylinderSize       String?
+  depositAmount      Float          @default(0)
+  emptyStock         Int            @default(0)
 
-  store    Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  variants Variant[]
-  saleItems SaleItem[]
+  store         Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  variants      Variant[]
+  saleItems     SaleItem[]
+  cylinderLoans CylinderLoan[]
 }
 
 model Variant {
@@ -195,6 +202,32 @@ model Sale {
   cashier User?     @relation("SaleCashier", fields: [cashierId], references: [id], onDelete: SetNull)
   voidedBy User?    @relation("SaleVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
   items   SaleItem[]
+  cylinderLoans CylinderLoan[]
+}
+
+/// Outstanding canister obligation created when a tracked product is sold (not exchange-only).
+model CylinderLoan {
+  id              String    @id @default(cuid())
+  storeId         String
+  saleId          String
+  saleItemId      String?
+  productId       String
+  quantity        Int
+  customerName    String?
+  customerPhone   String?
+  depositAmount   Float     @default(0)
+  depositRefunded Boolean   @default(false)
+  /// out | returned | written_off
+  status          String    @default("out")
+  outAt           DateTime  @default(now())
+  returnedAt      DateTime?
+
+  store   Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, status])
+  @@index([saleId])
 }
 
 model Ingredient {

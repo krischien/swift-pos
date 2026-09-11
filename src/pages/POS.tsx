@@ -21,6 +21,8 @@ import { formatCurrency } from "@/lib/currency";
 import { changePhpFromCents, phpToCents } from "@/lib/phpMoney";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QuickScanCard } from "@/components/pos/QuickScanCard";
+import { computeCylinderDeposit, cartHasOutstandingCylinder } from "@/lib/cylinderCheckout";
+import { isSaaS } from "@/config/appMode";
 
 /** Values to compare against sku / itemCode / barcode (whitespace, leading zeros). */
 function scanMatchVariants(raw: string): Set<string> {
@@ -87,7 +89,10 @@ const POS = () => {
     selectedPrinter,
     enablePerKiloPurchase,
     enableBarcodeScanning,
+    enableCylinderTracking,
+    collectCylinderDeposits,
   } = useSettings();
+  const cylinderTrackingOn = isSaaS() && enableCylinderTracking;
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -447,6 +452,31 @@ const POS = () => {
     setCart(cart.filter((item) => item.id !== itemId));
   };
 
+  const handleToggleBroughtEmpty = (itemId: string, broughtEmpty: boolean) => {
+    setCart(
+      cart.map((item) => (item.id === itemId ? { ...item, broughtEmpty } : item)),
+    );
+  };
+
+  const computeCheckoutTotal = () => {
+    const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
+    const effectiveDiscount = enableDiscounts ? discountPercent : 0;
+    const discountAmount = subtotal * (effectiveDiscount / 100);
+    const netSubtotal = Math.max(0, subtotal - discountAmount);
+    const taxRate = enableTax ? (typeof taxRatePercent === "number" ? taxRatePercent : 12) / 100 : 0;
+    const deposit = computeCylinderDeposit(cart, products, {
+      enabled: cylinderTrackingOn,
+      collectDeposits: collectCylinderDeposits,
+    });
+    return netSubtotal * (1 + taxRate) + deposit;
+  };
+
+  const checkoutDeposit = computeCylinderDeposit(cart, products, {
+    enabled: cylinderTrackingOn,
+    collectDeposits: collectCylinderDeposits,
+  });
+  const requireCylinderCustomer = cartHasOutstandingCylinder(cart, products, cylinderTrackingOn);
+
   const handleCheckout = () => {
     const code = `T-${Date.now().toString(36).toUpperCase()}-${Math.floor(
       Math.random() * 999,
@@ -648,8 +678,14 @@ const POS = () => {
     }
   };
 
-  const handleCompleteCheckout = async (result: { amountReceived: number; paymentMethod: string; gcashTransactionId?: string }) => {
-    const { amountReceived, paymentMethod, gcashTransactionId } = result;
+  const handleCompleteCheckout = async (result: {
+    amountReceived: number;
+    paymentMethod: string;
+    gcashTransactionId?: string;
+    customerName?: string;
+    customerPhone?: string;
+  }) => {
+    const { amountReceived, paymentMethod, gcashTransactionId, customerName, customerPhone } = result;
     const cartSnapshot = cart.map((item) => ({ ...item }));
     const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
     const taxRate = enableTax ? (typeof taxRatePercent === "number" ? taxRatePercent : 12) / 100 : 0;
@@ -657,7 +693,11 @@ const POS = () => {
     const discountAmount = subtotal * (effectiveDiscount / 100);
     const netSubtotal = Math.max(0, subtotal - discountAmount);
     const taxAmount = netSubtotal * taxRate;
-    const total = netSubtotal + taxAmount;
+    const deposit = computeCylinderDeposit(cart, products, {
+      enabled: cylinderTrackingOn,
+      collectDeposits: collectCylinderDeposits,
+    });
+    const total = netSubtotal + taxAmount + deposit;
     const change = changePhpFromCents(phpToCents(amountReceived), phpToCents(total));
 
     try {
@@ -676,6 +716,9 @@ const POS = () => {
           discountPercent: effectiveDiscount,
           ticketNumber: ticketNumber ?? undefined,
           gcashTransactionId: paymentMethod === "gcash" ? gcashTransactionId || undefined : undefined,
+          customerName,
+          customerPhone,
+          collectDeposits: cylinderTrackingOn && collectCylinderDeposits,
         },
         activeStoreId !== "default" ? activeStoreId : undefined,
       );
@@ -896,6 +939,10 @@ const POS = () => {
             taxRatePercent={taxRatePercent}
             enableTax={enableTax}
             enablePerKiloPurchase={enablePerKiloPurchase && !isFnb}
+            enableCylinderTracking={cylinderTrackingOn && !isFnb}
+            collectCylinderDeposits={collectCylinderDeposits}
+            products={products}
+            onToggleBroughtEmpty={handleToggleBroughtEmpty}
           />
         </div>
       </div>
@@ -927,6 +974,10 @@ const POS = () => {
             taxRatePercent={taxRatePercent}
             enableTax={enableTax}
             enablePerKiloPurchase={enablePerKiloPurchase && !isFnb}
+            enableCylinderTracking={cylinderTrackingOn && !isFnb}
+            collectCylinderDeposits={collectCylinderDeposits}
+            products={products}
+            onToggleBroughtEmpty={handleToggleBroughtEmpty}
           />
         </SheetContent>
       </Sheet>
@@ -945,16 +996,9 @@ const POS = () => {
       <CheckoutModal
         open={showCheckoutModal}
         onClose={() => setShowCheckoutModal(false)}
-        total={
-          (() => {
-            const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
-            const effectiveDiscount = enableDiscounts ? discountPercent : 0;
-            const discountAmount = subtotal * (effectiveDiscount / 100);
-            const netSubtotal = Math.max(0, subtotal - discountAmount);
-            const taxRate = enableTax ? (typeof taxRatePercent === "number" ? taxRatePercent : 12) / 100 : 0;
-            return netSubtotal * (1 + taxRate);
-          })()
-        }
+        total={computeCheckoutTotal()}
+        depositAmount={checkoutDeposit}
+        requireCustomer={requireCylinderCustomer}
         ticketNumber={ticketNumber ?? undefined}
         onComplete={handleCompleteCheckout}
       />

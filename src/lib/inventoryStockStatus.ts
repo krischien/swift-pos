@@ -1,4 +1,59 @@
-import type { Product } from "@/types/pos";
+import type { Ingredient, Product } from "@/types/pos";
+
+export interface SimpleStockItem {
+  stock: number;
+  lowStockThreshold: number;
+}
+
+export function isSimpleLowStock(item: SimpleStockItem): boolean {
+  return item.stock > 0 && item.stock <= item.lowStockThreshold;
+}
+
+export function hasSimpleZeroStock(item: SimpleStockItem): boolean {
+  return (item.stock ?? 0) <= 0;
+}
+
+export function needsIngredientAttention(ing: Ingredient): boolean {
+  return isSimpleLowStock(ing) || hasSimpleZeroStock(ing);
+}
+
+/** Empty cylinder pool (exchange stock) — uses same threshold as filled. */
+export function isCylinderEmptyLow(product: Product): boolean {
+  if (!product.tracksCylinder) return false;
+  const empty = product.emptyStock ?? 0;
+  return empty > 0 && empty <= product.lowStockThreshold;
+}
+
+export function hasCylinderEmptyZero(product: Product): boolean {
+  if (!product.tracksCylinder) return false;
+  return (product.emptyStock ?? 0) <= 0;
+}
+
+export function isCylinderFilledLow(product: Product): boolean {
+  if (!product.tracksCylinder) return isLowStock(product);
+  const stock = product.stock ?? 0;
+  return stock > 0 && stock <= product.lowStockThreshold;
+}
+
+export function hasCylinderFilledZero(product: Product): boolean {
+  if (!product.tracksCylinder) return hasZeroStock(product);
+  return (product.stock ?? 0) <= 0;
+}
+
+export function needsCylinderStockAttention(product: Product): boolean {
+  if (!product.tracksCylinder) return needsStockAttention(product);
+  return (
+    isCylinderFilledLow(product) ||
+    hasCylinderFilledZero(product) ||
+    isCylinderEmptyLow(product) ||
+    hasCylinderEmptyZero(product)
+  );
+}
+
+export function hasCylinderStockOut(product: Product): boolean {
+  if (!product.tracksCylinder) return hasZeroStock(product);
+  return hasCylinderFilledZero(product) || hasCylinderEmptyZero(product);
+}
 
 /** Same rules as Inventory: low = stock > 0 && stock <= threshold; variants use `hasVariants && variants` (empty array matches Inventory). */
 export function isLowStock(product: Product): boolean {
@@ -24,7 +79,9 @@ export function outOfStockVariantCount(product: Product): number {
 }
 
 export function needsStockAttention(product: Product): boolean {
-  return isLowStock(product) || hasZeroStock(product);
+  const base = isLowStock(product) || hasZeroStock(product);
+  if (!product.tracksCylinder) return base;
+  return base || isCylinderEmptyLow(product) || hasCylinderEmptyZero(product);
 }
 
 export type StockAlertLineItem = { id: string; name: string; stock: number; status: string };
@@ -42,11 +99,45 @@ export function buildLowStockLineItems(products: Product[]): StockAlertLineItem[
         }));
     }
     const stock = p.stock || 0;
+    const lines: StockAlertLineItem[] = [];
     if (stock > 0 && stock <= p.lowStockThreshold) {
-      return [{ id: `${p.id}-base`, name: p.name, stock, status: "Low" }];
+      lines.push({ id: `${p.id}-base`, name: p.name, stock, status: "Low" });
     }
-    return [];
+    if (p.tracksCylinder) {
+      const empty = p.emptyStock ?? 0;
+      if (empty > 0 && empty <= p.lowStockThreshold) {
+        lines.push({
+          id: `${p.id}-empty`,
+          name: `${p.name} (empty)`,
+          stock: empty,
+          status: "Low Empty",
+        });
+      }
+    }
+    return lines;
   });
+}
+
+export function buildIngredientLowStockLineItems(ingredients: Ingredient[]): StockAlertLineItem[] {
+  return ingredients
+    .filter((ing) => isSimpleLowStock(ing))
+    .map((ing) => ({
+      id: ing.id,
+      name: ing.name,
+      stock: ing.stock,
+      status: "Low",
+    }));
+}
+
+export function buildIngredientOutOfStockLineItems(ingredients: Ingredient[]): StockAlertLineItem[] {
+  return ingredients
+    .filter((ing) => hasSimpleZeroStock(ing))
+    .map((ing) => ({
+      id: ing.id,
+      name: ing.name,
+      stock: ing.stock,
+      status: "Out of Stock",
+    }));
 }
 
 export function buildOutOfStockLineItems(products: Product[]): StockAlertLineItem[] {
@@ -62,10 +153,19 @@ export function buildOutOfStockLineItems(products: Product[]): StockAlertLineIte
         }));
     }
     const stock = p.stock ?? 0;
+    const lines: StockAlertLineItem[] = [];
     if (stock <= 0) {
-      return [{ id: `${p.id}-base`, name: p.name, stock, status: "Out of Stock" }];
+      lines.push({ id: `${p.id}-base`, name: p.name, stock, status: "Out of Stock" });
     }
-    return [];
+    if (p.tracksCylinder && (p.emptyStock ?? 0) <= 0) {
+      lines.push({
+        id: `${p.id}-empty-oos`,
+        name: `${p.name} (empty)`,
+        stock: p.emptyStock ?? 0,
+        status: "No Empties",
+      });
+    }
+    return lines;
   });
 }
 

@@ -18,6 +18,8 @@ export interface CheckoutResult {
   amountReceived: number;
   paymentMethod: PaymentMethod;
   gcashTransactionId?: string;
+  customerName?: string;
+  customerPhone?: string;
 }
 
 interface CheckoutModalProps {
@@ -25,6 +27,8 @@ interface CheckoutModalProps {
   onClose: () => void;
   total: number;
   ticketNumber?: string;
+  depositAmount?: number;
+  requireCustomer?: boolean;
   onComplete: (result: CheckoutResult) => void;
 }
 
@@ -33,11 +37,15 @@ export const CheckoutModal = ({
   onClose,
   total,
   ticketNumber,
+  depositAmount = 0,
+  requireCustomer = false,
   onComplete,
 }: CheckoutModalProps) => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [amountReceived, setAmountReceived] = useState<string>("");
   const [gcashTransactionId, setGcashTransactionId] = useState<string>("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
   const amountReceivedCents = phpToCents(parseFloat(amountReceived || "0"));
   const totalCents = phpToCents(total);
   const changeCents = amountReceivedCents - totalCents;
@@ -49,6 +57,8 @@ export const CheckoutModal = ({
       setPaymentMethod("cash");
       setAmountReceived("");
       setGcashTransactionId("");
+      setCustomerName("");
+      setCustomerPhone("");
     }
   }, [open]);
 
@@ -76,6 +86,8 @@ export const CheckoutModal = ({
           : centsToPhp(phpToCents(amt)),
       paymentMethod,
       gcashTransactionId: paymentMethod === "gcash" ? gcashTransactionId.trim() : undefined,
+      customerName: requireCustomer ? customerName.trim() || undefined : undefined,
+      customerPhone: requireCustomer ? customerPhone.trim() || undefined : undefined,
     };
     onComplete(result);
     setAmountReceived("");
@@ -83,12 +95,14 @@ export const CheckoutModal = ({
     onClose();
   };
 
+  const customerOk = !requireCustomer || customerName.trim().length > 0;
   const canComplete =
-    paymentMethod === "cash"
+    customerOk &&
+    (paymentMethod === "cash"
       ? amountReceivedCents >= totalCents && !!amountReceived
       : paymentMethod === "gcash"
       ? amountReceivedCents >= totalCents && !!gcashTransactionId.trim()
-      : false;
+      : false);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -109,7 +123,36 @@ export const CheckoutModal = ({
           <div className="bg-primary/10 rounded-lg p-4 text-center">
             <p className="text-sm text-muted-foreground mb-1">Total Amount</p>
             <p className="text-3xl font-bold text-primary">{formatCurrency(total)}</p>
+            {depositAmount > 0 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Includes {formatCurrency(depositAmount)} refundable deposit
+              </p>
+            )}
           </div>
+
+          {requireCustomer && (
+            <div className="space-y-3 rounded-lg border p-3">
+              <p className="text-sm font-medium">Canister customer</p>
+              <div className="space-y-2">
+                <Label htmlFor="cylinder-customer-name">Name</Label>
+                <Input
+                  id="cylinder-customer-name"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Customer name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cylinder-customer-phone">Phone (optional)</Label>
+                <Input
+                  id="cylinder-customer-phone"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder="09XXXXXXXXX"
+                />
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Payment Method</Label>
