@@ -12,19 +12,6 @@ import { isSaaS } from "@/config/appMode";
 import { Capacitor } from "@capacitor/core";
 import { getSaasApiBase } from "@/lib/saasApiConfig";
 
-// SaaS demo credentials (used when isSaaS())
-const DEMO_CREDENTIALS = {
-  admin: { email: "admin@demo.com", password: "password123" },
-  owner: { email: "owner@demo.com", password: "password123" },
-  cashier: { email: "cashier@demo.com", password: "password123" },
-} as const;
-
-// Solo mode credentials (from server/seed.ts and mobileDb seed)
-const SOLO_CREDENTIALS = {
-  admin: { email: "john@example.com", password: "password123" },
-  cashier: { email: "cashier@example.com", password: "password123" },
-} as const;
-
 const Login = () => {
   const [searchParams] = useSearchParams();
   const [email, setEmail] = useState("");
@@ -40,25 +27,6 @@ const Login = () => {
       navigate(user.role === "super_admin" ? "/admin" : "/pos", { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
-
-  const handleQuickLogin = async (role: keyof typeof DEMO_CREDENTIALS | keyof typeof SOLO_CREDENTIALS) => {
-    const creds = isSaaS() ? DEMO_CREDENTIALS : SOLO_CREDENTIALS;
-    const { email: e, password: p } = creds[role as keyof typeof creds];
-    setEmail(e);
-    setPassword(p);
-    try {
-      const result = await login(e, p);
-      if (isSaaS() && result.stores?.length) {
-        setStores(result.stores);
-        setActiveStoreId(result.stores[0].id);
-      }
-      toast({ title: "Login successful", description: `Welcome, ${result.user.role}!` });
-      navigate(result.user.role === "super_admin" ? "/admin" : "/pos");
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : "Invalid credentials";
-      toast({ variant: "destructive", title: "Login failed", description: msg });
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,53 +113,6 @@ const Login = () => {
             <Button type="submit" className="w-full h-12 text-base font-semibold">
               Sign In
             </Button>
-            <div className="space-y-2">
-              <p className="text-center text-xs text-muted-foreground">Quick login (demo)</p>
-              {isSaaS() ? (
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleQuickLogin("owner")}
-                  >
-                    Owner
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleQuickLogin("cashier")}
-                  >
-                    Cashier
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleQuickLogin("cashier")}
-                  >
-                    Cashier
-                  </Button>
-                </div>
-              )}
-            </div>
-            {isSaaS() && (
-              <p className="text-center text-xs text-muted-foreground">
-                admin@demo.com · owner@demo.com · cashier@demo.com · password: password123
-              </p>
-            )}
-            {!isSaaS() && (
-              <p className="text-center text-xs text-muted-foreground">
-                john@example.com or cashier@example.com · password: password123
-              </p>
-            )}
             {isSaaS() && (
               <p className="text-center text-sm text-muted-foreground mt-4">
                 Don&apos;t have an account?{" "}

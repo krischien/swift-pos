@@ -440,6 +440,8 @@ const Settings = () => {
     }
   };
 
+  const showDemoSeed = import.meta.env.DEV && isSaaS() && (user?.role === "super_admin" || user?.role === "owner");
+
   return (
     <div className="p-6 space-y-6 max-w-4xl">
       <div>
@@ -449,7 +451,7 @@ const Settings = () => {
 
       {isSaaS() && user?.role === "owner" && <SubscriptionSettingsCard />}
 
-      {isSaaS() && (user?.role === "super_admin" || user?.role === "owner") && (
+      {showDemoSeed && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

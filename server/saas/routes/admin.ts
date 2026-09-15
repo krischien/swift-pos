@@ -1251,6 +1251,9 @@ router.post("/organizations/:orgId/notifications", async (req: AuthRequest, res)
 });
 
 router.post("/seed-demo", async (_req: AuthRequest, res) => {
+  if (process.env.NODE_ENV === "production" || process.env.VERCEL === "1") {
+    return res.status(404).json({ message: "Not found" });
+  }
   try {
     const result = await runSeedDemo();
     res.json({
@@ -1272,6 +1275,9 @@ router.post("/seed-demo", async (_req: AuthRequest, res) => {
 
 /** Seed existing bootstrap org: grocery + F&B + pet, 50 sales/store over 7 days. */
 router.post("/seed-vercel-demo", async (_req: AuthRequest, res) => {
+  if (process.env.NODE_ENV === "production" || process.env.VERCEL === "1") {
+    return res.status(404).json({ message: "Not found" });
+  }
   try {
     const result = await runSeedVercelDemo();
     res.json({
