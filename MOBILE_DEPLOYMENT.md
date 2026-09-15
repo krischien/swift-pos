@@ -2,6 +2,8 @@
 
 This guide covers building and deploying SwiftPOS as an Android app.
 
+**Production (Vercel + Play Store):** see **[docs/ANDROID_DEPLOY.md](docs/ANDROID_DEPLOY.md)** for the full checklist (`.env.saas.local`, signing, AAB).
+
 ## Prerequisites
 
 - Node.js 18+

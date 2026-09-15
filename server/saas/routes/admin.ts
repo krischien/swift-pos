@@ -943,7 +943,7 @@ router.patch("/organizations/:id", async (req: AuthRequest, res) => {
   }
 });
 
-router.delete("/api/admin/organizations/:id", async (req: AuthRequest, res) => {
+router.delete("/organizations/:id", async (req: AuthRequest, res) => {
   try {
     await saasPrisma.organization.delete({
       where: { id: req.params.id },
@@ -955,7 +955,7 @@ router.delete("/api/admin/organizations/:id", async (req: AuthRequest, res) => {
   }
 });
 
-router.post("/api/admin/organizations/:id/users", async (req: AuthRequest, res) => {
+router.post("/organizations/:id/users", async (req: AuthRequest, res) => {
   try {
     const orgId = req.params.id;
     const { name, email, password, role, storeIds } = req.body as {
@@ -997,6 +997,8 @@ router.post("/api/admin/organizations/:id/users", async (req: AuthRequest, res) 
       return res.status(400).json({ message: "Email already registered" });
     }
 
+    const normalizedRole = role === "owner" ? "owner" : "cashier";
+
     const validStoreIds = (storeIds || []).filter((sid) =>
       org.stores.some((s) => s.id === sid)
     );
@@ -1009,7 +1011,7 @@ router.post("/api/admin/organizations/:id/users", async (req: AuthRequest, res) 
         name: name.trim(),
         email: email.trim().toLowerCase(),
         password: hashedPassword,
-        role: (role || "cashier") as string,
+        role: normalizedRole,
       },
     });
 
@@ -1028,7 +1030,7 @@ router.post("/api/admin/organizations/:id/users", async (req: AuthRequest, res) 
   }
 });
 
-router.patch("/api/admin/organizations/:orgId/users/:userId", async (req: AuthRequest, res) => {
+router.patch("/organizations/:orgId/users/:userId", async (req: AuthRequest, res) => {
   try {
     const { orgId, userId } = req.params;
     const { name, email, password, role, storeIds } = req.body as {
@@ -1069,7 +1071,9 @@ router.patch("/api/admin/organizations/:orgId/users/:userId", async (req: AuthRe
     if (password !== undefined && password.length > 0) {
       updateData.password = await bcrypt.hash(password, 10);
     }
-    if (role !== undefined) updateData.role = role;
+    if (role !== undefined) {
+      updateData.role = role === "owner" ? "owner" : "cashier";
+    }
 
     const updated = await saasPrisma.user.update({
       where: { id: userId },
@@ -1096,7 +1100,7 @@ router.patch("/api/admin/organizations/:orgId/users/:userId", async (req: AuthRe
   }
 });
 
-router.delete("/api/admin/organizations/:orgId/users/:userId", async (req: AuthRequest, res) => {
+router.delete("/organizations/:orgId/users/:userId", async (req: AuthRequest, res) => {
   try {
     const { orgId, userId } = req.params;
     const user = await saasPrisma.user.findFirst({
@@ -1204,7 +1208,7 @@ router.delete("/organizations/:orgId/stores/:storeId", async (req: AuthRequest, 
   }
 });
 
-router.post("/api/admin/organizations/:orgId/notifications", async (req: AuthRequest, res) => {
+router.post("/organizations/:orgId/notifications", async (req: AuthRequest, res) => {
   try {
     const orgId = req.params.orgId;
     const { message, type, expiresAt } = req.body as {

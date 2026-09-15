@@ -6,9 +6,6 @@
 import { saasPrisma } from "../db.js";
 import { DEMO_TRIAL_DAYS, addDays } from "../constants/demo.js";
 
-/** Neon/serverless: default 5s interactive tx timeout is too short for seed batches */
-const SEED_TX = { timeout: 120_000, maxWait: 30_000 };
-
 const SALES_PER_STORE = 50;
 const OPERATING_DAYS = 7;
 
@@ -18,6 +15,19 @@ function randomInt(min: number, max: number): number {
 
 function randomWeightKg(): number {
   return Math.round((0.15 + Math.random() * 2.85) * 100) / 100;
+}
+
+async function runWithConcurrency<T>(tasks: Array<() => Promise<T>>, concurrency: number): Promise<T[]> {
+  const results: T[] = new Array(tasks.length);
+  let next = 0;
+  async function worker() {
+    while (next < tasks.length) {
+      const i = next++;
+      results[i] = await tasks[i]();
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, tasks.length) }, () => worker()));
+  return results;
 }
 
 type SaleLine = {
@@ -33,12 +43,8 @@ type SaleLine = {
   stockDecrement?: number;
 };
 
-function consumptionUnits(recipeQty: number, saleQty: number, wastagePercent: number | null): number {
-  const w = 1 + (wastagePercent ?? 0) / 100;
-  return Math.max(0, Math.ceil(recipeQty * saleQty * w));
-}
-
-async function insertRetailSeedSale(
+/** Fast path: no per-sale transactions or stock updates (demo history only). */
+async function insertSeedSale(
   storeId: string,
   cashier: { id: string; name: string },
   cart: SaleLine[],
@@ -47,99 +53,32 @@ async function insertRetailSeedSale(
   saleDate: Date,
   paymentMethod: string,
 ): Promise<void> {
-  await saasPrisma.$transaction(async (tx) => {
-    const sale = await tx.sale.create({
-      data: {
-        storeId,
-        ticketNumber,
-        cashierId: cashier.id,
-        cashierName: cashier.name,
-        total,
-        paymentMethod,
-        amountReceived: total,
-        change: 0,
-        createdAt: saleDate,
-      },
-    });
-    for (const item of cart) {
-      await tx.saleItem.create({
-        data: {
-          saleId: sale.id,
-          productId: item.productId ?? null,
-          variantId: item.variantId ?? null,
-          productName: item.productName,
-          variantName: item.variantName,
-          quantity: item.quantity,
-          price: item.price,
-          subtotal: item.subtotal,
-        },
-      });
-      const dec = item.stockDecrement ?? item.quantity;
-      if (item.variantId) {
-        await tx.variant.update({
-          where: { id: item.variantId },
-          data: { stock: { decrement: dec } },
-        });
-      } else if (item.productId) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stock: { decrement: dec } },
-        });
-      }
-    }
-  }, SEED_TX);
-}
-
-async function insertFnbSeedSale(
-  storeId: string,
-  cashier: { id: string; name: string },
-  cart: SaleLine[],
-  total: number,
-  ticketNumber: string,
-  saleDate: Date,
-  paymentMethod: string,
-): Promise<void> {
-  await saasPrisma.$transaction(async (tx) => {
-    const sale = await tx.sale.create({
-      data: {
-        storeId,
-        ticketNumber,
-        cashierId: cashier.id,
-        cashierName: cashier.name,
-        total,
-        paymentMethod,
-        amountReceived: total,
-        change: 0,
-        createdAt: saleDate,
-      },
-    });
-    for (const item of cart) {
-      await tx.saleItem.create({
-        data: {
-          saleId: sale.id,
-          menuItemId: item.menuItemId ?? null,
-          productName: item.productName,
-          quantity: item.quantity,
-          price: item.price,
-          subtotal: item.subtotal,
-        },
-      });
-      if (!item.menuItemId) continue;
-      const menuItem = await tx.menuItem.findFirst({
-        where: { id: item.menuItemId, storeId },
-        include: { recipeLines: true },
-      });
-      if (!menuItem) continue;
-      for (const line of menuItem.recipeLines) {
-        const dec = consumptionUnits(line.quantity, item.quantity, line.wastagePercent);
-        if (dec <= 0) continue;
-        await tx.ingredient.update({
-          where: { id: line.ingredientId },
-          data: { stock: { decrement: dec } },
-        });
-      }
-    }
-  }, SEED_TX);
+  const sale = await saasPrisma.sale.create({
+    data: {
+      storeId,
+      ticketNumber,
+      cashierId: cashier.id,
+      cashierName: cashier.name,
+      total,
+      paymentMethod,
+      amountReceived: total,
+      change: 0,
+      createdAt: saleDate,
+    },
+  });
+  await saasPrisma.saleItem.createMany({
+    data: cart.map((item) => ({
+      saleId: sale.id,
+      productId: item.productId ?? null,
+      menuItemId: item.menuItemId ?? null,
+      variantId: item.variantId ?? null,
+      productName: item.productName,
+      variantName: item.variantName ?? null,
+      quantity: item.quantity,
+      price: item.price,
+      subtotal: item.subtotal,
+    })),
+  });
 }
 
 async function clearOrgCatalog(orgId: string): Promise<void> {
@@ -496,12 +435,12 @@ async function seedStoreSales(
   storeId: string,
   lines: SaleLine[],
   cashier: { id: string; name: string },
-  options: { prefix: string; isFnb: boolean; isPetKg: boolean },
+  options: { prefix: string; isPetKg: boolean },
 ): Promise<number> {
   const now = new Date();
   const startDate = addDays(now, -(OPERATING_DAYS - 1));
   let ticketCounter = 1000;
-  let created = 0;
+  const tasks: Array<() => Promise<void>> = [];
 
   const perDay = Math.floor(SALES_PER_STORE / OPERATING_DAYS);
   const extra = SALES_PER_STORE % OPERATING_DAYS;
@@ -525,15 +464,14 @@ async function seedStoreSales(
 
       const paymentMethod = randomInt(0, 4) === 0 ? "gcash" : "cash";
       const ticketNumber = `${options.prefix}-${ticketCounter}`;
-      if (options.isFnb) {
-        await insertFnbSeedSale(storeId, cashier, cart, total, ticketNumber, saleDate, paymentMethod);
-      } else {
-        await insertRetailSeedSale(storeId, cashier, cart, total, ticketNumber, saleDate, paymentMethod);
-      }
-      created += 1;
+      tasks.push(() =>
+        insertSeedSale(storeId, cashier, cart, total, ticketNumber, saleDate, paymentMethod),
+      );
     }
   }
-  return created;
+
+  await runWithConcurrency(tasks, 10);
+  return tasks.length;
 }
 
 export interface SeedVercelDemoResult {
@@ -607,24 +545,20 @@ export async function runSeedVercelDemo(): Promise<SeedVercelDemoResult> {
   const fnbLines = await seedFnbStore(fnb.id);
 
   console.log("  Creating sales (50 × 3 stores, last 7 days)…");
-  const grocerySales = await seedStoreSales(grocery.id, groceryLines, cashier, {
-    prefix: "G",
-    isFnb: false,
-    isPetKg: false,
-  });
-  console.log(`    ${grocery.name}: ${grocerySales} sales`);
-  const petSales = await seedStoreSales(pet.id, petLines, cashier, {
-    prefix: "P",
-    isFnb: false,
-    isPetKg: true,
-  });
-  console.log(`    ${pet.name}: ${petSales} sales`);
-  const fnbSales = await seedStoreSales(fnb.id, fnbLines, cashier, {
-    prefix: "F",
-    isFnb: true,
-    isPetKg: false,
-  });
-  console.log(`    ${fnb.name}: ${fnbSales} sales`);
+  const [grocerySales, petSales, fnbSales] = await Promise.all([
+    seedStoreSales(grocery.id, groceryLines, cashier, { prefix: "G", isPetKg: false }).then((n) => {
+      console.log(`    ${grocery.name}: ${n} sales`);
+      return n;
+    }),
+    seedStoreSales(pet.id, petLines, cashier, { prefix: "P", isPetKg: true }).then((n) => {
+      console.log(`    ${pet.name}: ${n} sales`);
+      return n;
+    }),
+    seedStoreSales(fnb.id, fnbLines, cashier, { prefix: "F", isPetKg: false }).then((n) => {
+      console.log(`    ${fnb.name}: ${n} sales`);
+      return n;
+    }),
+  ]);
 
   return {
     orgId: org.id,

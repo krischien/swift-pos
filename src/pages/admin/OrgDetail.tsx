@@ -1051,7 +1051,6 @@ const OrgDetail = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="owner">Owner</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
                         <SelectItem value="cashier">Cashier</SelectItem>
                       </SelectContent>
                     </Select>
@@ -1210,7 +1209,6 @@ const OrgDetail = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="owner">Owner</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="cashier">Cashier</SelectItem>
                   </SelectContent>
                 </Select>

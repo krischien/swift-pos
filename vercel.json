@@ -22,7 +22,7 @@
   ],
   "functions": {
     "api/index.js": {
-      "maxDuration": 30,
+      "maxDuration": 300,
       "includeFiles": "lib/saas-api.cjs,node_modules/.prisma/saas-client/**"
     }
   }

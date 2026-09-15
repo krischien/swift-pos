@@ -19,10 +19,13 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("Seeding Demo Organization (existing org + users)…");
+  const host = url.match(/@([^/]+)/)?.[1] ?? "(unknown host)";
+  console.log(`Seeding Demo Organization on ${host} (existing org + users)…`);
+  console.log("  Tip: use the SAAS_DATABASE_URL from Vercel → Settings → Environment Variables.");
   const result = await runSeedVercelDemo();
   console.log("\nDone.");
   console.log(`  Org: ${result.orgName} (${result.orgId})`);
+  console.log("  Verify on Vercel: login owner@demo.com — you should see 3 stores, not 'Main Store'.");
   for (const s of result.stores) {
     console.log(`  ${s.name}: ${s.products} products, ${s.sales} sales (7 days)`);
   }
