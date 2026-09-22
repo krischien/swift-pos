@@ -12,6 +12,7 @@ export interface ReceiptItem {
   quantity: number;
   price: number;
   subtotal: number;
+  broughtEmptyQuantity?: number;
 }
 
 export interface ReceiptTotals {
@@ -21,6 +22,8 @@ export interface ReceiptTotals {
   total: number;
   amountReceived: number;
   change: number;
+  depositCollected?: number;
+  depositRefunded?: number;
 }
 
 export interface ReceiptPayload {
@@ -29,6 +32,8 @@ export interface ReceiptPayload {
   cashierName?: string;
   ticketNumber?: string;
   createdAt?: string;
+  customerName?: string;
+  customerQrToken?: string;
   items: ReceiptItem[];
   totals: ReceiptTotals;
   footerNote?: string;
@@ -184,6 +189,11 @@ const buildEscPosReceipt = (payload: ReceiptPayload) => {
           formatCurrency(item.subtotal),
         ),
       );
+      if (typeof item.broughtEmptyQuantity === "number" && item.broughtEmptyQuantity > 0) {
+        encoder.line(
+          `  Exchange ${item.broughtEmptyQuantity} / Out ${Math.max(0, item.quantity - item.broughtEmptyQuantity)}`,
+        );
+      }
     });
   }
 
@@ -200,6 +210,20 @@ const buildEscPosReceipt = (payload: ReceiptPayload) => {
   encoder.bold(true).line(formatColumns("TOTAL", formatCurrency(payload.totals.total))).bold(false);
   encoder.line(formatColumns("Received", formatCurrency(payload.totals.amountReceived)));
   encoder.line(formatColumns("Change", formatCurrency(payload.totals.change)));
+  if ((payload.totals.depositCollected ?? 0) > 0) {
+    encoder.line(formatColumns("Deposit", formatCurrency(payload.totals.depositCollected!)));
+  }
+  if ((payload.totals.depositRefunded ?? 0) > 0) {
+    encoder.line(formatColumns("Deposit refund", formatCurrency(payload.totals.depositRefunded!)));
+  }
+  if (payload.customerName) {
+    encoder.line(`Customer: ${payload.customerName}`);
+  }
+  if (payload.customerQrToken) {
+    encoder.align("center").line("Customer return QR");
+    encoder.qrcode(payload.customerQrToken, 1, 5, "m");
+    encoder.align("left");
+  }
 
   encoder.align("center").line(payload.footerNote || "Thank you for shopping!");
   encoder.line("This is not an Official Receipt");

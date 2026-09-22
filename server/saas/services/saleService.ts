@@ -3,6 +3,7 @@ import { changePhpFromCents, paymentCoversTotal, phpToCents } from "../../utils/
 import { processCylinderLinesOnSale, voidCylinderLoansForSale } from "./cylinderService.js";
 
 export interface CartItemInput {
+  cylinderLoanId?: string;
   productId?: string;
   menuItemId?: string;
   variantId?: string;
@@ -13,6 +14,7 @@ export interface CartItemInput {
   subtotal: number;
   /** Exchange: customer brought empty canister — no loan created */
   broughtEmpty?: boolean;
+  broughtEmptyQuantity?: number;
 }
 
 export interface CreateSaleInput {
@@ -30,7 +32,7 @@ export interface CreateSaleInput {
   createdAt?: Date;
   customerName?: string;
   customerPhone?: string;
-  collectDeposits?: boolean;
+  customerId?: string;
 }
 
 function consumptionUnits(recipeQty: number, saleQty: number, wastagePercent: number | null): number {
@@ -61,14 +63,53 @@ async function validateCartForStoreMode(storeId: string, items: CartItemInput[])
 export async function createSale(input: CreateSaleInput) {
   const { storeId, cashierId, cashierName, amountReceived, items } = input;
   const total = input.total;
+  const store = await validateCartForStoreMode(storeId, items);
+  const productIds = [...new Set(items.flatMap((item) => item.productId ? [item.productId] : []))];
+  const cylinderProducts = productIds.length
+    ? await saasPrisma.product.findMany({
+        where: { storeId, id: { in: productIds }, tracksCylinder: true },
+        select: { id: true, depositAmount: true },
+      })
+    : [];
+  if (cylinderProducts.length && !store.enableCylinderTracking) {
+    throw new Error("Canister Monitoring is disabled");
+  }
+  let linkedCustomer: { name: string; phone: string | null } | null = null;
+  if (input.customerId) {
+    linkedCustomer = await saasPrisma.customer.findFirst({
+      where: { id: input.customerId, storeId, archived: false },
+      select: { name: true, phone: true },
+    });
+    if (!linkedCustomer) throw new Error("Customer not found");
+  }
+  const cylinderById = new Map(cylinderProducts.map((p) => [p.id, p]));
+  const outstandingCylinderQuantity = items.reduce((sum, item) => {
+    if (!item.productId || !cylinderById.has(item.productId)) return sum;
+    const emptyQty = Math.min(
+      item.quantity,
+      Math.max(0, Math.floor(item.broughtEmptyQuantity ?? (item.broughtEmpty ? item.quantity : 0))),
+    );
+    return sum + Math.max(0, item.quantity - emptyQty);
+  }, 0);
+  if (outstandingCylinderQuantity > 0 && !input.customerId) {
+    throw new Error("Customer is required when a canister remains with the customer");
+  }
+  const depositAmount = items.reduce((sum, item) => {
+    const product = item.productId ? cylinderById.get(item.productId) : undefined;
+    if (!product || !store.collectCylinderDeposits) return sum;
+    const emptyQty = Math.min(
+      item.quantity,
+      Math.max(0, Math.floor(item.broughtEmptyQuantity ?? (item.broughtEmpty ? item.quantity : 0))),
+    );
+    return sum + Math.max(0, item.quantity - emptyQty) * product.depositAmount;
+  }, 0);
+  const amountDue = total + depositAmount;
   const receivedCents = phpToCents(amountReceived);
-  const totalCents = phpToCents(total);
-  if (!paymentCoversTotal(amountReceived, total)) {
+  const dueCents = phpToCents(amountDue);
+  if (!paymentCoversTotal(amountReceived, amountDue)) {
     throw new Error("Amount received is less than total due");
   }
-  const change = changePhpFromCents(receivedCents, totalCents);
-
-  await validateCartForStoreMode(storeId, items);
+  const change = changePhpFromCents(receivedCents, dueCents);
 
   return saasPrisma.$transaction(async (tx) => {
     const ticketNumber =
@@ -84,6 +125,9 @@ export async function createSale(input: CreateSaleInput) {
         cashierId,
         cashierName,
         total,
+        depositAmount,
+        amountDue,
+        customerId: input.customerId ?? null,
         paymentMethod: input.paymentMethod ?? "cash",
         amountReceived,
         change,
@@ -94,9 +138,11 @@ export async function createSale(input: CreateSaleInput) {
 
     const cylinderLines: Array<{
       productId: string;
+      loanId?: string;
       quantity: number;
       saleItemId?: string;
       broughtEmpty?: boolean;
+      broughtEmptyQuantity?: number;
     }> = [];
 
     for (const item of items) {
@@ -111,22 +157,23 @@ export async function createSale(input: CreateSaleInput) {
           quantity: item.quantity,
           price: item.price,
           subtotal: item.subtotal,
+          broughtEmptyQuantity: Math.max(
+            0,
+            Math.floor(item.broughtEmptyQuantity ?? (item.broughtEmpty ? item.quantity : 0)),
+          ),
         },
       });
 
-      if (item.productId && item.broughtEmpty) {
+      if (item.productId) {
         cylinderLines.push({
           productId: item.productId,
+          loanId: item.cylinderLoanId,
           quantity: item.quantity,
           saleItemId: saleItem.id,
-          broughtEmpty: true,
-        });
-      } else if (item.productId) {
-        cylinderLines.push({
-          productId: item.productId,
-          quantity: item.quantity,
-          saleItemId: saleItem.id,
-          broughtEmpty: false,
+          broughtEmptyQuantity: Math.max(
+            0,
+            Math.floor(item.broughtEmptyQuantity ?? (item.broughtEmpty ? item.quantity : 0)),
+          ),
         });
       }
 
@@ -180,9 +227,10 @@ export async function createSale(input: CreateSaleInput) {
       await processCylinderLinesOnSale(tx, {
         storeId,
         saleId: sale.id,
-        customerName: input.customerName,
-        customerPhone: input.customerPhone,
-        collectDeposits: input.collectDeposits,
+        customerId: input.customerId,
+        customerName: linkedCustomer?.name ?? input.customerName,
+        customerPhone: linkedCustomer?.phone ?? input.customerPhone,
+        collectDeposits: store.collectCylinderDeposits,
         lines: cylinderLines,
       });
     }
@@ -192,6 +240,7 @@ export async function createSale(input: CreateSaleInput) {
       include: {
         items: true,
         cashier: true,
+        customer: true,
       },
     });
   });
@@ -307,7 +356,7 @@ function assertCanVoidSale(
 export async function voidSale(id: string, storeId: string, actor: VoidSaleActor) {
   const sale = await saasPrisma.sale.findFirst({
     where: { id, storeId },
-    include: { items: true },
+    include: { items: true, cylinderLoans: true },
   });
   if (!sale) return null;
   if ((sale as { status?: string }).status === "void") {
@@ -315,6 +364,9 @@ export async function voidSale(id: string, storeId: string, actor: VoidSaleActor
   }
 
   assertCanVoidSale(sale, actor);
+  if (sale.cylinderLoans.some((loan) => loan.returnedQuantity > 0)) {
+    throw new Error("Cannot void a sale after canister returns have been recorded");
+  }
 
   const voidedAt = new Date();
 

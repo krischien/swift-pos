@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { DollarSign, Receipt, Smartphone } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 import { centsToPhp, phpToCents } from "@/lib/phpMoney";
+import type { Customer } from "@/types/pos";
+import { CustomerPicker } from "@/components/customers/CustomerPicker";
 
 export type PaymentMethod = "cash" | "gcash";
 
@@ -20,6 +22,8 @@ export interface CheckoutResult {
   gcashTransactionId?: string;
   customerName?: string;
   customerPhone?: string;
+  customerId?: string;
+  customerQrToken?: string;
 }
 
 interface CheckoutModalProps {
@@ -29,6 +33,7 @@ interface CheckoutModalProps {
   ticketNumber?: string;
   depositAmount?: number;
   requireCustomer?: boolean;
+  showCustomerPicker?: boolean;
   onComplete: (result: CheckoutResult) => void;
 }
 
@@ -39,13 +44,13 @@ export const CheckoutModal = ({
   ticketNumber,
   depositAmount = 0,
   requireCustomer = false,
+  showCustomerPicker = false,
   onComplete,
 }: CheckoutModalProps) => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [amountReceived, setAmountReceived] = useState<string>("");
   const [gcashTransactionId, setGcashTransactionId] = useState<string>("");
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
+  const [customer, setCustomer] = useState<Customer | null>(null);
   const amountReceivedCents = phpToCents(parseFloat(amountReceived || "0"));
   const totalCents = phpToCents(total);
   const changeCents = amountReceivedCents - totalCents;
@@ -57,8 +62,7 @@ export const CheckoutModal = ({
       setPaymentMethod("cash");
       setAmountReceived("");
       setGcashTransactionId("");
-      setCustomerName("");
-      setCustomerPhone("");
+      setCustomer(null);
     }
   }, [open]);
 
@@ -86,8 +90,10 @@ export const CheckoutModal = ({
           : centsToPhp(phpToCents(amt)),
       paymentMethod,
       gcashTransactionId: paymentMethod === "gcash" ? gcashTransactionId.trim() : undefined,
-      customerName: requireCustomer ? customerName.trim() || undefined : undefined,
-      customerPhone: requireCustomer ? customerPhone.trim() || undefined : undefined,
+      customerId: customer?.id,
+      customerName: customer?.name,
+      customerPhone: customer?.phone || undefined,
+      customerQrToken: customer?.qrToken,
     };
     onComplete(result);
     setAmountReceived("");
@@ -95,7 +101,7 @@ export const CheckoutModal = ({
     onClose();
   };
 
-  const customerOk = !requireCustomer || customerName.trim().length > 0;
+  const customerOk = !requireCustomer || Boolean(customer);
   const canComplete =
     customerOk &&
     (paymentMethod === "cash"
@@ -106,7 +112,7 @@ export const CheckoutModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl flex items-center gap-2">
             <Receipt className="w-5 h-5" />
@@ -130,28 +136,8 @@ export const CheckoutModal = ({
             )}
           </div>
 
-          {requireCustomer && (
-            <div className="space-y-3 rounded-lg border p-3">
-              <p className="text-sm font-medium">Canister customer</p>
-              <div className="space-y-2">
-                <Label htmlFor="cylinder-customer-name">Name</Label>
-                <Input
-                  id="cylinder-customer-name"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Customer name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cylinder-customer-phone">Phone (optional)</Label>
-                <Input
-                  id="cylinder-customer-phone"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="09XXXXXXXXX"
-                />
-              </div>
-            </div>
+          {showCustomerPicker && (
+            <CustomerPicker selected={customer} onSelect={setCustomer} required={requireCustomer} />
           )}
 
           <div className="space-y-2">

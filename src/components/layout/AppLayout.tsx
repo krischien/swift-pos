@@ -18,6 +18,7 @@ import {
   FileBarChart,
   Store,
   ClipboardList,
+  RotateCcw,
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -29,12 +30,14 @@ import { TierBadge } from "@/components/TierBadge";
 import { useQuery } from "@tanstack/react-query";
 import { getSubscription } from "@/lib/saasSubscriptionApi";
 import { Building2 } from "lucide-react";
+import { useSettings } from "@/contexts/SettingsContext";
 
 const AppLayout = () => {
   const { user, logout } = useAuth();
   const { stores, activeStoreId } = useStore();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { enableCylinderTracking } = useSettings();
   const activeStore = stores.find((s) => s.id === activeStoreId) || stores[0];
   const isFnb = isSaaS() && activeStore?.businessMode === "fnb";
 
@@ -69,10 +72,13 @@ const AppLayout = () => {
           { to: "/categories", icon: FolderTree, label: "Categories", roles: ["owner"] },
         ]),
     { to: "/sales", icon: TrendingUp, label: "Sales", roles: ["owner", "cashier"] },
+    ...(enableCylinderTracking && !isFnb
+      ? [{ to: "/canisters", icon: RotateCcw, label: "Canisters", roles: ["owner", "admin", "cashier"] }]
+      : []),
     { to: "/reports", icon: FileBarChart, label: "Reports", roles: ["owner", "admin", "super_admin"] },
     { to: "/stores", icon: Store, label: "Stores", roles: ["owner"] },
     { to: "/users", icon: Users, label: "Users", roles: ["owner"] },
-    { to: "/settings", icon: Settings, label: "Settings", roles: ["owner", "super_admin"] },
+    { to: "/settings", icon: Settings, label: "Settings", roles: ["owner", "admin", "super_admin"] },
   ];
 
   const filteredNavItems = navItems.filter((item) =>

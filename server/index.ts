@@ -34,6 +34,8 @@ import {
   getUserById as getUserByIdService,
 } from "./services/userService";
 import { prisma } from "./db";
+import * as customerService from "./services/customerService";
+import * as cylinderService from "./services/cylinderService";
 import cron from "node-cron";
 import { mapPosToInventoryList } from "./report/mapPosToInventoryList";
 import { generateBirInventoryListXlsx } from "./report/birInventoryXlsx";
@@ -284,6 +286,114 @@ app.post("/api/sales", async (req, res) => {
   } catch (error: any) {
     console.error(error);
     res.status(400).json({ message: error.message ?? "Failed to create sale" });
+  }
+});
+
+app.get("/api/customers", async (req, res) => {
+  try {
+    res.json(await customerService.listCustomers(
+      req.query.search as string | undefined,
+      Number(req.query.page || 1),
+      Number(req.query.pageSize || 25),
+    ));
+  } catch (error) {
+    res.status(400).json({ message: (error as Error).message });
+  }
+});
+
+app.get("/api/customers/recent", async (req, res) => {
+  try {
+    const result = await customerService.listCustomers(undefined, 1, Number(req.query.limit || 12));
+    res.json(result.items);
+  } catch (error) {
+    res.status(400).json({ message: (error as Error).message });
+  }
+});
+
+app.get("/api/customers/qr/:token", async (req, res) => {
+  try {
+    const customer = await customerService.getCustomerByQr(req.params.token);
+    if (!customer) return res.status(404).json({ message: "Customer not found" });
+    res.json(customer);
+  } catch (error) {
+    res.status(400).json({ message: (error as Error).message });
+  }
+});
+
+app.get("/api/customers/:id", async (req, res) => {
+  try {
+    const customer = await customerService.getCustomer(req.params.id);
+    if (!customer) return res.status(404).json({ message: "Customer not found" });
+    res.json(customer);
+  } catch (error) {
+    res.status(400).json({ message: (error as Error).message });
+  }
+});
+
+app.post("/api/customers", async (req, res) => {
+  try {
+    res.status(201).json(await customerService.createCustomer(req.body));
+  } catch (error) {
+    res.status(400).json({ message: (error as Error).message });
+  }
+});
+
+app.put("/api/customers/:id", async (req, res) => {
+  try {
+    res.json(await customerService.updateCustomer(req.params.id, req.body));
+  } catch (error) {
+    res.status(400).json({ message: (error as Error).message });
+  }
+});
+
+app.post("/api/customers/:id/archive", async (req, res) => {
+  try {
+    res.json(await customerService.archiveCustomer(req.params.id, req.body?.archived !== false));
+  } catch (error) {
+    res.status(400).json({ message: (error as Error).message });
+  }
+});
+
+app.post("/api/customers/:id/suki", async (req, res) => {
+  try {
+    res.json(await customerService.setSuki(
+      req.params.id,
+      String(req.body?.actorId || ""),
+      req.body?.enabled !== false,
+      req.body?.note,
+    ));
+  } catch (error) {
+    res.status(403).json({ message: (error as Error).message });
+  }
+});
+
+app.get("/api/cylinder-loans", async (req, res) => {
+  try {
+    res.json(await cylinderService.listCylinderLoans(String(req.query.status || "out")));
+  } catch (error) {
+    res.status(400).json({ message: (error as Error).message });
+  }
+});
+
+app.get("/api/cylinder-stats", async (_req, res) => {
+  try {
+    res.json(await cylinderService.getCylinderStats());
+  } catch (error) {
+    res.status(400).json({ message: (error as Error).message });
+  }
+});
+
+app.post("/api/cylinder-loans/:id/return", async (req, res) => {
+  try {
+    res.json(await cylinderService.returnCylinderLoan(req.params.id, {
+      quantity: Number(req.body?.quantity),
+      refundAmount: req.body?.refundAmount == null ? undefined : Number(req.body.refundAmount),
+      note: req.body?.note,
+      actorId: req.body?.actorId,
+      actorName: req.body?.actorName,
+    }));
+  } catch (error) {
+    res.status(400).json({ message: (error as Error).message });
   }
 });
 

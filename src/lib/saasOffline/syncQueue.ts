@@ -17,7 +17,12 @@ export type SyncOp =
   | "deleteVariant"
   | "createUser"
   | "updateUser"
-  | "deleteUser";
+  | "deleteUser"
+  | "createCustomer"
+  | "updateCustomer"
+  | "archiveCustomer"
+  | "setCustomerSuki"
+  | "returnCylinder";
 
 export interface SyncQueueItem {
   id: string;

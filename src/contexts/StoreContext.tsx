@@ -7,6 +7,8 @@ export interface StoreSummary {
   id: string;
   name: string;
   businessMode: BusinessMode;
+  enableCylinderTracking?: boolean;
+  collectCylinderDeposits?: boolean;
 }
 
 const initialStoresLoading = (): boolean => {
@@ -17,10 +19,18 @@ const initialStoresLoading = (): boolean => {
 const DEFAULT_STORE_ID = "default";
 const STORES_STORAGE_KEY = "saas_stores";
 
-const normalizeStore = (s: { id: string; name: string; businessMode?: string }): StoreSummary => ({
+const normalizeStore = (s: {
+  id: string;
+  name: string;
+  businessMode?: string;
+  enableCylinderTracking?: boolean;
+  collectCylinderDeposits?: boolean;
+}): StoreSummary => ({
   id: s.id,
   name: s.name,
   businessMode: s.businessMode === "fnb" ? "fnb" : "retail",
+  enableCylinderTracking: s.enableCylinderTracking,
+  collectCylinderDeposits: s.collectCylinderDeposits,
 });
 
 const getStoredStores = (): StoreSummary[] => {
@@ -28,7 +38,13 @@ const getStoredStores = (): StoreSummary[] => {
   try {
     const raw = window.localStorage.getItem(STORES_STORAGE_KEY);
     if (!raw) return [];
-    const parsed = JSON.parse(raw) as Array<{ id: string; name: string; businessMode?: string }>;
+    const parsed = JSON.parse(raw) as Array<{
+      id: string;
+      name: string;
+      businessMode?: string;
+      enableCylinderTracking?: boolean;
+      collectCylinderDeposits?: boolean;
+    }>;
     return parsed.map(normalizeStore);
   } catch {
     return [];

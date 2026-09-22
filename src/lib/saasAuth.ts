@@ -7,7 +7,13 @@ export interface SaasLoginResponse {
   token: string;
   user: { id: string; name: string; email: string; role: string };
   organization: { id: string; name: string; plan: string; trialEndsAt?: string | null } | null;
-  stores: Array<{ id: string; name: string; businessMode?: string }>;
+  stores: Array<{
+    id: string;
+    name: string;
+    businessMode?: string;
+    enableCylinderTracking?: boolean;
+    collectCylinderDeposits?: boolean;
+  }>;
 }
 
 export interface SaasSignupPayload {
@@ -32,9 +38,14 @@ export async function saasLogin(email: string, password: string): Promise<SaasLo
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Network error";
     const isFailedFetch = /failed to fetch|networkerror|load failed/i.test(msg);
+    const isRelative = url.startsWith("/");
     const hint = isFailedFetch
-      ? " Check: phone can reach this host (Wi‑Fi/data, firewall port 4001 open), and the API server allows CORS for capacitor://localhost (redeploy server with updated SAAS_CORS_ORIGINS if needed)."
-      : " Check server is running and CORS allows capacitor://localhost.";
+      ? isRelative
+        ? " Run `npm run start:saas` (API on 4001 + Vite on 8080). The app uses the Vite /api proxy in dev."
+        : /localhost|127\.0\.0\.1/i.test(url)
+          ? " On a phone/emulator, localhost is the device — use `npm run build:mobile:saas:local` with your PC LAN IP, or `npm run mobile:emulator:tunnel` + rebuild with localhost for USB."
+          : " Check Wi‑Fi, firewall port 4001, and SAAS_CORS_ORIGINS includes your app origin (capacitor://localhost for native builds)."
+      : " Check that the SaaS API is running (npm run dev:saas).";
     throw new Error(`Cannot reach API at ${url}. ${msg}.${hint}`);
   }
   const text = await res.text();
@@ -95,7 +106,13 @@ export function setSaasToken(token: string): void {
   }
 }
 
-export async function fetchStores(): Promise<Array<{ id: string; name: string; businessMode?: string }>> {
+export async function fetchStores(): Promise<Array<{
+  id: string;
+  name: string;
+  businessMode?: string;
+  enableCylinderTracking?: boolean;
+  collectCylinderDeposits?: boolean;
+}>> {
   const token = getSaasToken();
   if (!token) return [];
   try {
@@ -110,7 +127,7 @@ export async function fetchStores(): Promise<Array<{ id: string; name: string; b
       return [];
     }
     if (text.trimStart().toLowerCase().startsWith("<!")) return [];
-    return JSON.parse(text) as Array<{ id: string; name: string; businessMode?: string }>;
+    return JSON.parse(text);
   } catch (e) {
     console.warn("[fetchStores]", e);
     return [];

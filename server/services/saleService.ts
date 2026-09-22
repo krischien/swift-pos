@@ -11,6 +11,11 @@ export interface CreateSaleInput {
   taxRate?: number; // e.g. 0.1 for 10%
   ticketNumber?: string;
   discountPercent?: number;
+  customerId?: string;
+  customerName?: string;
+  customerPhone?: string;
+  cylinderTrackingEnabled?: boolean;
+  collectDeposits?: boolean;
 }
 
 export async function createSale(input: CreateSaleInput) {
@@ -23,10 +28,33 @@ export async function createSale(input: CreateSaleInput) {
   const discountAmount = subtotal * (clampedDiscount / 100);
   const netSubtotal = Math.max(0, subtotal - discountAmount);
   const tax = netSubtotal * taxRate;
+  const trackedProducts = input.cylinderTrackingEnabled
+    ? await prisma.product.findMany({
+        where: { id: { in: cartItems.map((item) => item.productId) }, tracksCylinder: true },
+      })
+    : [];
+  const trackedById = new Map(trackedProducts.map((product) => [product.id, product]));
+  const outstandingQuantity = cartItems.reduce((sum, item) => {
+    if (!trackedById.has(item.productId)) return sum;
+    const exchanged = Math.min(item.quantity, Math.max(0, Math.floor(item.broughtEmptyQuantity ?? (item.broughtEmpty ? item.quantity : 0))));
+    return sum + Math.max(0, item.quantity - exchanged);
+  }, 0);
+  if (outstandingQuantity > 0 && !input.customerId) {
+    throw new Error("Customer is required when a canister remains with the customer");
+  }
+  const depositAmount = input.collectDeposits
+    ? cartItems.reduce((sum, item) => {
+        const product = trackedById.get(item.productId);
+        if (!product) return sum;
+        const exchanged = Math.min(item.quantity, Math.max(0, Math.floor(item.broughtEmptyQuantity ?? (item.broughtEmpty ? item.quantity : 0))));
+        return sum + Math.max(0, item.quantity - exchanged) * product.depositAmount;
+      }, 0)
+    : 0;
   const total = netSubtotal + tax;
+  const amountDue = total + depositAmount;
   const receivedCents = phpToCents(amountReceived);
-  const totalCents = phpToCents(total);
-  if (!paymentCoversTotal(amountReceived, total)) {
+  const totalCents = phpToCents(amountDue);
+  if (!paymentCoversTotal(amountReceived, amountDue)) {
     throw new Error("Amount received is less than total due");
   }
   const change = changePhpFromCents(receivedCents, totalCents);
@@ -46,6 +74,9 @@ export async function createSale(input: CreateSaleInput) {
         cashierId,
         cashierName,
         total,
+        depositAmount,
+        amountDue,
+        customerId: input.customerId ?? null,
         paymentMethod: "cash",
         amountReceived,
         change,
@@ -53,7 +84,11 @@ export async function createSale(input: CreateSaleInput) {
     });
 
     for (const item of cartItems) {
-      await tx.saleItem.create({
+      const broughtEmptyQuantity = Math.min(
+        item.quantity,
+        Math.max(0, Math.floor(item.broughtEmptyQuantity ?? (item.broughtEmpty ? item.quantity : 0))),
+      );
+      const saleItem = await tx.saleItem.create({
         data: {
           saleId: sale.id,
           productId: item.productId,
@@ -63,8 +98,33 @@ export async function createSale(input: CreateSaleInput) {
           quantity: item.quantity,
           price: item.price,
           subtotal: item.subtotal,
+          broughtEmptyQuantity,
         },
       });
+
+      const tracked = trackedById.get(item.productId);
+      if (tracked && broughtEmptyQuantity > 0) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { emptyStock: { increment: broughtEmptyQuantity } },
+        });
+      }
+      const loanQuantity = tracked ? Math.max(0, item.quantity - broughtEmptyQuantity) : 0;
+      if (tracked && loanQuantity > 0) {
+        await tx.cylinderLoan.create({
+          data: {
+            storeId: "solo",
+            saleId: sale.id,
+            saleItemId: saleItem.id,
+            productId: item.productId,
+            customerId: input.customerId,
+            customerName: input.customerName?.trim() || null,
+            customerPhone: input.customerPhone?.trim() || null,
+            quantity: loanQuantity,
+            depositAmount: input.collectDeposits ? tracked.depositAmount * loanQuantity : 0,
+          },
+        });
+      }
 
       if (item.variantId) {
         await tx.variant.update({
@@ -92,6 +152,7 @@ export async function createSale(input: CreateSaleInput) {
       include: {
         items: true,
         cashier: true,
+        customer: true,
       },
     });
   });

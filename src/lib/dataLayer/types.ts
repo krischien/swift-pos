@@ -58,9 +58,25 @@ export interface DataService {
   getCylinderStats?: (storeId?: string) => Promise<import("@/types/pos").CylinderStats>;
   returnCylinderLoan?: (
     loanId: string,
-    options?: { refundDeposit?: boolean },
+    options: { quantity: number; refundAmount?: number; note?: string; eventId?: string },
     storeId?: string,
   ) => Promise<import("@/types/pos").CylinderLoan>;
+
+  getCustomers?: (
+    params?: { search?: string; page?: number; pageSize?: number; archived?: boolean },
+    storeId?: string,
+  ) => Promise<{ items: import("@/types/pos").Customer[]; total: number; page: number; pageSize: number }>;
+  getRecentCustomers?: (limit?: number, storeId?: string) => Promise<import("@/types/pos").Customer[]>;
+  getCustomerByQr?: (token: string, storeId?: string) => Promise<import("@/types/pos").Customer>;
+  getCustomer?: (id: string, storeId?: string) => Promise<import("@/types/pos").CustomerDetail>;
+  createCustomer?: (payload: CustomerPayload, storeId?: string) => Promise<import("@/types/pos").Customer>;
+  updateCustomer?: (id: string, payload: CustomerPayload, storeId?: string) => Promise<import("@/types/pos").Customer>;
+  archiveCustomer?: (id: string, archived?: boolean, storeId?: string) => Promise<import("@/types/pos").Customer>;
+  setCustomerSuki?: (
+    id: string,
+    payload: { enabled: boolean; note?: string; actorId?: string },
+    storeId?: string,
+  ) => Promise<import("@/types/pos").Customer>;
 
   // F&B (SaaS fnb stores only)
   getIngredients: (storeId?: string) => Promise<Ingredient[]>;
@@ -196,9 +212,13 @@ export interface CreateSalePayload {
     price: number;
     subtotal: number;
     broughtEmpty?: boolean;
+    broughtEmptyQuantity?: number;
+    cylinderLoanId?: string;
   }>;
   customerName?: string;
   customerPhone?: string;
+  customerId?: string;
+  cylinderTrackingEnabled?: boolean;
   collectDeposits?: boolean;
   items?: Array<{
     productId?: string;
@@ -209,7 +229,18 @@ export interface CreateSalePayload {
     quantity: number;
     price: number;
     subtotal: number;
+    broughtEmptyQuantity?: number;
+    cylinderLoanId?: string;
   }>;
+}
+
+export interface CustomerPayload {
+  id?: string;
+  qrToken?: string;
+  name: string;
+  phone?: string | null;
+  nickname?: string | null;
+  address?: string | null;
 }
 
 export interface CreateUserPayload {

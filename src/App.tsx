@@ -36,6 +36,7 @@ import PaymentMonitoring from "./pages/admin/PaymentMonitoring";
 import Pricing from "./pages/Pricing";
 import PaymentInstructions from "./pages/PaymentInstructions";
 import HQDashboard from "./pages/HQDashboard";
+import CanisterMonitoring from "./pages/CanisterMonitoring";
 import { SubscriptionGuard } from "./components/SubscriptionGuard";
 
 const queryClient = new QueryClient();
@@ -169,6 +170,14 @@ const App = () => {
                     }
                   />
                   <Route
+                    path="/canisters"
+                    element={
+                      <ProtectedRoute allowedRoles={["owner", "admin", "cashier"]}>
+                        <CanisterMonitoring />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
                     path="/reports"
                     element={
                       <ProtectedRoute allowedRoles={["owner", "admin", "super_admin"]}>
@@ -179,7 +188,7 @@ const App = () => {
                   <Route
                     path="/settings"
                     element={
-                      <ProtectedRoute allowedRoles={["owner", "super_admin"]}>
+                      <ProtectedRoute allowedRoles={["owner", "admin", "super_admin"]}>
                         <Settings />
                       </ProtectedRoute>
                     }

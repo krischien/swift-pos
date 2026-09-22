@@ -15,6 +15,7 @@ import * as categoryService from "./services/categoryService.js";
 import * as productService from "./services/productService.js";
 import * as saleService from "./services/saleService.js";
 import * as cylinderService from "./services/cylinderService.js";
+import * as customerService from "./services/customerService.js";
 import { changePhpFromCents, paymentCoversTotal, phpToCents } from "../utils/money.js";
 import * as variantService from "./services/variantService.js";
 import * as userService from "./services/userService.js";
@@ -71,17 +72,18 @@ const mobileWebViewOrigins = [
 const corsAllowedSet = new Set([...corsOriginsExplicit, ...mobileWebViewOrigins]);
 
 function corsOriginOption(): boolean | ((origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => void) {
+  const production = isProductionRuntime();
   const permissiveDevCors =
-    !isProductionRuntime && (allowAllCors || corsOriginsExplicit.length === 0);
+    !production && (allowAllCors || corsOriginsExplicit.length === 0);
   if (permissiveDevCors) {
     return true;
   }
-  if (isProductionRuntime && allowAllCors) {
+  if (production && allowAllCors) {
     console.warn(
       "[CORS] SAAS_CORS_ORIGINS=* is ignored in production. Set explicit origins (e.g. your Vercel URL).",
     );
   }
-  if (isProductionRuntime && corsOriginsExplicit.length === 0) {
+  if (production && corsOriginsExplicit.length === 0) {
     console.warn(
       "[CORS] SAAS_CORS_ORIGINS is empty in production. Only Capacitor/WebView origins are allowed besides same-origin.",
     );
@@ -97,6 +99,14 @@ function corsOriginOption(): boolean | ((origin: string | undefined, cb: (err: E
     }
     // Some Capacitor builds vary the scheme/host slightly
     if (/^capacitor:\/\//i.test(origin) || /^ionic:\/\//i.test(origin)) {
+      callback(null, true);
+      return;
+    }
+    // Local Vite / preview ports (http://localhost:8080, 127.0.0.1:5173, etc.)
+    if (
+      !production &&
+      /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i.test(origin)
+    ) {
       callback(null, true);
       return;
     }
@@ -432,14 +442,35 @@ ownerRouter.patch("/api/store", async (req: AuthRequest, res) => {
         message: "Store type (retail vs F&B) cannot be changed. Create a new store instead.",
       });
     }
-    const { name, address } = req.body as { name?: string; address?: string };
+    const { name, address, enableCylinderTracking, collectCylinderDeposits } = req.body as {
+      name?: string;
+      address?: string;
+      enableCylinderTracking?: boolean;
+      collectCylinderDeposits?: boolean;
+    };
+    if (enableCylinderTracking !== undefined && typeof enableCylinderTracking !== "boolean") {
+      return res.status(400).json({ message: "enableCylinderTracking must be boolean" });
+    }
+    if (collectCylinderDeposits !== undefined && typeof collectCylinderDeposits !== "boolean") {
+      return res.status(400).json({ message: "collectCylinderDeposits must be boolean" });
+    }
     const store = await saasPrisma.store.update({
       where: { id: storeId },
       data: {
         ...(name !== undefined && { name: requireTrimString(name, "Store name") }),
         ...(address !== undefined && { address: optionalTrimString(address, 500) ?? null }),
+        ...(enableCylinderTracking !== undefined && { enableCylinderTracking }),
+        ...(collectCylinderDeposits !== undefined && { collectCylinderDeposits }),
       },
-      select: { id: true, name: true, address: true, receiptLogoUrl: true, businessMode: true },
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        receiptLogoUrl: true,
+        businessMode: true,
+        enableCylinderTracking: true,
+        collectCylinderDeposits: true,
+      },
     });
     res.json(store);
   } catch (error: unknown) {
@@ -746,6 +777,9 @@ ownerRouter.post("/api/products", async (req: AuthRequest, res) => {
     if (body.name != null) {
       body.name = requireTrimString(body.name, "Product name");
     }
+    if (body.tracksCylinder || body.cylinderSize != null || Number(body.depositAmount || 0) > 0) {
+      await customerService.requireCylinderTracking(storeId);
+    }
     const product = await productService.createProduct(storeId, body as Parameters<typeof productService.createProduct>[1]);
     res.status(201).json(product);
   } catch (error: unknown) {
@@ -761,6 +795,14 @@ ownerRouter.put("/api/products/:id", async (req: AuthRequest, res) => {
     const body = { ...req.body } as Record<string, unknown>;
     if (body.name != null) {
       body.name = requireTrimString(body.name, "Product name");
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(body, "tracksCylinder") ||
+      Object.prototype.hasOwnProperty.call(body, "cylinderSize") ||
+      Object.prototype.hasOwnProperty.call(body, "depositAmount") ||
+      Object.prototype.hasOwnProperty.call(body, "emptyStock")
+    ) {
+      await customerService.requireCylinderTracking(storeId);
     }
     const product = await productService.updateProduct(req.params.id, storeId, body);
     res.json(product);
@@ -851,7 +893,15 @@ protectedRouter.get("/api/store", async (req: AuthRequest, res) => {
     if (!storeId) return res.status(400).json({ message: "storeId is required" });
     const store = await saasPrisma.store.findFirst({
       where: { id: storeId },
-      select: { id: true, name: true, address: true, receiptLogoUrl: true, businessMode: true },
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        receiptLogoUrl: true,
+        businessMode: true,
+        enableCylinderTracking: true,
+        collectCylinderDeposits: true,
+      },
     });
     if (!store) return res.status(404).json({ message: "Store not found" });
     res.json(store);
@@ -1043,6 +1093,7 @@ protectedRouter.post("/api/sales/:id/void", async (req: AuthRequest, res) => {
   } catch (error: unknown) {
     const msg = (error as Error).message;
     if (msg?.includes("already voided")) return res.status(400).json({ message: msg });
+    if (msg?.includes("after canister returns")) return res.status(400).json({ message: msg });
     if (msg?.startsWith("Forbidden:")) return res.status(403).json({ message: msg.replace(/^Forbidden:\s*/, "") });
     console.error(error);
     res.status(500).json({ message: "Failed to void sale" });
@@ -1065,6 +1116,8 @@ protectedRouter.post("/api/sales", async (req: AuthRequest, res) => {
       price: number;
       subtotal: number;
       broughtEmpty?: boolean;
+      broughtEmptyQuantity?: number;
+      cylinderLoanId?: string;
     }>;
     if (!cartItems?.length) {
       return res.status(400).json({ message: "cartItems or items is required" });
@@ -1093,6 +1146,8 @@ protectedRouter.post("/api/sales", async (req: AuthRequest, res) => {
       price: item.price,
       subtotal: item.subtotal,
       broughtEmpty: item.broughtEmpty,
+      broughtEmptyQuantity: item.broughtEmptyQuantity,
+      cylinderLoanId: item.cylinderLoanId,
     }));
     const rawPaymentMethod = (body.paymentMethod as string)?.toLowerCase();
     const paymentMethod = rawPaymentMethod === "gcash" ? "gcash" : "cash";
@@ -1109,7 +1164,7 @@ protectedRouter.post("/api/sales", async (req: AuthRequest, res) => {
       gcashTransactionId: body.gcashTransactionId as string | undefined,
       customerName: body.customerName as string | undefined,
       customerPhone: body.customerPhone as string | undefined,
-      collectDeposits: body.collectDeposits as boolean | undefined,
+      customerId: body.customerId as string | undefined,
     });
     res.status(201).json(sale);
   } catch (error: unknown) {
@@ -1123,10 +1178,10 @@ protectedRouter.get("/api/cylinder-loans", async (req: AuthRequest, res) => {
     const storeId = (req as any).storeId;
     if (!storeId) return res.status(400).json({ message: "storeId is required" });
     const status = (req.query.status as string) || "out";
-    const valid = ["out", "returned", "written_off", "all"];
+    const valid = ["out", "partial", "returned", "written_off", "all"];
     const loans = await cylinderService.listCylinderLoans(
       storeId,
-      valid.includes(status) ? (status as "out" | "returned" | "written_off" | "all") : "out",
+      valid.includes(status) ? (status as "out" | "partial" | "returned" | "written_off" | "all") : "out",
     );
     res.json(loans);
   } catch (error: unknown) {
@@ -1151,9 +1206,18 @@ protectedRouter.post("/api/cylinder-loans/:id/return", async (req: AuthRequest, 
   try {
     const storeId = (req as any).storeId;
     if (!storeId) return res.status(400).json({ message: "storeId is required" });
-    const body = req.body as { refundDeposit?: boolean };
+    const body = req.body as { quantity?: number; refundAmount?: number; note?: string; eventId?: string };
+    const auth = req.auth;
+    const actor = auth?.userId
+      ? await saasPrisma.user.findUnique({ where: { id: auth.userId }, select: { name: true } })
+      : null;
     const loan = await cylinderService.returnCylinderLoan(storeId, req.params.id, {
-      refundDeposit: Boolean(body?.refundDeposit),
+      quantity: Number(body.quantity),
+      refundAmount: body.refundAmount == null ? undefined : Number(body.refundAmount),
+      note: body.note,
+      actorId: auth?.userId,
+      actorName: actor?.name,
+      eventId: body.eventId,
     });
     res.json(loan);
   } catch (error: unknown) {
@@ -1161,6 +1225,103 @@ protectedRouter.post("/api/cylinder-loans/:id/return", async (req: AuthRequest, 
     if (msg?.includes("not found")) return res.status(404).json({ message: msg });
     console.error(error);
     res.status(500).json({ message: "Failed to return cylinder" });
+  }
+});
+
+protectedRouter.get("/api/customers", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    const result = await customerService.listCustomers(storeId, {
+      search: req.query.search as string | undefined,
+      page: Number(req.query.page || 1),
+      pageSize: Number(req.query.pageSize || 25),
+      archived: req.query.archived === "true",
+    });
+    res.json(result);
+  } catch (error) {
+    const message = (error as Error).message;
+    res.status(message.includes("disabled") ? 403 : 400).json({ message });
+  }
+});
+
+protectedRouter.get("/api/customers/recent", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    res.json(await customerService.recentCustomers(storeId, Number(req.query.limit || 12)));
+  } catch (error) {
+    const message = (error as Error).message;
+    res.status(message.includes("disabled") ? 403 : 400).json({ message });
+  }
+});
+
+protectedRouter.get("/api/customers/qr/:token", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    const customer = await customerService.getCustomerByQr(storeId, req.params.token);
+    if (!customer) return res.status(404).json({ message: "Customer not found" });
+    res.json(customer);
+  } catch (error) {
+    const message = (error as Error).message;
+    res.status(message.includes("disabled") ? 403 : 400).json({ message });
+  }
+});
+
+protectedRouter.get("/api/customers/:id", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    const customer = await customerService.getCustomerDetail(storeId, req.params.id);
+    if (!customer) return res.status(404).json({ message: "Customer not found" });
+    res.json(customer);
+  } catch (error) {
+    const message = (error as Error).message;
+    res.status(message.includes("disabled") ? 403 : 400).json({ message });
+  }
+});
+
+protectedRouter.post("/api/customers", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    res.status(201).json(await customerService.createCustomer(storeId, req.body));
+  } catch (error) {
+    const message = (error as Error).message;
+    res.status(message.includes("disabled") ? 403 : 400).json({ message });
+  }
+});
+
+protectedRouter.put("/api/customers/:id", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    res.json(await customerService.updateCustomer(storeId, req.params.id, req.body));
+  } catch (error) {
+    const message = (error as Error).message;
+    res.status(message.includes("disabled") ? 403 : message.includes("not found") ? 404 : 400).json({ message });
+  }
+});
+
+protectedRouter.post("/api/customers/:id/archive", async (req: AuthRequest, res) => {
+  try {
+    const storeId = (req as any).storeId;
+    res.json(await customerService.archiveCustomer(storeId, req.params.id, req.body?.archived !== false));
+  } catch (error) {
+    const message = (error as Error).message;
+    res.status(message.includes("disabled") ? 403 : message.includes("not found") ? 404 : 400).json({ message });
+  }
+});
+
+protectedRouter.post("/api/customers/:id/suki", async (req: AuthRequest, res) => {
+  try {
+    if (req.auth?.role !== "owner") return res.status(403).json({ message: "Owner access required" });
+    const storeId = (req as any).storeId;
+    res.json(await customerService.setSuki(
+      storeId,
+      req.params.id,
+      req.auth.userId,
+      req.body?.enabled !== false,
+      req.body?.note,
+    ));
+  } catch (error) {
+    const message = (error as Error).message;
+    res.status(message.includes("disabled") ? 403 : message.includes("not found") ? 404 : 400).json({ message });
   }
 });
 
@@ -1277,7 +1438,7 @@ orgRouter.get("/api/stores", async (req: AuthRequest, res) => {
       if (demoOrg) {
         const stores = await saasPrisma.store.findMany({
           where: { organizationId: demoOrg.id },
-          select: { id: true, name: true, businessMode: true },
+          select: { id: true, name: true, businessMode: true, enableCylinderTracking: true, collectCylinderDeposits: true },
           orderBy: { createdAt: "asc" },
         });
         return res.json(stores);
@@ -1289,7 +1450,7 @@ orgRouter.get("/api/stores", async (req: AuthRequest, res) => {
     if (role === "owner" && orgId) {
       const stores = await saasPrisma.store.findMany({
         where: { organizationId: orgId },
-        select: { id: true, name: true, businessMode: true },
+        select: { id: true, name: true, businessMode: true, enableCylinderTracking: true, collectCylinderDeposits: true },
         orderBy: { createdAt: "asc" },
       });
       return res.json(stores);
@@ -1299,7 +1460,7 @@ orgRouter.get("/api/stores", async (req: AuthRequest, res) => {
     if (req.auth?.userId && orgId) {
       const rows = await saasPrisma.userStore.findMany({
         where: { userId: req.auth.userId },
-        include: { store: { select: { id: true, name: true, businessMode: true } } },
+        include: { store: { select: { id: true, name: true, businessMode: true, enableCylinderTracking: true, collectCylinderDeposits: true } } },
         orderBy: { storeId: "asc" },
       });
       return res.json(
@@ -1307,6 +1468,8 @@ orgRouter.get("/api/stores", async (req: AuthRequest, res) => {
           id: r.store.id,
           name: r.store.name,
           businessMode: r.store.businessMode,
+          enableCylinderTracking: r.store.enableCylinderTracking,
+          collectCylinderDeposits: r.store.collectCylinderDeposits,
         })),
       );
     }
@@ -1316,7 +1479,7 @@ orgRouter.get("/api/stores", async (req: AuthRequest, res) => {
     }
     const stores = await saasPrisma.store.findMany({
       where: { id: { in: storeIds } },
-      select: { id: true, name: true, businessMode: true },
+      select: { id: true, name: true, businessMode: true, enableCylinderTracking: true, collectCylinderDeposits: true },
     });
     res.json(stores);
   } catch (error: unknown) {

@@ -104,6 +104,7 @@ export const initDatabase = async (): Promise<any> => {
         try {
           await dbQuery(db, "SELECT COUNT(*) FROM User LIMIT 1");
           await ensureUserPasswordColumn(db);
+          await ensureCanisterCustomerSchema(db);
           console.log("Database already initialized");
           return db;
         } catch {
@@ -121,6 +122,7 @@ export const initDatabase = async (): Promise<any> => {
     await createTables(db);
     await ensureUserPasswordColumn(db);
     await ensureProductSkuAndMarginColumns(db);
+    await ensureCanisterCustomerSchema(db);
     await seedDatabase(db);
     console.log("Database initialized successfully");
   } catch (error) {
@@ -199,6 +201,10 @@ const createTables = async (db: any) => {
       change REAL NOT NULL,
       createdAt TEXT NOT NULL,
       discountPercent REAL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'completed',
+      customerId TEXT,
+      depositAmount REAL NOT NULL DEFAULT 0,
+      amountDue REAL NOT NULL DEFAULT 0,
       FOREIGN KEY (cashierId) REFERENCES User(id)
     )
   `);
@@ -215,11 +221,64 @@ const createTables = async (db: any) => {
       quantity INTEGER NOT NULL,
       price REAL NOT NULL,
       subtotal REAL NOT NULL,
+      broughtEmptyQuantity INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY (saleId) REFERENCES Sale(id),
       FOREIGN KEY (productId) REFERENCES Product(id),
       FOREIGN KEY (variantId) REFERENCES Variant(id)
     )
   `);
+};
+
+const addColumnIfMissing = async (db: any, table: string, column: string, definition: string) => {
+  try {
+    await dbQuery(db, `SELECT ${column} FROM ${table} LIMIT 1`);
+  } catch {
+    await dbExecute(db, `ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+};
+
+const ensureCanisterCustomerSchema = async (db: any) => {
+  await addColumnIfMissing(db, "Product", "tracksCylinder", "INTEGER NOT NULL DEFAULT 0");
+  await addColumnIfMissing(db, "Product", "cylinderSize", "TEXT");
+  await addColumnIfMissing(db, "Product", "depositAmount", "REAL NOT NULL DEFAULT 0");
+  await addColumnIfMissing(db, "Product", "emptyStock", "INTEGER NOT NULL DEFAULT 0");
+  await addColumnIfMissing(db, "Sale", "customerId", "TEXT");
+  await addColumnIfMissing(db, "Sale", "depositAmount", "REAL NOT NULL DEFAULT 0");
+  await addColumnIfMissing(db, "Sale", "amountDue", "REAL NOT NULL DEFAULT 0");
+  await addColumnIfMissing(db, "Sale", "status", "TEXT NOT NULL DEFAULT 'completed'");
+  await addColumnIfMissing(db, "SaleItem", "broughtEmptyQuantity", "INTEGER NOT NULL DEFAULT 0");
+
+  await dbExecute(db, `CREATE TABLE IF NOT EXISTS StoreSettings (
+    storeId TEXT PRIMARY KEY,
+    enableCylinderTracking INTEGER NOT NULL DEFAULT 0,
+    collectCylinderDeposits INTEGER NOT NULL DEFAULT 1
+  )`);
+  await dbExecute(db, `INSERT OR IGNORE INTO StoreSettings
+    (storeId, enableCylinderTracking, collectCylinderDeposits) VALUES ('solo', 0, 1)`);
+  await dbExecute(db, `CREATE TABLE IF NOT EXISTS Customer (
+    id TEXT PRIMARY KEY, storeId TEXT NOT NULL DEFAULT 'solo', name TEXT NOT NULL,
+    normalizedName TEXT NOT NULL, phone TEXT, normalizedPhone TEXT, nickname TEXT,
+    address TEXT, qrToken TEXT NOT NULL UNIQUE, isSuki INTEGER NOT NULL DEFAULT 0,
+    sukiAssignedAt TEXT, sukiAssignedById TEXT, sukiNote TEXT,
+    archived INTEGER NOT NULL DEFAULT 0, createdAt TEXT NOT NULL, updatedAt TEXT NOT NULL
+  )`);
+  await dbExecute(db, "CREATE INDEX IF NOT EXISTS Customer_store_name ON Customer(storeId, normalizedName)");
+  await dbExecute(db, `CREATE TABLE IF NOT EXISTS CylinderLoan (
+    id TEXT PRIMARY KEY, storeId TEXT NOT NULL DEFAULT 'solo', saleId TEXT NOT NULL,
+    saleItemId TEXT, productId TEXT NOT NULL, customerId TEXT, quantity INTEGER NOT NULL,
+    returnedQuantity INTEGER NOT NULL DEFAULT 0, customerName TEXT, customerPhone TEXT,
+    depositAmount REAL NOT NULL DEFAULT 0, depositRefunded INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'out', outAt TEXT NOT NULL, returnedAt TEXT
+  )`);
+  await dbExecute(db, `CREATE TABLE IF NOT EXISTS CylinderReturn (
+    id TEXT PRIMARY KEY, loanId TEXT NOT NULL, storeId TEXT NOT NULL DEFAULT 'solo',
+    quantity INTEGER NOT NULL, refundAmount REAL NOT NULL DEFAULT 0, actorId TEXT,
+    actorName TEXT, note TEXT, returnedAt TEXT NOT NULL
+  )`);
+  await dbExecute(db, "CREATE INDEX IF NOT EXISTS CylinderLoan_store_status ON CylinderLoan(storeId, status)");
+  await dbExecute(db, "CREATE INDEX IF NOT EXISTS CylinderReturn_loan_date ON CylinderReturn(loanId, returnedAt)");
+  await dbExecute(db, "UPDATE Sale SET amountDue = total + depositAmount WHERE amountDue = 0");
+  await dbExecute(db, "UPDATE CylinderLoan SET returnedQuantity=quantity WHERE status='returned' AND returnedQuantity<>quantity");
 };
 
 const ensureUserPasswordColumn = async (db: any) => {

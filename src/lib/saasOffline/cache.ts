@@ -1,8 +1,17 @@
 import { openDB, DBSchema, IDBPDatabase } from "idb";
-import type { Category, Product, User, Sale } from "@/types/pos";
+import type {
+  Category,
+  Product,
+  User,
+  Sale,
+  Customer,
+  CustomerDetail,
+  CylinderLoan,
+  CylinderStats,
+} from "@/types/pos";
 
 const DB_NAME = "swift_pos_saas_cache";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 interface CacheDBSchema extends DBSchema {
   categories: {
@@ -20,6 +29,22 @@ interface CacheDBSchema extends DBSchema {
   sales: {
     key: string;
     value: { storeId: string; data: Sale[]; updatedAt: number };
+  };
+  customers: {
+    key: string;
+    value: { storeId: string; data: Customer[]; updatedAt: number };
+  };
+  customerDetails: {
+    key: string;
+    value: { key: string; storeId: string; data: CustomerDetail; updatedAt: number };
+  };
+  cylinderLoans: {
+    key: string;
+    value: { storeId: string; data: CylinderLoan[]; updatedAt: number };
+  };
+  cylinderStats: {
+    key: string;
+    value: { storeId: string; data: CylinderStats; updatedAt: number };
   };
 }
 
@@ -40,6 +65,18 @@ function getDB() {
         }
         if (!db.objectStoreNames.contains("sales")) {
           db.createObjectStore("sales", { keyPath: "storeId" });
+        }
+        if (!db.objectStoreNames.contains("customers")) {
+          db.createObjectStore("customers", { keyPath: "storeId" });
+        }
+        if (!db.objectStoreNames.contains("customerDetails")) {
+          db.createObjectStore("customerDetails", { keyPath: "key" });
+        }
+        if (!db.objectStoreNames.contains("cylinderLoans")) {
+          db.createObjectStore("cylinderLoans", { keyPath: "storeId" });
+        }
+        if (!db.objectStoreNames.contains("cylinderStats")) {
+          db.createObjectStore("cylinderStats", { keyPath: "storeId" });
         }
       },
     });
@@ -97,6 +134,51 @@ export const cache = {
     await this.setSales(storeId, [...existing, sale]);
   },
 
+  async getCustomers(storeId: string): Promise<Customer[] | null> {
+    const row = await (await getDB()).get("customers", storeId);
+    return row?.data ?? null;
+  },
+  async setCustomers(storeId: string, data: Customer[]): Promise<void> {
+    await (await getDB()).put("customers", { storeId, data, updatedAt: Date.now() });
+  },
+  async upsertCustomer(storeId: string, customer: Customer): Promise<void> {
+    const rows = (await this.getCustomers(storeId)) ?? [];
+    await this.setCustomers(storeId, [
+      customer,
+      ...rows.filter((row) => row.id !== customer.id),
+    ]);
+  },
+  async getCustomerDetail(storeId: string, id: string): Promise<CustomerDetail | null> {
+    const row = await (await getDB()).get("customerDetails", `${storeId}:${id}`);
+    return row?.data ?? null;
+  },
+  async setCustomerDetail(storeId: string, data: CustomerDetail): Promise<void> {
+    await (await getDB()).put("customerDetails", {
+      key: `${storeId}:${data.id}`,
+      storeId,
+      data,
+      updatedAt: Date.now(),
+    });
+    await this.upsertCustomer(storeId, data);
+  },
+  async removeCustomerDetail(storeId: string, id: string): Promise<void> {
+    await (await getDB()).delete("customerDetails", `${storeId}:${id}`);
+  },
+  async getCylinderLoans(storeId: string): Promise<CylinderLoan[] | null> {
+    const row = await (await getDB()).get("cylinderLoans", storeId);
+    return row?.data ?? null;
+  },
+  async setCylinderLoans(storeId: string, data: CylinderLoan[]): Promise<void> {
+    await (await getDB()).put("cylinderLoans", { storeId, data, updatedAt: Date.now() });
+  },
+  async getCylinderStats(storeId: string): Promise<CylinderStats | null> {
+    const row = await (await getDB()).get("cylinderStats", storeId);
+    return row?.data ?? null;
+  },
+  async setCylinderStats(storeId: string, data: CylinderStats): Promise<void> {
+    await (await getDB()).put("cylinderStats", { storeId, data, updatedAt: Date.now() });
+  },
+
   async decrementProductStock(
     storeId: string,
     productId: string,
@@ -129,7 +211,16 @@ export const cache = {
   async clear(): Promise<void> {
     const db = await getDB();
     const tx = db.transaction(
-      ["categories", "products", "users", "sales"],
+      [
+        "categories",
+        "products",
+        "users",
+        "sales",
+        "customers",
+        "customerDetails",
+        "cylinderLoans",
+        "cylinderStats",
+      ],
       "readwrite"
     );
     await Promise.all([
@@ -137,6 +228,10 @@ export const cache = {
       tx.objectStore("products").clear(),
       tx.objectStore("users").clear(),
       tx.objectStore("sales").clear(),
+      tx.objectStore("customers").clear(),
+      tx.objectStore("customerDetails").clear(),
+      tx.objectStore("cylinderLoans").clear(),
+      tx.objectStore("cylinderStats").clear(),
       tx.done,
     ]);
   },

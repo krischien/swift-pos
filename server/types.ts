@@ -9,6 +9,8 @@ export interface CartItem {
   price: number;
   quantity: number;
   subtotal: number;
+  broughtEmpty?: boolean;
+  broughtEmptyQuantity?: number;
 }
 
 

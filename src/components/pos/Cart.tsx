@@ -1,7 +1,6 @@
 import { CartItem, Product } from "@/types/pos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Minus, Plus, X, ShoppingCart } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -24,7 +23,7 @@ interface CartProps {
   enableCylinderTracking?: boolean;
   collectCylinderDeposits?: boolean;
   products?: Product[];
-  onToggleBroughtEmpty?: (itemId: string, broughtEmpty: boolean) => void;
+  onBroughtEmptyQuantityChange?: (itemId: string, quantity: number) => void;
   /** Fills parent column: scroll area grows between header and totals (desktop sidebar). */
   variant?: "sheet" | "sidebar";
 }
@@ -43,7 +42,7 @@ export const Cart = ({
   enableCylinderTracking = false,
   collectCylinderDeposits = true,
   products = [],
-  onToggleBroughtEmpty,
+  onBroughtEmptyQuantityChange,
   variant = "sheet",
 }: CartProps) => {
   const isSidebar = variant === "sidebar";
@@ -64,7 +63,7 @@ export const Cart = ({
       {items.map((item) => {
         const product = item.productId ? products.find((p) => p.id === item.productId) : undefined;
         const showExchange =
-          enableCylinderTracking && product?.tracksCylinder && onToggleBroughtEmpty;
+          enableCylinderTracking && product?.tracksCylinder && onBroughtEmptyQuantityChange;
         return (
         <div key={item.id} className="rounded-lg border bg-card p-3">
           <div className="mb-2 flex items-start justify-between">
@@ -127,15 +126,25 @@ export const Cart = ({
             </div>
           </div>
           {showExchange && (
-            <div className="mt-2 flex items-center gap-2">
-              <Checkbox
-                id={`brought-empty-${item.id}`}
-                checked={Boolean(item.broughtEmpty)}
-                onCheckedChange={(checked) => onToggleBroughtEmpty(item.id, checked === true)}
-              />
-              <Label htmlFor={`brought-empty-${item.id}`} className="text-xs font-normal cursor-pointer">
-                Customer brought empty (exchange)
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-md bg-muted/50 p-2">
+              <Label htmlFor={`brought-empty-${item.id}`} className="text-xs font-normal">
+                Empty canisters brought
               </Label>
+              <Input
+                id={`brought-empty-${item.id}`}
+                type="number"
+                min={0}
+                max={Math.floor(item.quantity)}
+                step={1}
+                value={item.broughtEmptyQuantity ?? 0}
+                onChange={(event) =>
+                  onBroughtEmptyQuantityChange(
+                    item.id,
+                    Math.min(Math.floor(item.quantity), Math.max(0, Math.floor(Number(event.target.value) || 0))),
+                  )
+                }
+                className="h-8 w-20 text-center"
+              />
             </div>
           )}
         </div>

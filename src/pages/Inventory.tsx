@@ -19,8 +19,7 @@ import { getSubscription } from "@/lib/saasSubscriptionApi";
 import { api } from "@/lib/api";
 import { useDataLayer } from "@/contexts/DataLayerContext";
 import { useStore } from "@/contexts/StoreContext";
-import { Category, Product, Variant, CylinderLoan } from "@/types/pos";
-import { formatCurrency } from "@/lib/currency";
+import { Category, Product, Variant } from "@/types/pos";
 import { useSettings } from "@/contexts/SettingsContext";
 import {
   Dialog,
@@ -75,8 +74,8 @@ const Inventory = () => {
   useEffect(() => {
     if (isFnb) navigate("/ingredients", { replace: true });
   }, [isFnb, navigate]);
-  const { storeName, storeAddress, enableCylinderTracking, collectCylinderDeposits } = useSettings();
-  const cylinderTrackingOn = isSaaS() && enableCylinderTracking;
+  const { storeName, storeAddress, enableCylinderTracking } = useSettings();
+  const cylinderTrackingOn = enableCylinderTracking;
   const [search, setSearch] = useState("");
   const [stockFilter, setStockFilter] = useState<"all" | "lowStock" | "outOfStock">("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -101,9 +100,7 @@ const Inventory = () => {
   const [formTracksCylinder, setFormTracksCylinder] = useState(false);
   const [formCylinderSize, setFormCylinderSize] = useState("");
   const [formDepositAmount, setFormDepositAmount] = useState("");
-  const [cylinderLoans, setCylinderLoans] = useState<CylinderLoan[]>([]);
-  const [loadingLoans, setLoadingLoans] = useState(false);
-  const [returningLoanId, setReturningLoanId] = useState<string | null>(null);
+  const [formEmptyStock, setFormEmptyStock] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -133,23 +130,6 @@ const Inventory = () => {
   useEffect(() => {
     void load();
   }, [activeStoreId]);
-
-  const loadCylinderLoans = async () => {
-    if (!cylinderTrackingOn || !dataService.getCylinderLoans) return;
-    try {
-      setLoadingLoans(true);
-      const loans = await dataService.getCylinderLoans({ status: "out" });
-      setCylinderLoans(loans);
-    } catch {
-      setCylinderLoans([]);
-    } finally {
-      setLoadingLoans(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadCylinderLoans();
-  }, [activeStoreId, cylinderTrackingOn]);
 
   // Auto-calculate selling price from base price and margin percentage
   useEffect(() => {
@@ -232,6 +212,7 @@ const Inventory = () => {
     setFormTracksCylinder(false);
     setFormCylinderSize("");
     setFormDepositAmount("");
+    setFormEmptyStock("0");
     // Generate a simple item code we can later use for QR codes
     const code = `ITM-${Date.now().toString(36).toUpperCase().slice(-6)}`;
     setFormItemCode(code);
@@ -262,29 +243,9 @@ const Inventory = () => {
     setFormTracksCylinder(Boolean(product.tracksCylinder));
     setFormCylinderSize(product.cylinderSize ?? "");
     setFormDepositAmount(product.depositAmount != null ? String(product.depositAmount) : "");
+    setFormEmptyStock(String(product.emptyStock ?? 0));
     setFormError(null);
     setFormOpen(true);
-  };
-
-  const handleReturnCylinder = async (loan: CylinderLoan) => {
-    if (!dataService.returnCylinderLoan) return;
-    let refundDeposit = false;
-    if (collectCylinderDeposits && loan.depositAmount > 0) {
-      refundDeposit = window.confirm(
-        `Return canister and refund ${formatCurrency(loan.depositAmount)} deposit?\n\nChoose Cancel to return without refunding the deposit.`,
-      );
-    } else if (!window.confirm("Mark this canister as returned?")) {
-      return;
-    }
-    try {
-      setReturningLoanId(loan.id);
-      await dataService.returnCylinderLoan(loan.id, { refundDeposit });
-      await Promise.all([load(), loadCylinderLoans()]);
-    } catch (e: unknown) {
-      alert((e as Error).message ?? "Failed to return canister");
-    } finally {
-      setReturningLoanId(null);
-    }
   };
 
   const handleSaveProduct = async () => {
@@ -315,6 +276,7 @@ const Inventory = () => {
               tracksCylinder: formTracksCylinder,
               cylinderSize: formTracksCylinder ? formCylinderSize.trim() || undefined : undefined,
               depositAmount: formTracksCylinder && formDepositAmount ? parseFloat(formDepositAmount) : 0,
+              emptyStock: formTracksCylinder && formEmptyStock ? parseInt(formEmptyStock, 10) : 0,
             }
           : {}),
       };
@@ -345,6 +307,7 @@ const Inventory = () => {
       setFormTracksCylinder(false);
       setFormCylinderSize("");
       setFormDepositAmount("");
+      setFormEmptyStock("");
 
       await load();
     } catch (e: any) {
@@ -1484,14 +1447,20 @@ const Inventory = () => {
                             placeholder="0.00"
                           />
                         </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">Empty on hand</p>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={formEmptyStock}
+                            onChange={(e) => setFormEmptyStock(e.target.value)}
+                            placeholder="0"
+                          />
+                        </div>
                         <p className="col-span-2 text-xs text-muted-foreground">
                           Low stock alert uses the product&apos;s low threshold for both filled and empty pools.
                         </p>
-                        {isEditing && editingProduct?.emptyStock != null && (
-                          <div className="col-span-2 text-xs text-muted-foreground">
-                            Empty on hand: {editingProduct.emptyStock}
-                          </div>
-                        )}
                       </div>
                     )}
                   </div>
@@ -1545,66 +1514,6 @@ const Inventory = () => {
           <p className="text-xs text-muted-foreground">
             Reorder when filled stock is low; empty stock affects exchange sales at POS.
           </p>
-        </div>
-      )}
-
-      {cylinderTrackingOn && (
-        <div className="rounded-lg border bg-card p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold">Outstanding canisters</h2>
-            <Badge variant="secondary">{cylinderLoans.length} out</Badge>
-          </div>
-          {loadingLoans ? (
-            <p className="text-sm text-muted-foreground">Loading...</p>
-          ) : cylinderLoans.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No canisters currently with customers.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Qty</TableHead>
-                    <TableHead>Deposit</TableHead>
-                    <TableHead>Since</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {cylinderLoans.map((loan) => (
-                    <TableRow key={loan.id}>
-                      <TableCell>
-                        {loan.product?.name}
-                        {loan.product?.cylinderSize ? ` (${loan.product.cylinderSize})` : ""}
-                      </TableCell>
-                      <TableCell>
-                        {loan.customerName || "—"}
-                        {loan.customerPhone ? (
-                          <span className="block text-xs text-muted-foreground">{loan.customerPhone}</span>
-                        ) : null}
-                      </TableCell>
-                      <TableCell>{loan.quantity}</TableCell>
-                      <TableCell>{formatCurrency(loan.depositAmount)}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(loan.outAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={returningLoanId === loan.id}
-                          onClick={() => void handleReturnCylinder(loan)}
-                        >
-                          {returningLoanId === loan.id ? "Returning..." : "Return"}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
         </div>
       )}
 

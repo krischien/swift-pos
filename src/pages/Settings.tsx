@@ -96,7 +96,13 @@ const Settings = () => {
   const [orgEmail, setOrgEmail] = useState("");
   const [seedingDemo, setSeedingDemo] = useState(false);
   const isNative = Capacitor.isNativePlatform();
-  const { activeStoreId, stores, setStores } = useStore();
+  const { activeStoreId, stores, setStores, setActiveStoreId } = useStore();
+  const activeStore =
+    stores.find((store) => store.id === activeStoreId) ?? (stores.length ? stores[0] : undefined);
+  const isFnbActiveStore = isSaaS() && activeStore?.businessMode === "fnb";
+  const suggestedCanisterStore =
+    stores.find((s) => s.enableCylinderTracking && s.businessMode !== "fnb") ??
+    stores.find((s) => s.businessMode !== "fnb");
 
   const handleScanPrinters = async () => {
     if (!isNative) {
@@ -427,7 +433,7 @@ const Settings = () => {
       const result = await adminApi.seedDemo();
       toast({
         title: "Demo data seeded",
-        description: `Created ${result.orgName} with ${result.storeCount} stores and ${result.salesCount} sales. Log in with owner@demo.com, maria@demo.com, or juan@demo.com (password: ${result.password})`,
+        description: `Created ${result.orgName} with ${result.storeCount} stores and ${result.salesCount} sales. Log in with owner@demo.com (4 stores), maria/juan/pedro/lpg@demo.com (password: ${result.password})`,
       });
     } catch (e: any) {
       toast({
@@ -553,7 +559,11 @@ const Settings = () => {
       <Card>
         <CardHeader>
           <CardTitle>POS Features</CardTitle>
-          <CardDescription>Enable or disable optional features</CardDescription>
+          <CardDescription>
+            {isSaaS() && activeStore
+              ? `Optional features for ${activeStore.name} (use the store switcher in the sidebar to change branch).`
+              : "Enable or disable optional features"}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
@@ -597,42 +607,6 @@ const Settings = () => {
               onCheckedChange={setEnablePerKiloPurchase}
             />
           </div>
-          {isSaaS() && (
-            <>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="cylinder-tracking">LPG Canister Tracking</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Track filled cylinders on hand, outstanding loans, and empty returns
-                  </p>
-                </div>
-                <Switch
-                  id="cylinder-tracking"
-                  checked={enableCylinderTracking}
-                  onCheckedChange={setEnableCylinderTracking}
-                />
-              </div>
-              {enableCylinderTracking && (
-                <>
-                  <Separator />
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="cylinder-deposits">Collect Deposits at Sale</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Add refundable deposit to checkout total for new canister loans
-                      </p>
-                    </div>
-                    <Switch
-                      id="cylinder-deposits"
-                      checked={collectCylinderDeposits}
-                      onCheckedChange={setCollectCylinderDeposits}
-                    />
-                  </div>
-                </>
-              )}
-            </>
-          )}
           <Separator />
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
@@ -655,6 +629,78 @@ const Settings = () => {
               </span>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Canister Monitoring</CardTitle>
+          <CardDescription>
+            {isSaaS() && activeStore
+              ? `Per-store setting for ${activeStore.name}. Turn on for LPG / refill shops, then mark products as canister-tracked in Inventory.`
+              : "Track LPG canister exchanges, outstanding loans, empty returns, and optional deposits at checkout."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {isFnbActiveStore ? (
+            <div className="space-y-3 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+              <p>
+                Canister monitoring is not used on <span className="font-medium text-foreground">F&amp;B</span> stores
+                (menu/ingredients mode). Switch to a <span className="font-medium text-foreground">retail</span> store
+                such as your LPG branch to enable tracking and open the Canisters screen.
+              </p>
+              {suggestedCanisterStore && suggestedCanisterStore.id !== activeStoreId && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setActiveStoreId(suggestedCanisterStore.id);
+                    toast({
+                      title: "Store switched",
+                      description: `Now configuring ${suggestedCanisterStore.name}.`,
+                    });
+                  }}
+                >
+                  Switch to {suggestedCanisterStore.name}
+                </Button>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="cylinder-tracking">Enable Canister Monitoring</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Shows Canisters in the menu, customer picker at checkout, and filled/empty stock in Inventory
+                  </p>
+                </div>
+                <Switch
+                  id="cylinder-tracking"
+                  checked={enableCylinderTracking}
+                  onCheckedChange={setEnableCylinderTracking}
+                />
+              </div>
+              {enableCylinderTracking && (
+                <>
+                  <Separator />
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="cylinder-deposits">Collect deposits at sale</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Add a refundable deposit to checkout when a new canister goes out with the customer
+                      </p>
+                    </div>
+                    <Switch
+                      id="cylinder-deposits"
+                      checked={collectCylinderDeposits}
+                      onCheckedChange={setCollectCylinderDeposits}
+                    />
+                  </div>
+                </>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
 

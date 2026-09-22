@@ -22,7 +22,7 @@ import { changePhpFromCents, phpToCents } from "@/lib/phpMoney";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QuickScanCard } from "@/components/pos/QuickScanCard";
 import { computeCylinderDeposit, cartHasOutstandingCylinder } from "@/lib/cylinderCheckout";
-import { isSaaS } from "@/config/appMode";
+import QRCode from "qrcode";
 
 /** Values to compare against sku / itemCode / barcode (whitespace, leading zeros). */
 function scanMatchVariants(raw: string): Set<string> {
@@ -92,7 +92,7 @@ const POS = () => {
     enableCylinderTracking,
     collectCylinderDeposits,
   } = useSettings();
-  const cylinderTrackingOn = isSaaS() && enableCylinderTracking;
+  const cylinderTrackingOn = enableCylinderTracking;
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -442,7 +442,12 @@ const POS = () => {
     setCart(
       cart.map((item) =>
         item.id === itemId
-          ? { ...item, quantity: effectiveQty, subtotal: effectiveQty * item.price }
+          ? {
+              ...item,
+              quantity: effectiveQty,
+              subtotal: effectiveQty * item.price,
+              broughtEmptyQuantity: Math.min(item.broughtEmptyQuantity ?? 0, Math.floor(effectiveQty)),
+            }
           : item
       )
     );
@@ -452,9 +457,13 @@ const POS = () => {
     setCart(cart.filter((item) => item.id !== itemId));
   };
 
-  const handleToggleBroughtEmpty = (itemId: string, broughtEmpty: boolean) => {
+  const handleBroughtEmptyQuantityChange = (itemId: string, quantity: number) => {
     setCart(
-      cart.map((item) => (item.id === itemId ? { ...item, broughtEmpty } : item)),
+      cart.map((item) =>
+        item.id === itemId
+          ? { ...item, broughtEmptyQuantity: Math.min(Math.floor(item.quantity), Math.max(0, quantity)) }
+          : item,
+      ),
     );
   };
 
@@ -494,6 +503,7 @@ const POS = () => {
     subtotal?: number;
     tax?: number;
     discount?: number;
+    deposit?: number;
   };
 
   const getReceiptItems = (sale: any, fallbackItems: CartItem[]) => {
@@ -504,6 +514,7 @@ const POS = () => {
             quantity: item.quantity,
             price: item.price,
             subtotal: item.subtotal,
+            broughtEmptyQuantity: item.broughtEmptyQuantity ?? 0,
       }));
     }
     return fallbackItems.map((item) => ({
@@ -512,15 +523,18 @@ const POS = () => {
             quantity: item.quantity,
             price: item.price,
             subtotal: item.subtotal,
+            broughtEmptyQuantity: item.broughtEmptyQuantity ?? 0,
           }));
   };
 
-  const buildReceiptHtml = (
+  const buildReceiptHtml = async (
     sale: any,
     fallbackItems: CartItem[],
     fallbackTotals: ReceiptFallbackTotals,
   ) => {
     const receiptItems = getReceiptItems(sale, fallbackItems);
+    const qrToken = sale?.customer?.qrToken ?? sale?.customerQrToken;
+    const customerQr = qrToken ? await QRCode.toDataURL(String(qrToken), { width: 140, margin: 1 }) : null;
 
     const itemsRows = receiptItems
       .map(
@@ -537,7 +551,11 @@ const POS = () => {
     const headerName = storeName || "SwiftPOS";
     const headerAddress = storeAddress || "";
     const showLogo = showLogoOnReceipt && receiptLogoUrl;
-    const totalDisplay = typeof sale?.total === "number" ? sale.total : fallbackTotals.total;
+    const totalDisplay = typeof sale?.amountDue === "number"
+      ? sale.amountDue
+      : typeof sale?.total === "number"
+        ? sale.total + Number(sale?.depositAmount ?? 0)
+        : fallbackTotals.total;
     const amountReceivedDisplay =
       typeof sale?.amountReceived === "number" ? sale.amountReceived : fallbackTotals.amountReceived;
     const changeDisplay = typeof sale?.change === "number" ? sale.change : fallbackTotals.change;
@@ -567,6 +585,7 @@ const POS = () => {
           <div>Cashier: ${sale?.cashierName ?? user?.name ?? ""}</div>
           <div>Payment: ${(sale?.paymentMethod ?? "cash").toString().toUpperCase()}</div>
           ${String(sale?.paymentMethod ?? "cash").toLowerCase() === "gcash" ? `<div>GCash Txn ID: ${sale?.gcashTransactionId ?? "—"}</div>` : ""}
+          ${sale?.customer?.name || sale?.customerName ? `<div>Customer: ${sale?.customer?.name ?? sale.customerName}</div>` : ""}
         </div>
         <table>
           <thead>
@@ -579,10 +598,11 @@ const POS = () => {
           </thead>
           <tbody>
             ${itemsRows}
+            ${receiptItems.some((item) => item.broughtEmptyQuantity > 0) ? `<tr><td colspan="4" style="padding-top:8px;"><strong>Canister exchange</strong><br/>${receiptItems.filter((item) => item.broughtEmptyQuantity > 0).map((item) => `${item.name}: ${item.broughtEmptyQuantity} exchanged / ${Math.max(0, item.quantity - item.broughtEmptyQuantity)} out`).join("<br/>")}</td></tr>` : ""}
           </tbody>
           <tfoot>
             <tr>
-              <td colspan="3">Total</td>
+              <td colspan="3">Amount due</td>
               <td style="text-align:right;">${formatCurrency(totalDisplay ?? 0)}</td>
             </tr>
             <tr>
@@ -593,8 +613,11 @@ const POS = () => {
               <td colspan="3">Change</td>
               <td style="text-align:right;">${formatCurrency(changeDisplay ?? 0)}</td>
             </tr>
+            ${Number(sale?.depositAmount ?? fallbackTotals.deposit ?? 0) > 0 ? `<tr><td colspan="3">Deposit collected</td><td style="text-align:right;">${formatCurrency(Number(sale?.depositAmount ?? fallbackTotals.deposit ?? 0))}</td></tr>` : ""}
+            ${Number(sale?.depositRefundedAmount ?? 0) > 0 ? `<tr><td colspan="3">Deposit refunded</td><td style="text-align:right;">${formatCurrency(Number(sale.depositRefundedAmount))}</td></tr>` : ""}
           </tfoot>
         </table>
+        ${customerQr ? `<div style="text-align:center;margin-top:10px;"><img src="${customerQr}" alt="Customer QR" width="110" height="110"/><div style="font-size:11px;">Customer return QR</div></div>` : ""}
         <div style="text-align:center;font-size:12px;margin-top:12px;">This is not an Official Receipt</div>
       </body>
     </html>`;
@@ -606,7 +629,11 @@ const POS = () => {
     fallbackTotals: ReceiptFallbackTotals,
   ) => {
     const receiptItems = getReceiptItems(sale, fallbackItems);
-    const totalDisplay = typeof sale?.total === "number" ? sale.total : fallbackTotals.total;
+    const totalDisplay = typeof sale?.amountDue === "number"
+      ? sale.amountDue
+      : typeof sale?.total === "number"
+        ? sale.total + Number(sale?.depositAmount ?? 0)
+        : fallbackTotals.total;
     const amountReceivedDisplay =
       typeof sale?.amountReceived === "number" ? sale.amountReceived : fallbackTotals.amountReceived;
     const changeDisplay =
@@ -620,12 +647,15 @@ const POS = () => {
           cashierName: sale?.cashierName ?? user?.name ?? "",
           ticketNumber: sale?.ticketNumber ?? ticketNumber ?? "",
           createdAt: sale?.createdAt ?? new Date().toISOString(),
+          customerName: sale?.customer?.name ?? sale?.customerName,
+          customerQrToken: sale?.customer?.qrToken ?? sale?.customerQrToken,
           items: receiptItems.map((item) => ({
             name: item.name,
             variantName: item.variant,
             quantity: item.quantity,
             price: item.price,
             subtotal: item.subtotal,
+            broughtEmptyQuantity: item.broughtEmptyQuantity,
           })),
           totals: {
             total: Number(totalDisplay ?? 0),
@@ -634,6 +664,7 @@ const POS = () => {
             subtotal: fallbackTotals.subtotal,
             tax: fallbackTotals.tax,
             discount: fallbackTotals.discount,
+            depositCollected: Number(sale?.depositAmount ?? fallbackTotals.deposit ?? 0),
           },
         });
         return;
@@ -657,7 +688,7 @@ const POS = () => {
     iframe.style.display = "none";
     document.body.appendChild(iframe);
 
-    const receiptHtml = buildReceiptHtml(sale, fallbackItems, fallbackTotals);
+    const receiptHtml = await buildReceiptHtml(sale, fallbackItems, fallbackTotals);
     const doc = iframe.contentWindow?.document;
 
     if (doc) {
@@ -684,8 +715,10 @@ const POS = () => {
     gcashTransactionId?: string;
     customerName?: string;
     customerPhone?: string;
+    customerId?: string;
+    customerQrToken?: string;
   }) => {
-    const { amountReceived, paymentMethod, gcashTransactionId, customerName, customerPhone } = result;
+    const { amountReceived, paymentMethod, gcashTransactionId, customerName, customerPhone, customerId, customerQrToken } = result;
     const cartSnapshot = cart.map((item) => ({ ...item }));
     const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
     const taxRate = enableTax ? (typeof taxRatePercent === "number" ? taxRatePercent : 12) / 100 : 0;
@@ -718,7 +751,9 @@ const POS = () => {
           gcashTransactionId: paymentMethod === "gcash" ? gcashTransactionId || undefined : undefined,
           customerName,
           customerPhone,
-          collectDeposits: cylinderTrackingOn && collectCylinderDeposits,
+          customerId,
+          cylinderTrackingEnabled: cylinderTrackingOn,
+          collectDeposits: collectCylinderDeposits,
         },
         activeStoreId !== "default" ? activeStoreId : undefined,
       );
@@ -730,13 +765,14 @@ const POS = () => {
 
       if (autoPrintReceipt) {
         try {
-          await printReceipt(sale, cartSnapshot, {
+          await printReceipt({ ...sale, customerName, customerQrToken }, cartSnapshot, {
             total,
             amountReceived,
             change,
             subtotal: netSubtotal,
             tax: taxAmount,
             discount: discountAmount,
+            deposit,
           });
           // Auto-close checkout modal on mobile after successful print
           if (Capacitor.isNativePlatform()) {
@@ -942,7 +978,7 @@ const POS = () => {
             enableCylinderTracking={cylinderTrackingOn && !isFnb}
             collectCylinderDeposits={collectCylinderDeposits}
             products={products}
-            onToggleBroughtEmpty={handleToggleBroughtEmpty}
+            onBroughtEmptyQuantityChange={handleBroughtEmptyQuantityChange}
           />
         </div>
       </div>
@@ -977,7 +1013,7 @@ const POS = () => {
             enableCylinderTracking={cylinderTrackingOn && !isFnb}
             collectCylinderDeposits={collectCylinderDeposits}
             products={products}
-            onToggleBroughtEmpty={handleToggleBroughtEmpty}
+            onBroughtEmptyQuantityChange={handleBroughtEmptyQuantityChange}
           />
         </SheetContent>
       </Sheet>
@@ -999,6 +1035,7 @@ const POS = () => {
         total={computeCheckoutTotal()}
         depositAmount={checkoutDeposit}
         requireCustomer={requireCylinderCustomer}
+        showCustomerPicker={cylinderTrackingOn && cart.some((item) => products.find((p) => p.id === item.productId)?.tracksCylinder)}
         ticketNumber={ticketNumber ?? undefined}
         onComplete={handleCompleteCheckout}
       />
