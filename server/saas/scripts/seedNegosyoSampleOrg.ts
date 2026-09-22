@@ -251,7 +251,7 @@ async function main() {
       organizationId: org.id,
       name: "Sample LPG Canister Shop",
       address: "90 Gas Station Road",
-      businessMode: "retail",
+      businessMode: "canister",
       enableCylinderTracking: true,
       collectCylinderDeposits: true,
     },
@@ -347,7 +347,7 @@ async function main() {
   console.log(`    - ${grocery.name} [retail]`);
   console.log(`    - ${pet.name} [retail]`);
   console.log(`    - ${cafe.name} [fnb]`);
-  console.log(`    - ${lpg.name} [retail + canister tracking]`);
+  console.log(`    - ${lpg.name} [canister]`);
   console.log("  Accounts (password for all: password123):");
   for (const account of ACCOUNTS) {
     console.log(`    - ${account.email} (${account.role})`);

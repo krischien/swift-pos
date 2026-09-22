@@ -12,6 +12,8 @@ export interface OrgStore {
   address: string | null;
   createdAt: string;
   businessMode?: string;
+  enableCylinderTracking?: boolean;
+  collectCylinderDeposits?: boolean;
 }
 
 export async function getOrgStores(): Promise<OrgStore[]> {
@@ -30,7 +32,7 @@ export async function getOrgStores(): Promise<OrgStore[]> {
 export async function createOrgStore(data: {
   name: string;
   address?: string;
-  businessMode?: "retail" | "fnb";
+  businessMode?: "retail" | "fnb" | "canister";
 }): Promise<OrgStore> {
   const token = getAuthToken();
   if (!token) throw new Error("Not authenticated");

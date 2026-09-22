@@ -234,6 +234,14 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     };
   }, [activeStoreId]);
 
+  // Keep nav/settings in sync when owner/admin toggles canister on the Stores page
+  useEffect(() => {
+    if (!isSaaS() || !activeStoreId || activeStoreId === "default") return;
+    const store = stores.find((s) => s.id === activeStoreId);
+    if (!store || store.enableCylinderTracking === undefined) return;
+    setEnableCylinderTrackingState(Boolean(store.enableCylinderTracking));
+  }, [stores, activeStoreId]);
+
   const buildPersistPayload = (overrides: Partial<StoredSettings> = {}): StoredSettings => ({
     storeName,
     storeAddress,
@@ -324,16 +332,8 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
     setEnableCylinderTrackingState(value);
     if (!isSaaS()) {
       persist({ enableCylinderTracking: value });
-      return;
     }
-    void updateStore({ enableCylinderTracking: value }, activeStoreId)
-      .then(() => {
-        setStores(stores.map((s) => s.id === activeStoreId ? { ...s, enableCylinderTracking: value } : s));
-      })
-      .catch((error) => {
-        console.error("Failed to save canister tracking setting", error);
-        setEnableCylinderTrackingState(!value);
-      });
+    // SaaS: canister is a store type — change via Stores, not Settings.
   };
 
   const setCollectCylinderDeposits = (value: boolean) => {

@@ -149,7 +149,13 @@ export const adminApi = {
         setupFeePaid?: boolean;
         monthlyPriceCentavos?: number;
       } | null;
-      stores: Array<{ id: string; name: string; address?: string | null }>;
+      stores: Array<{
+        id: string;
+        name: string;
+        address?: string | null;
+        businessMode?: string;
+        enableCylinderTracking?: boolean;
+  }>;
       users: Array<{
         id: string;
         name: string;
@@ -257,21 +263,42 @@ export const adminApi = {
     ),
 
   // Store CRUD
-  createOrganizationStore: (orgId: string, data: { name: string; address?: string }) =>
-    adminRequest<{ id: string; name: string; address: string | null; createdAt: string }>(
-      `/api/admin/organizations/${orgId}/stores`,
-      { method: "POST", body: JSON.stringify(data) }
-    ),
+  createOrganizationStore: (
+    orgId: string,
+    data: {
+      name: string;
+      address?: string;
+      businessMode?: "retail" | "fnb" | "canister";
+    }
+  ) =>
+    adminRequest<{
+      id: string;
+      name: string;
+      address: string | null;
+      createdAt: string;
+      businessMode?: string;
+      enableCylinderTracking?: boolean;
+    }>(`/api/admin/organizations/${orgId}/stores`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
   updateOrganizationStore: (
     orgId: string,
     storeId: string,
     data: { name?: string; address?: string }
   ) =>
-    adminRequest<{ id: string; name: string; address: string | null; createdAt: string }>(
-      `/api/admin/organizations/${orgId}/stores/${storeId}`,
-      { method: "PATCH", body: JSON.stringify(data) }
-    ),
+    adminRequest<{
+      id: string;
+      name: string;
+      address: string | null;
+      createdAt: string;
+      businessMode?: string;
+      enableCylinderTracking?: boolean;
+    }>(`/api/admin/organizations/${orgId}/stores/${storeId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 
   deleteOrganizationStore: (orgId: string, storeId: string) =>
     adminRequest(`/api/admin/organizations/${orgId}/stores/${storeId}`, { method: "DELETE" }),

@@ -48,6 +48,8 @@ import {
   type OrgStore,
 } from "@/lib/saasOrgStoresApi";
 import { useStore, type StoreSummary } from "@/contexts/StoreContext";
+import type { BusinessMode } from "@/types/pos";
+import { resolveBusinessMode, businessModeLabel, isCanisterMode } from "@/lib/businessMode";
 
 const Stores = () => {
   const { setStores, activeStoreId, setActiveStoreId } = useStore();
@@ -72,7 +74,7 @@ const Stores = () => {
     max?: number | null;
     upgradeTo?: string | null;
   }>({ open: false });
-  const [formBusinessMode, setFormBusinessMode] = useState<"retail" | "fnb">("retail");
+  const [formBusinessMode, setFormBusinessMode] = useState<BusinessMode>("retail");
 
   const load = async () => {
     if (!isSaaS()) return;
@@ -91,11 +93,16 @@ const Stores = () => {
   };
 
   const refreshStoreContext = (list: OrgStore[]) => {
-    const mapped: StoreSummary[] = list.map((s) => ({
-      id: s.id,
-      name: s.name,
-      businessMode: s.businessMode === "fnb" ? "fnb" : "retail",
-    }));
+    const mapped: StoreSummary[] = list.map((s) => {
+      const businessMode = resolveBusinessMode(s.businessMode, s.enableCylinderTracking);
+      return {
+        id: s.id,
+        name: s.name,
+        businessMode,
+        enableCylinderTracking: isCanisterMode(businessMode),
+        collectCylinderDeposits: s.collectCylinderDeposits !== false,
+      };
+    });
     setStores(mapped);
   };
 
@@ -132,6 +139,7 @@ const Stores = () => {
     setEditingStore(store);
     setFormName(store.name);
     setFormAddress(store.address ?? "");
+    setFormBusinessMode(resolveBusinessMode(store.businessMode, store.enableCylinderTracking));
     setFormError(null);
     setFormOpen(true);
   };
@@ -333,8 +341,18 @@ const Stores = () => {
                   <TableRow key={store.id}>
                     <TableCell className="font-medium">{store.name}</TableCell>
                     <TableCell>
-                      <Badge variant={store.businessMode === "fnb" ? "default" : "secondary"}>
-                        {store.businessMode === "fnb" ? "F&B" : "Retail"}
+                      <Badge
+                        variant={
+                          resolveBusinessMode(store.businessMode, store.enableCylinderTracking) === "fnb"
+                            ? "default"
+                            : resolveBusinessMode(store.businessMode, store.enableCylinderTracking) === "canister"
+                              ? "outline"
+                              : "secondary"
+                        }
+                      >
+                        {businessModeLabel(
+                          resolveBusinessMode(store.businessMode, store.enableCylinderTracking),
+                        )}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
@@ -375,8 +393,19 @@ const Stores = () => {
                     <h3 className="font-semibold flex items-center gap-2 flex-wrap">
                       <StoreIcon className="h-4 w-4 text-muted-foreground" />
                       {store.name}
-                      <Badge variant={store.businessMode === "fnb" ? "default" : "secondary"} className="text-xs">
-                        {store.businessMode === "fnb" ? "F&B" : "Retail"}
+                      <Badge
+                        variant={
+                          resolveBusinessMode(store.businessMode, store.enableCylinderTracking) === "fnb"
+                            ? "default"
+                            : resolveBusinessMode(store.businessMode, store.enableCylinderTracking) === "canister"
+                              ? "outline"
+                              : "secondary"
+                        }
+                        className="text-xs"
+                      >
+                        {businessModeLabel(
+                          resolveBusinessMode(store.businessMode, store.enableCylinderTracking),
+                        )}
                       </Badge>
                     </h3>
                     <p className="text-sm text-muted-foreground mt-1">
@@ -485,13 +514,13 @@ const Stores = () => {
                 </p>
                 <RadioGroup
                   value={formBusinessMode}
-                  onValueChange={(v) => setFormBusinessMode(v as "retail" | "fnb")}
+                  onValueChange={(v) => setFormBusinessMode(v as BusinessMode)}
                   className="flex flex-col gap-2"
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="retail" id="bm-retail" />
                     <Label htmlFor="bm-retail" className="font-normal cursor-pointer">
-                      Retail (products & variants)
+                      Retail (products &amp; variants)
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -500,8 +529,25 @@ const Stores = () => {
                       Food &amp; beverage (ingredients, menu, recipes)
                     </Label>
                   </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="canister" id="bm-canister" />
+                    <Label htmlFor="bm-canister" className="font-normal cursor-pointer">
+                      Canister / LPG (products + canister monitoring)
+                    </Label>
+                  </div>
                 </RadioGroup>
               </div>
+            )}
+            {isEditing && editingStore && (
+              <p className="text-sm text-muted-foreground">
+                Store type:{" "}
+                <span className="font-medium text-foreground">
+                  {businessModeLabel(
+                    resolveBusinessMode(editingStore.businessMode, editingStore.enableCylinderTracking),
+                  )}
+                </span>{" "}
+                (cannot be changed)
+              </p>
             )}
           </div>
           <div className="flex justify-end gap-2">

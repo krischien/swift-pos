@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import { isSaaS } from "@/config/appMode";
 import { getSaasToken, fetchStores } from "@/lib/saasAuth";
 import type { BusinessMode } from "@/types/pos";
+import { resolveBusinessMode, isCanisterMode } from "@/lib/businessMode";
 
 export interface StoreSummary {
   id: string;
@@ -25,13 +26,16 @@ const normalizeStore = (s: {
   businessMode?: string;
   enableCylinderTracking?: boolean;
   collectCylinderDeposits?: boolean;
-}): StoreSummary => ({
-  id: s.id,
-  name: s.name,
-  businessMode: s.businessMode === "fnb" ? "fnb" : "retail",
-  enableCylinderTracking: s.enableCylinderTracking,
-  collectCylinderDeposits: s.collectCylinderDeposits,
-});
+}): StoreSummary => {
+  const businessMode = resolveBusinessMode(s.businessMode, s.enableCylinderTracking);
+  return {
+    id: s.id,
+    name: s.name,
+    businessMode,
+    enableCylinderTracking: isCanisterMode(businessMode),
+    collectCylinderDeposits: s.collectCylinderDeposits,
+  };
+};
 
 const getStoredStores = (): StoreSummary[] => {
   if (typeof window === "undefined" || !isSaaS()) return [];

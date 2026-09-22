@@ -1,6 +1,6 @@
 export type UserRole = "admin" | "cashier" | "owner" | "super_admin";
 
-export type BusinessMode = "retail" | "fnb";
+export type BusinessMode = "retail" | "fnb" | "canister";
 
 export interface User {
   id: string;

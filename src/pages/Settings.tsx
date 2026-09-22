@@ -100,9 +100,8 @@ const Settings = () => {
   const activeStore =
     stores.find((store) => store.id === activeStoreId) ?? (stores.length ? stores[0] : undefined);
   const isFnbActiveStore = isSaaS() && activeStore?.businessMode === "fnb";
-  const suggestedCanisterStore =
-    stores.find((s) => s.enableCylinderTracking && s.businessMode !== "fnb") ??
-    stores.find((s) => s.businessMode !== "fnb");
+  const suggestedCanisterStore = stores.find((s) => s.businessMode === "canister");
+  const suggestedRetailStore = suggestedCanisterStore ?? stores.find((s) => s.businessMode !== "fnb");
 
   const handleScanPrinters = async () => {
     if (!isNative) {
@@ -636,43 +635,19 @@ const Settings = () => {
         <CardHeader>
           <CardTitle>Canister Monitoring</CardTitle>
           <CardDescription>
-            {isSaaS() && activeStore
-              ? `Per-store setting for ${activeStore.name}. Turn on for LPG / refill shops, then mark products as canister-tracked in Inventory.`
-              : "Track LPG canister exchanges, outstanding loans, empty returns, and optional deposits at checkout."}
+            {isSaaS()
+              ? "Deposit collection for Canister stores. Create a Canister / LPG store under Stores to enable monitoring."
+              : "Track LPG canister exchanges and optional deposits at checkout."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {isFnbActiveStore ? (
-            <div className="space-y-3 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-              <p>
-                Canister monitoring is not used on <span className="font-medium text-foreground">F&amp;B</span> stores
-                (menu/ingredients mode). Switch to a <span className="font-medium text-foreground">retail</span> store
-                such as your LPG branch to enable tracking and open the Canisters screen.
-              </p>
-              {suggestedCanisterStore && suggestedCanisterStore.id !== activeStoreId && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setActiveStoreId(suggestedCanisterStore.id);
-                    toast({
-                      title: "Store switched",
-                      description: `Now configuring ${suggestedCanisterStore.name}.`,
-                    });
-                  }}
-                >
-                  Switch to {suggestedCanisterStore.name}
-                </Button>
-              )}
-            </div>
-          ) : (
+          {!isSaaS() && (
             <>
               <div className="flex items-center justify-between gap-4">
                 <div className="space-y-0.5">
                   <Label htmlFor="cylinder-tracking">Enable Canister Monitoring</Label>
                   <p className="text-sm text-muted-foreground">
-                    Shows Canisters in the menu, customer picker at checkout, and filled/empty stock in Inventory
+                    Shows Canisters in the menu and filled/empty stock in Inventory
                   </p>
                 </div>
                 <Switch
@@ -681,25 +656,54 @@ const Settings = () => {
                   onCheckedChange={setEnableCylinderTracking}
                 />
               </div>
-              {enableCylinderTracking && (
-                <>
-                  <Separator />
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="cylinder-deposits">Collect deposits at sale</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Add a refundable deposit to checkout when a new canister goes out with the customer
-                      </p>
-                    </div>
-                    <Switch
-                      id="cylinder-deposits"
-                      checked={collectCylinderDeposits}
-                      onCheckedChange={setCollectCylinderDeposits}
-                    />
-                  </div>
-                </>
-              )}
+              <Separator />
             </>
+          )}
+          {isSaaS() && isFnbActiveStore ? (
+            <div className="space-y-3 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+              <p>
+                Deposit settings apply to <span className="font-medium text-foreground">Canister</span> stores.
+                Switch to a Canister / LPG branch, or create one under{" "}
+                <span className="font-medium text-foreground">Stores</span>.
+              </p>
+              {suggestedRetailStore && suggestedRetailStore.id !== activeStoreId && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setActiveStoreId(suggestedRetailStore.id);
+                    toast({
+                      title: "Store switched",
+                      description: `Now configuring ${suggestedRetailStore.name}.`,
+                    });
+                  }}
+                >
+                  Switch to {suggestedRetailStore.name}
+                </Button>
+              )}
+            </div>
+          ) : isSaaS() && !enableCylinderTracking ? (
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{activeStore?.name ?? "This store"}</span> is
+              not a Canister store. Create or switch to a{" "}
+              <span className="font-medium text-foreground">Canister / LPG</span> store under Stores to
+              configure deposits.
+            </p>
+          ) : (
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-0.5">
+                <Label htmlFor="cylinder-deposits">Collect deposits at sale</Label>
+                <p className="text-sm text-muted-foreground">
+                  Add a refundable deposit to checkout when a new canister goes out with the customer
+                </p>
+              </div>
+              <Switch
+                id="cylinder-deposits"
+                checked={collectCylinderDeposits}
+                onCheckedChange={setCollectCylinderDeposits}
+              />
+            </div>
           )}
         </CardContent>
       </Card>
