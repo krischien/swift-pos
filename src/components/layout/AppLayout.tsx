@@ -117,11 +117,11 @@ const AppLayout = () => {
             <img src="/favico.png" alt="SwiftPOS" className="w-14 h-14" />
             <div className="min-w-0 flex-1">
               <h1 className="font-bold text-lg">SwiftPOS</h1>
-              <p className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap" title={activeStore?.name}>
+              <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap" title={activeStore?.name}>
                 <span className="truncate">{isSaaS() && activeStore ? activeStore.name : user?.role}</span>
                 {isSaaS() && <TierBadge tier={sub?.tier} status={sub?.status} />}
                 <OfflineIndicator />
-              </p>
+              </div>
             </div>
           </div>
           {isSaaS() && stores.length > 1 && (
@@ -167,10 +167,10 @@ const AppLayout = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <h1 className="font-bold text-lg">SwiftPOS</h1>
-                  <p className="text-xs text-muted-foreground truncate flex items-center gap-1" title={activeStore?.name}>
+                  <div className="text-xs text-muted-foreground truncate flex items-center gap-1" title={activeStore?.name}>
                     {isSaaS() && activeStore ? activeStore.name : user?.role}
                     {isSaaS() && <TierBadge tier={sub?.tier} status={sub?.status} />}
-                  </p>
+                  </div>
                 </div>
               </div>
               {isSaaS() && stores.length > 1 && (

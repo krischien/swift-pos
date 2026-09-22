@@ -132,7 +132,7 @@ export async function runSeedDemo(): Promise<SeedDemoResult> {
       organizationId: org.id,
       name: "Demo LPG Canister Shop",
       address: "555 Gas Station Road",
-      businessMode: "retail",
+      businessMode: "canister",
       enableCylinderTracking: true,
       collectCylinderDeposits: true,
     },

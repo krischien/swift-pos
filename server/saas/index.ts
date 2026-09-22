@@ -22,7 +22,7 @@ import * as userService from "./services/userService.js";
 import { runSeedDemo } from "./services/seedDemoService.js";
 import { runBootstrapSeed, ensureDemoQuickLoginUsers } from "./services/bootstrapSeedService.js";
 import { DEMO_TRIAL_DAYS, addDays } from "./constants/demo.js";
-import { normalizeBusinessMode } from "./utils/businessMode.js";
+import { normalizeBusinessMode, cylinderTrackingForMode, resolveBusinessMode } from "./utils/businessMode.js";
 import * as fnbService from "./services/fnbService.js";
 import { FnbStoreError } from "./services/fnbService.js";
 import { ensureSqliteSaasDatabaseUrl } from "./validateDatabaseEnv.js";
@@ -55,6 +55,17 @@ import { getBillingContact, TRIAL_DAYS } from "./config/tiers.js";
 const app = express();
 const port = process.env.SAAS_PORT || 4001;
 const isVercel = process.env.VERCEL === "1";
+
+function serializeStoreMode<T extends { businessMode: string; enableCylinderTracking: boolean }>(
+  store: T,
+): T {
+  const businessMode = resolveBusinessMode(store.businessMode, store.enableCylinderTracking);
+  return {
+    ...store,
+    businessMode,
+    enableCylinderTracking: cylinderTrackingForMode(businessMode),
+  };
+}
 
 /** Production / Vercel — permissive CORS (`*` or unset) is disabled (Phase 1.3). */
 
@@ -439,18 +450,19 @@ ownerRouter.patch("/api/store", async (req: AuthRequest, res) => {
     if (!storeId) return res.status(400).json({ message: "storeId is required" });
     if (req.body && Object.prototype.hasOwnProperty.call(req.body, "businessMode")) {
       return res.status(400).json({
-        message: "Store type (retail vs F&B) cannot be changed. Create a new store instead.",
+        message: "Store type (retail, F&B, or canister) cannot be changed. Create a new store instead.",
       });
     }
-    const { name, address, enableCylinderTracking, collectCylinderDeposits } = req.body as {
+    if (req.body && Object.prototype.hasOwnProperty.call(req.body, "enableCylinderTracking")) {
+      return res.status(400).json({
+        message: "Canister monitoring is part of the Canister store type. Create a Canister store instead.",
+      });
+    }
+    const { name, address, collectCylinderDeposits } = req.body as {
       name?: string;
       address?: string;
-      enableCylinderTracking?: boolean;
       collectCylinderDeposits?: boolean;
     };
-    if (enableCylinderTracking !== undefined && typeof enableCylinderTracking !== "boolean") {
-      return res.status(400).json({ message: "enableCylinderTracking must be boolean" });
-    }
     if (collectCylinderDeposits !== undefined && typeof collectCylinderDeposits !== "boolean") {
       return res.status(400).json({ message: "collectCylinderDeposits must be boolean" });
     }
@@ -459,7 +471,6 @@ ownerRouter.patch("/api/store", async (req: AuthRequest, res) => {
       data: {
         ...(name !== undefined && { name: requireTrimString(name, "Store name") }),
         ...(address !== undefined && { address: optionalTrimString(address, 500) ?? null }),
-        ...(enableCylinderTracking !== undefined && { enableCylinderTracking }),
         ...(collectCylinderDeposits !== undefined && { collectCylinderDeposits }),
       },
       select: {
@@ -472,7 +483,7 @@ ownerRouter.patch("/api/store", async (req: AuthRequest, res) => {
         collectCylinderDeposits: true,
       },
     });
-    res.json(store);
+    res.json(serializeStoreMode(store));
   } catch (error: unknown) {
     console.error(error);
     res.status(400).json({ message: (error as Error).message ?? "Failed to update store" });
@@ -904,7 +915,7 @@ protectedRouter.get("/api/store", async (req: AuthRequest, res) => {
       },
     });
     if (!store) return res.status(404).json({ message: "Store not found" });
-    res.json(store);
+    res.json(serializeStoreMode(store));
   } catch (error: unknown) {
     console.error(error);
     res.status(500).json({ message: "Failed to fetch store" });
@@ -1441,7 +1452,7 @@ orgRouter.get("/api/stores", async (req: AuthRequest, res) => {
           select: { id: true, name: true, businessMode: true, enableCylinderTracking: true, collectCylinderDeposits: true },
           orderBy: { createdAt: "asc" },
         });
-        return res.json(stores);
+        return res.json(stores.map(serializeStoreMode));
       }
       return res.json([]);
     }
@@ -1453,7 +1464,7 @@ orgRouter.get("/api/stores", async (req: AuthRequest, res) => {
         select: { id: true, name: true, businessMode: true, enableCylinderTracking: true, collectCylinderDeposits: true },
         orderBy: { createdAt: "asc" },
       });
-      return res.json(stores);
+      return res.json(stores.map(serializeStoreMode));
     }
 
     // Cashiers / other org users: list stores from DB (JWT storeIds may be stale after reseed)
@@ -1464,13 +1475,15 @@ orgRouter.get("/api/stores", async (req: AuthRequest, res) => {
         orderBy: { storeId: "asc" },
       });
       return res.json(
-        rows.map((r) => ({
-          id: r.store.id,
-          name: r.store.name,
-          businessMode: r.store.businessMode,
-          enableCylinderTracking: r.store.enableCylinderTracking,
-          collectCylinderDeposits: r.store.collectCylinderDeposits,
-        })),
+        rows.map((r) =>
+          serializeStoreMode({
+            id: r.store.id,
+            name: r.store.name,
+            businessMode: r.store.businessMode,
+            enableCylinderTracking: r.store.enableCylinderTracking,
+            collectCylinderDeposits: r.store.collectCylinderDeposits,
+          }),
+        ),
       );
     }
 
@@ -1481,7 +1494,7 @@ orgRouter.get("/api/stores", async (req: AuthRequest, res) => {
       where: { id: { in: storeIds } },
       select: { id: true, name: true, businessMode: true, enableCylinderTracking: true, collectCylinderDeposits: true },
     });
-    res.json(stores);
+    res.json(stores.map(serializeStoreMode));
   } catch (error: unknown) {
     console.error(error);
     res.status(500).json({ message: "Failed to fetch stores" });
@@ -1524,10 +1537,26 @@ orgRouter.get("/api/org/stores", async (req: AuthRequest, res) => {
     if (req.auth?.role !== "owner") return res.status(403).json({ message: "Owner access required" });
     const stores = await saasPrisma.store.findMany({
       where: { organizationId: orgId },
-      select: { id: true, name: true, address: true, createdAt: true, businessMode: true },
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        createdAt: true,
+        businessMode: true,
+        enableCylinderTracking: true,
+        collectCylinderDeposits: true,
+      },
       orderBy: { createdAt: "asc" },
     });
-    res.json(stores);
+    res.json(
+      stores.map((s) => ({
+        ...s,
+        businessMode: resolveBusinessMode(s.businessMode, s.enableCylinderTracking),
+        enableCylinderTracking: cylinderTrackingForMode(
+          resolveBusinessMode(s.businessMode, s.enableCylinderTracking),
+        ),
+      })),
+    );
   } catch (error: unknown) {
     console.error(error);
     res.status(500).json({ message: "Failed to fetch stores" });
@@ -1572,13 +1601,25 @@ orgRouter.post("/api/org/stores", async (req: AuthRequest, res) => {
         name: safeName,
         address: optionalTrimString(address, 500) ?? org?.address ?? null,
         businessMode,
+        enableCylinderTracking: cylinderTrackingForMode(businessMode),
       },
-      select: { id: true, name: true, address: true, createdAt: true, businessMode: true },
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        createdAt: true,
+        businessMode: true,
+        enableCylinderTracking: true,
+        collectCylinderDeposits: true,
+      },
     });
     await saasPrisma.userStore.create({
       data: { userId, storeId: store.id },
     });
-    res.status(201).json(store);
+    res.status(201).json({
+      ...store,
+      businessMode: resolveBusinessMode(store.businessMode, store.enableCylinderTracking),
+    });
   } catch (error: unknown) {
     console.error(error);
     res.status(400).json({ message: (error as Error).message ?? "Failed to create store" });
@@ -1596,19 +1637,38 @@ orgRouter.patch("/api/org/stores/:id", async (req: AuthRequest, res) => {
     if (!existing) return res.status(404).json({ message: "Store not found" });
     if (req.body && Object.prototype.hasOwnProperty.call(req.body, "businessMode")) {
       return res.status(400).json({
-        message: "Store type (retail vs F&B) cannot be changed. Create a new store instead.",
+        message: "Store type (retail, F&B, or canister) cannot be changed. Create a new store instead.",
       });
     }
-    const { name, address } = req.body as { name?: string; address?: string };
+    if (req.body && Object.prototype.hasOwnProperty.call(req.body, "enableCylinderTracking")) {
+      return res.status(400).json({
+        message: "Canister monitoring is part of the Canister store type. Create a Canister store instead.",
+      });
+    }
+    const { name, address } = req.body as {
+      name?: string;
+      address?: string;
+    };
     const store = await saasPrisma.store.update({
       where: { id: req.params.id },
       data: {
         ...(name !== undefined && { name: requireTrimString(name, "Store name") }),
         ...(address !== undefined && { address: optionalTrimString(address, 500) ?? null }),
       },
-      select: { id: true, name: true, address: true, createdAt: true, businessMode: true },
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        createdAt: true,
+        businessMode: true,
+        enableCylinderTracking: true,
+        collectCylinderDeposits: true,
+      },
     });
-    res.json(store);
+    res.json({
+      ...store,
+      businessMode: resolveBusinessMode(store.businessMode, store.enableCylinderTracking),
+    });
   } catch (error: unknown) {
     console.error(error);
     res.status(400).json({ message: (error as Error).message ?? "Failed to update store" });
@@ -1800,6 +1860,14 @@ async function start() {
       await resetDemoPasswords();
       await unsuspendDemoOrg();
     }
+    // Legacy retail + enableCylinderTracking → canister store type
+    await saasPrisma.$executeRawUnsafe(`
+      UPDATE Store SET businessMode = 'canister'
+      WHERE enableCylinderTracking = 1 AND businessMode != 'fnb' AND businessMode != 'canister'
+    `).catch(() => undefined);
+    await saasPrisma.$executeRawUnsafe(`
+      UPDATE Store SET enableCylinderTracking = 1 WHERE businessMode = 'canister'
+    `).catch(() => undefined);
   } catch (e) {
     console.error("[Bootstrap] Failed:", e);
   }

@@ -21,6 +21,7 @@ import { useDataLayer } from "@/contexts/DataLayerContext";
 import { useStore } from "@/contexts/StoreContext";
 import { Category, Product, Variant } from "@/types/pos";
 import { useSettings } from "@/contexts/SettingsContext";
+import { formatCurrency } from "@/lib/currency";
 import {
   Dialog,
   DialogContent,

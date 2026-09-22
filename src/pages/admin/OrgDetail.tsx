@@ -83,14 +83,23 @@ const OrgDetail = () => {
     expiresAt: "",
   });
   const [addStoreOpen, setAddStoreOpen] = useState(false);
-  const [addStoreForm, setAddStoreForm] = useState({ name: "", address: "" });
+  const [addStoreForm, setAddStoreForm] = useState({
+    name: "",
+    address: "",
+    businessMode: "retail" as "retail" | "fnb" | "canister",
+  });
   const [editStoreOpen, setEditStoreOpen] = useState(false);
   const [editingStore, setEditingStore] = useState<{
     id: string;
     name: string;
     address?: string | null;
+    businessMode?: string;
+    enableCylinderTracking?: boolean;
   } | null>(null);
-  const [editStoreForm, setEditStoreForm] = useState({ name: "", address: "" });
+  const [editStoreForm, setEditStoreForm] = useState({
+    name: "",
+    address: "",
+  });
   const [billingPaymentOpen, setBillingPaymentOpen] = useState(false);
   const [billingPaymentForm, setBillingPaymentForm] = useState({
     period: format(new Date(), "yyyy-MM"),
@@ -352,6 +361,7 @@ const OrgDetail = () => {
       adminApi.createOrganizationStore(id!, {
         name: addStoreForm.name.trim(),
         address: addStoreForm.address.trim() || undefined,
+        businessMode: addStoreForm.businessMode,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "organization", id] });
@@ -359,7 +369,11 @@ const OrgDetail = () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "payment-monitoring"] });
       setAddStoreOpen(false);
-      setAddStoreForm({ name: "", address: "" });
+      setAddStoreForm({
+        name: "",
+        address: "",
+        businessMode: "retail",
+      });
       toast({ title: "Store added" });
     },
     onError: (err: Error) => {
@@ -403,9 +417,18 @@ const OrgDetail = () => {
     },
   });
 
-  const openEditStore = (s: { id: string; name: string; address?: string | null }) => {
+  const openEditStore = (s: {
+    id: string;
+    name: string;
+    address?: string | null;
+    businessMode?: string;
+    enableCylinderTracking?: boolean;
+  }) => {
     setEditingStore(s);
-    setEditStoreForm({ name: s.name, address: s.address ?? "" });
+    setEditStoreForm({
+      name: s.name,
+      address: s.address ?? "",
+    });
     setEditStoreOpen(true);
   };
 
@@ -724,6 +747,27 @@ const OrgDetail = () => {
                         placeholder="123 Main St"
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label>Store type</Label>
+                      <Select
+                        value={addStoreForm.businessMode}
+                        onValueChange={(v) =>
+                          setAddStoreForm((f) => ({
+                            ...f,
+                            businessMode: v as "retail" | "fnb" | "canister",
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="retail">Retail</SelectItem>
+                          <SelectItem value="fnb">Food &amp; beverage</SelectItem>
+                          <SelectItem value="canister">Canister / LPG</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setAddStoreOpen(false)}>
@@ -752,6 +796,13 @@ const OrgDetail = () => {
                       {s.address && (
                         <p className="text-sm text-muted-foreground truncate">{s.address}</p>
                       )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {s.businessMode === "fnb"
+                          ? "F&B"
+                          : s.businessMode === "canister" || s.enableCylinderTracking
+                            ? "Canister / LPG"
+                            : "Retail"}
+                      </p>
                       <p className="text-xs text-muted-foreground font-mono mt-1">{s.id}</p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
@@ -816,27 +867,41 @@ const OrgDetail = () => {
                   Update store name and address.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
+                  <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
                   <Label htmlFor="edit-store-name">Name *</Label>
-                  <Input
+                    <Input
                     id="edit-store-name"
                     value={editStoreForm.name}
                     onChange={(e) => setEditStoreForm((f) => ({ ...f, name: e.target.value }))}
                     placeholder="Main Store"
                     required
                   />
-                </div>
-                <div className="space-y-2">
+                  </div>
+                  <div className="space-y-2">
                   <Label htmlFor="edit-store-address">Address</Label>
-                  <Input
+                    <Input
                     id="edit-store-address"
                     value={editStoreForm.address}
                     onChange={(e) => setEditStoreForm((f) => ({ ...f, address: e.target.value }))}
                     placeholder="123 Main St"
                   />
+                  </div>
+                  {editingStore && (
+                    <p className="text-sm text-muted-foreground">
+                      Store type:{" "}
+                      <span className="font-medium text-foreground">
+                        {editingStore.businessMode === "fnb"
+                          ? "F&B"
+                          : editingStore.businessMode === "canister" ||
+                              editingStore.enableCylinderTracking
+                            ? "Canister / LPG"
+                            : "Retail"}
+                      </span>{" "}
+                      (cannot be changed)
+                    </p>
+                  )}
                 </div>
-              </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setEditStoreOpen(false)}>
                   Cancel

@@ -71,11 +71,18 @@ export class ApiClient {
     return this.request("GET", "/api/stores", { storeId: null });
   }
 
-  getStoreByMode(mode: "fnb" | "retail"): { id: string; name: string; businessMode?: string } {
+  getStoreByMode(mode: "fnb" | "retail" | "canister"): { id: string; name: string; businessMode?: string } {
     const store = this.stores.find((s) =>
       mode === "fnb"
         ? s.businessMode === "fnb" || s.name.toLowerCase().includes("f&b")
-        : s.businessMode !== "fnb" && !s.name.toLowerCase().includes("f&b"),
+        : mode === "canister"
+          ? s.businessMode === "canister" ||
+            s.name.toLowerCase().includes("lpg") ||
+            s.name.toLowerCase().includes("canister")
+          : s.businessMode !== "fnb" &&
+            s.businessMode !== "canister" &&
+            !s.name.toLowerCase().includes("f&b") &&
+            !s.name.toLowerCase().includes("lpg"),
     );
     if (!store) {
       throw new Error(`No ${mode} store found in session stores: ${JSON.stringify(this.stores)}`);

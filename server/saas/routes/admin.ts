@@ -19,6 +19,11 @@ import {
   isTierId,
 } from "../services/subscriptionService.js";
 import { TIERS, TRIAL_DAYS } from "../config/tiers.js";
+import {
+  normalizeBusinessMode,
+  cylinderTrackingForMode,
+  resolveBusinessMode,
+} from "../utils/businessMode.js";
 
 const PAID_PLAN_FILTERS = ["tindahan", "negosyo", "kumpanya", "suspended"];
 const LEGACY_NON_BILLING_PLANS = [
@@ -1148,17 +1153,31 @@ router.post("/organizations/:orgId/stores", async (req: AuthRequest, res) => {
       });
     }
 
-    const businessMode = rawMode === "fnb" ? "fnb" : "retail";
+    const businessMode = normalizeBusinessMode(rawMode);
     const store = await saasPrisma.store.create({
       data: {
         organizationId: orgId,
         name: name.trim(),
         address: address?.trim() || org.address || null,
         businessMode,
+        enableCylinderTracking: cylinderTrackingForMode(businessMode),
       },
-      select: { id: true, name: true, address: true, createdAt: true, businessMode: true },
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        createdAt: true,
+        businessMode: true,
+        enableCylinderTracking: true,
+        collectCylinderDeposits: true,
+      },
     });
-    res.status(201).json(store);
+    const mode = resolveBusinessMode(store.businessMode, store.enableCylinderTracking);
+    res.status(201).json({
+      ...store,
+      businessMode: mode,
+      enableCylinderTracking: cylinderTrackingForMode(mode),
+    });
   } catch (error: unknown) {
     console.error("[admin create store]", error);
     res.status(400).json({ message: (error as Error).message ?? "Failed to create store" });
@@ -1170,10 +1189,18 @@ router.patch("/organizations/:orgId/stores/:storeId", async (req: AuthRequest, r
     const { orgId, storeId } = req.params;
     if (req.body && Object.prototype.hasOwnProperty.call(req.body, "businessMode")) {
       return res.status(400).json({
-        message: "Store type (retail vs F&B) cannot be changed. Create a new store instead.",
+        message: "Store type (retail, F&B, or canister) cannot be changed. Create a new store instead.",
       });
     }
-    const { name, address } = req.body as { name?: string; address?: string };
+    if (req.body && Object.prototype.hasOwnProperty.call(req.body, "enableCylinderTracking")) {
+      return res.status(400).json({
+        message: "Canister monitoring is part of the Canister store type. Create a Canister store instead.",
+      });
+    }
+    const { name, address } = req.body as {
+      name?: string;
+      address?: string;
+    };
     const existing = await saasPrisma.store.findFirst({
       where: { id: storeId, organizationId: orgId },
     });
@@ -1184,9 +1211,22 @@ router.patch("/organizations/:orgId/stores/:storeId", async (req: AuthRequest, r
         ...(name !== undefined && { name: name.trim() }),
         ...(address !== undefined && { address: address?.trim() || null }),
       },
-      select: { id: true, name: true, address: true, createdAt: true, businessMode: true },
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        createdAt: true,
+        businessMode: true,
+        enableCylinderTracking: true,
+        collectCylinderDeposits: true,
+      },
     });
-    res.json(store);
+    const mode = resolveBusinessMode(store.businessMode, store.enableCylinderTracking);
+    res.json({
+      ...store,
+      businessMode: mode,
+      enableCylinderTracking: cylinderTrackingForMode(mode),
+    });
   } catch (error: unknown) {
     console.error("[admin update store]", error);
     res.status(400).json({ message: (error as Error).message ?? "Failed to update store" });

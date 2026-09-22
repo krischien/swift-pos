@@ -87,6 +87,11 @@ export async function ensurePostgresSchema(): Promise<void> {
     UPDATE "Sale" SET "amountDue" = "total" + "depositAmount" WHERE "amountDue" = 0;
     UPDATE "CylinderLoan" SET "returnedQuantity" = "quantity"
       WHERE "status" = 'returned' AND "returnedQuantity" <> "quantity";
+    UPDATE "Store" SET "businessMode" = 'canister'
+      WHERE "enableCylinderTracking" = true AND "businessMode" <> 'fnb' AND "businessMode" <> 'canister';
+    UPDATE "Store" SET "enableCylinderTracking" = true WHERE "businessMode" = 'canister';
+    UPDATE "Store" SET "enableCylinderTracking" = false
+      WHERE "businessMode" <> 'canister' AND "enableCylinderTracking" = true;
   `);
 
   await saasPrisma.$executeRawUnsafe(`

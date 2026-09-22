@@ -7,10 +7,20 @@ describe("Functional: Canister monitoring", () => {
     "customer-linked sale collects deposits and supports partial returns and manual Suki",
     async () => {
       const owner = await ownerClient();
-      const storeId = owner.getStoreByMode("retail").id;
+      let storeId: string;
+      try {
+        storeId = owner.getStoreByMode("canister").id;
+      } catch {
+        const created = await owner.request<{ id: string }>("POST", "/api/org/stores", {
+          body: { name: uniqueName("Canister Shop"), businessMode: "canister" },
+          expectStatus: 201,
+          storeId: null,
+        });
+        storeId = created.id;
+      }
       const client = owner.withStore(storeId);
       await client.request("PATCH", "/api/store", {
-        body: { enableCylinderTracking: true, collectCylinderDeposits: true },
+        body: { collectCylinderDeposits: true },
       });
 
       const category = await client.request<{ id: string }>("POST", "/api/categories", {

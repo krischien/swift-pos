@@ -90,7 +90,11 @@ const HQDashboard = () => {
               <div>
                 <p className="font-medium">{s.name}</p>
                 <p className="text-muted-foreground text-xs">
-                  {s.businessMode === "fnb" ? "F&B" : "Retail"}
+                  {s.businessMode === "fnb"
+                    ? "F&B"
+                    : s.businessMode === "canister"
+                      ? "Canister"
+                      : "Retail"}
                   {s.address ? ` · ${s.address}` : ""}
                 </p>
               </div>
