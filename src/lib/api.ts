@@ -253,6 +253,64 @@ export const api = {
     });
   },
 
+  getCustomers: async (params?: any) => {
+    await ensureDbInitialized();
+    if (Capacitor.isNativePlatform()) return mobileServices.getCustomers(params);
+    const qs = new URLSearchParams(params as Record<string, string>).toString();
+    return request(`/customers${qs ? `?${qs}` : ""}`);
+  },
+  getRecentCustomers: async (limit = 12) => {
+    await ensureDbInitialized();
+    if (Capacitor.isNativePlatform()) return mobileServices.getRecentCustomers(limit);
+    return request(`/customers/recent?limit=${limit}`);
+  },
+  getCustomerByQr: async (token: string) => {
+    await ensureDbInitialized();
+    if (Capacitor.isNativePlatform()) return mobileServices.getCustomerByQr(token);
+    return request(`/customers/qr/${encodeURIComponent(token)}`);
+  },
+  getCustomer: async (id: string) => {
+    await ensureDbInitialized();
+    if (Capacitor.isNativePlatform()) return mobileServices.getCustomer(id);
+    return request(`/customers/${id}`);
+  },
+  createCustomer: async (payload: any) => {
+    await ensureDbInitialized();
+    if (Capacitor.isNativePlatform()) return mobileServices.createCustomer(payload);
+    return request("/customers", { method: "POST", body: JSON.stringify(payload) });
+  },
+  updateCustomer: async (id: string, payload: any) => {
+    await ensureDbInitialized();
+    if (Capacitor.isNativePlatform()) return mobileServices.updateCustomer(id, payload);
+    return request(`/customers/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+  },
+  archiveCustomer: async (id: string, archived = true) => {
+    await ensureDbInitialized();
+    if (Capacitor.isNativePlatform()) return mobileServices.archiveCustomer(id, archived);
+    return request(`/customers/${id}/archive`, { method: "POST", body: JSON.stringify({ archived }) });
+  },
+  setCustomerSuki: async (id: string, payload: { enabled: boolean; note?: string; actorId: string }) => {
+    await ensureDbInitialized();
+    if (Capacitor.isNativePlatform()) return mobileServices.setCustomerSuki(id, payload);
+    return request(`/customers/${id}/suki`, { method: "POST", body: JSON.stringify(payload) });
+  },
+  getCylinderLoans: async (params?: any) => {
+    await ensureDbInitialized();
+    if (Capacitor.isNativePlatform()) return mobileServices.getCylinderLoans(params);
+    const qs = params?.status ? `?status=${encodeURIComponent(params.status)}` : "";
+    return request(`/cylinder-loans${qs}`);
+  },
+  getCylinderStats: async () => {
+    await ensureDbInitialized();
+    if (Capacitor.isNativePlatform()) return mobileServices.getCylinderStats();
+    return request("/cylinder-stats");
+  },
+  returnCylinderLoan: async (id: string, options: any) => {
+    await ensureDbInitialized();
+    if (Capacitor.isNativePlatform()) return mobileServices.returnCylinderLoan(id, options);
+    return request(`/cylinder-loans/${id}/return`, { method: "POST", body: JSON.stringify(options) });
+  },
+
   // Users
   getUsers: async () => {
     await ensureDbInitialized();

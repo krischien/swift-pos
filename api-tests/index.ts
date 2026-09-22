@@ -15,6 +15,7 @@ import "./tests/functional/users.test.js";
 import "./tests/functional/stores.test.js";
 import "./tests/functional/products.test.js";
 import "./tests/functional/sales.test.js";
+import "./tests/functional/canisters.test.js";
 import "./tests/functional/org.test.js";
 import "./tests/functional/fnb.test.js";
 import "./tests/functional/admin.test.js";

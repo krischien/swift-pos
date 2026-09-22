@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { Capacitor } from "@capacitor/core";
 import type { PrinterDevice } from "@/lib/printer";
 import { useStore } from "@/contexts/StoreContext";
+import { isSaaS } from "@/config/appMode";
+import { getStore, updateStore } from "@/lib/saasStoreApi";
 
 interface SettingsState {
   storeName: string;
@@ -131,7 +133,7 @@ const applyToState = (
 
 export const SettingsProvider = ({ children }: { children: React.ReactNode }) => {
   const isNativePlatform = Capacitor.isNativePlatform();
-  const { activeStoreId } = useStore();
+  const { activeStoreId, stores, setStores } = useStore();
   const [storeName, setStoreNameState] = useState("");
   const [storeAddress, setStoreAddressState] = useState("");
   const [autoPrintReceipt, setAutoPrintReceiptState] = useState(true);
@@ -216,6 +218,21 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   useEffect(() => {
     loadForStore(activeStoreId);
   }, [activeStoreId, loadForStore]);
+
+  useEffect(() => {
+    if (!isSaaS() || !activeStoreId || activeStoreId === "default") return;
+    let cancelled = false;
+    void getStore(activeStoreId)
+      .then((store) => {
+        if (cancelled) return;
+        setEnableCylinderTrackingState(Boolean(store.enableCylinderTracking));
+        setCollectCylinderDepositsState(store.collectCylinderDeposits !== false);
+      })
+      .catch((error) => console.warn("Failed to load canister settings", error));
+    return () => {
+      cancelled = true;
+    };
+  }, [activeStoreId]);
 
   const buildPersistPayload = (overrides: Partial<StoredSettings> = {}): StoredSettings => ({
     storeName,
@@ -305,12 +322,34 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
 
   const setEnableCylinderTracking = (value: boolean) => {
     setEnableCylinderTrackingState(value);
-    persist({ enableCylinderTracking: value });
+    if (!isSaaS()) {
+      persist({ enableCylinderTracking: value });
+      return;
+    }
+    void updateStore({ enableCylinderTracking: value }, activeStoreId)
+      .then(() => {
+        setStores(stores.map((s) => s.id === activeStoreId ? { ...s, enableCylinderTracking: value } : s));
+      })
+      .catch((error) => {
+        console.error("Failed to save canister tracking setting", error);
+        setEnableCylinderTrackingState(!value);
+      });
   };
 
   const setCollectCylinderDeposits = (value: boolean) => {
     setCollectCylinderDepositsState(value);
-    persist({ collectCylinderDeposits: value });
+    if (!isSaaS()) {
+      persist({ collectCylinderDeposits: value });
+      return;
+    }
+    void updateStore({ collectCylinderDeposits: value }, activeStoreId)
+      .then(() => {
+        setStores(stores.map((s) => s.id === activeStoreId ? { ...s, collectCylinderDeposits: value } : s));
+      })
+      .catch((error) => {
+        console.error("Failed to save canister deposit setting", error);
+        setCollectCylinderDepositsState(!value);
+      });
   };
 
   const setStickerCodeType = (value: "qr" | "barcode") => {

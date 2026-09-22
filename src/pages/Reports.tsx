@@ -54,10 +54,8 @@ import { getSubscription } from "@/lib/saasSubscriptionApi";
 import { isSaaS } from "@/config/appMode";
 import { getOrgStores } from "@/lib/saasOrgStoresApi";
 import { formatCurrency } from "@/lib/currency";
-import { cn } from "@/lib/utils";
 import { PHP_DENOMINATIONS } from "@/lib/cashDenominations";
-import { Product, CylinderStats, Ingredient } from "@/types/pos";
-import { useSettings } from "@/contexts/SettingsContext";
+import { Product, Ingredient } from "@/types/pos";
 import {
   buildAggregatedStockAlertLines,
   buildLowStockLineItems,
@@ -117,8 +115,6 @@ type DateRangePreset = "today" | "7" | "30" | "90" | "all";
 
 const Reports = () => {
   const dataService = useDataLayer();
-  const { enableCylinderTracking } = useSettings();
-  const cylinderTrackingOn = isSaaS() && enableCylinderTracking;
   const { stores, storesLoading } = useStore();
   const { data: subscription } = useQuery({
     queryKey: ["subscription"],
@@ -158,7 +154,6 @@ const Reports = () => {
   const [denominationCounts, setDenominationCounts] = useState<Record<string, number>>({});
   const [gcashTransactionSearch, setGcashTransactionSearch] = useState("");
   const [allStoresCatalogs, setAllStoresCatalogs] = useState<StoreCatalogSlice[]>([]);
-  const [cylinderStats, setCylinderStats] = useState<CylinderStats | null>(null);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
 
   const showStoreFilter = isSaaS();
@@ -328,28 +323,6 @@ const Reports = () => {
         lastYear: sumSales(lastYearSales),
       });
 
-      if (cylinderTrackingOn && dataService.getCylinderStats) {
-        const statsStoreId =
-          showStoreFilter && reportStoreId !== "all"
-            ? reportStoreId
-            : !showStoreFilter
-              ? undefined
-              : storesToUse.length === 1
-                ? storesToUse[0]?.id
-                : null;
-        if (statsStoreId) {
-          try {
-            setCylinderStats(await dataService.getCylinderStats(statsStoreId));
-          } catch {
-            setCylinderStats(null);
-          }
-        } else {
-          setCylinderStats(null);
-        }
-      } else {
-        setCylinderStats(null);
-      }
-
       if (isSaaS() && dataService.getIngredients) {
         const fnbStores =
           reportStoreId !== "all"
@@ -406,53 +379,6 @@ const Reports = () => {
       { title: "Average Sale", value: formatCurrency(avg), desc: "Per transaction", icon: TrendingUp },
     ];
   }, [sales, products, voidCount]);
-
-  const cylinderStatCards = useMemo(() => {
-    if (!cylinderStats) return [];
-    const cards = [
-      { title: "Filled On Hand", value: `${cylinderStats.filledOnHand}`, desc: "Filled cylinders in stock", icon: Package, alert: false },
-      { title: "On Customer", value: `${cylinderStats.onCustomer}`, desc: "Outstanding canister loans", icon: Building2, alert: false },
-      { title: "Empty On Hand", value: `${cylinderStats.emptyOnHand}`, desc: "Returned empties awaiting refill", icon: Package, alert: false },
-      { title: "Deposit Liability", value: formatCurrency(cylinderStats.depositLiability), desc: "Uncollected/refundable deposits", icon: Banknote, alert: false },
-    ];
-    if (cylinderStats.outOfFilledCount > 0) {
-      cards.push({
-        title: "Out of Filled",
-        value: `${cylinderStats.outOfFilledCount}`,
-        desc: "Canister SKUs with zero filled stock",
-        icon: AlertTriangle,
-        alert: true,
-      });
-    }
-    if (cylinderStats.lowFilledCount > 0) {
-      cards.push({
-        title: "Low Filled",
-        value: `${cylinderStats.lowFilledCount}`,
-        desc: "Canister SKUs at or below reorder threshold",
-        icon: AlertTriangle,
-        alert: true,
-      });
-    }
-    if (cylinderStats.outOfEmptyCount > 0) {
-      cards.push({
-        title: "No Empties",
-        value: `${cylinderStats.outOfEmptyCount}`,
-        desc: "SKUs with no empties for exchange",
-        icon: AlertTriangle,
-        alert: true,
-      });
-    }
-    if (cylinderStats.lowEmptyCount > 0) {
-      cards.push({
-        title: "Low Empty",
-        value: `${cylinderStats.lowEmptyCount}`,
-        desc: "Empty pool at or below threshold",
-        icon: AlertTriangle,
-        alert: true,
-      });
-    }
-    return cards;
-  }, [cylinderStats]);
 
   const totalProfit = useMemo(() => {
     let profit = 0;
@@ -1185,33 +1111,6 @@ const Reports = () => {
               );
             })}
           </div>
-
-          {cylinderStatCards.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {cylinderStatCards.map((stat) => {
-                const Icon = stat.icon;
-                return (
-                  <Card
-                    key={stat.title}
-                    className={stat.alert ? "border-amber-300 dark:border-amber-800" : undefined}
-                  >
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        {stat.title}
-                      </CardTitle>
-                      <Icon className={cn("h-4 w-4", stat.alert ? "text-amber-600" : "text-muted-foreground")} />
-                    </CardHeader>
-                    <CardContent>
-                      <div className={cn("text-2xl font-bold", stat.alert && "text-amber-700 dark:text-amber-400")}>
-                        {stat.value}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">{stat.desc}</p>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
 
           {canCompare ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

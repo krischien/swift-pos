@@ -8,85 +8,164 @@ datasource db {
 }
 
 model User {
-  id       String   @id @default(cuid())
+  id       String @id @default(cuid())
   name     String
-  email    String   @unique
-  password String   @default("$2b$10$5VN/mywPiku92kNyt4y23O9l400pcfNf5Clc.ntSv.0n89NQyaZQC")
-  role     String   // "admin" | "cashier"
+  email    String @unique
+  password String @default("$2b$10$5VN/mywPiku92kNyt4y23O9l400pcfNf5Clc.ntSv.0n89NQyaZQC")
+  role     String // "admin" | "cashier"
 
-  sales    Sale[]
+  sales                 Sale[]
+  sukiCustomersAssigned Customer[]       @relation("CustomerSukiAssignedBy")
+  cylinderReturns       CylinderReturn[]
 }
 
 model Category {
-  id       String    @id @default(cuid())
-  name     String
+  id   String @id @default(cuid())
+  name String
 
   products Product[]
 }
 
 model Product {
-  id                 String         @id @default(cuid())
-  name               String
-  categoryId         String
-  itemCode           String?        @unique
-  sku                String?
-  hasVariants        Boolean        @default(false)
-  basePrice          Float?
-  price              Float?
-  stock              Int?
-  lowStockThreshold  Int            @default(0)
-  marginPercentage   Float?
-  status             String         @default("active") // "active" | "inactive"
-  image              String?
-  barcode            String?
-  qrCode             String?
-  unitOfMeasure      String?        @default("PCS")
+  id                String  @id @default(cuid())
+  name              String
+  categoryId        String
+  itemCode          String? @unique
+  sku               String?
+  hasVariants       Boolean @default(false)
+  basePrice         Float?
+  price             Float?
+  stock             Int?
+  lowStockThreshold Int     @default(0)
+  marginPercentage  Float?
+  status            String  @default("active") // "active" | "inactive"
+  image             String?
+  barcode           String?
+  qrCode            String?
+  unitOfMeasure     String? @default("PCS")
+  tracksCylinder    Boolean @default(false)
+  cylinderSize      String?
+  depositAmount     Float   @default(0)
+  emptyStock        Int     @default(0)
 
-  category           Category       @relation(fields: [categoryId], references: [id])
-  variants           Variant[]
-  saleItems          SaleItem[]
+  category      Category       @relation(fields: [categoryId], references: [id])
+  variants      Variant[]
+  saleItems     SaleItem[]
+  cylinderLoans CylinderLoan[]
 }
 
 model Variant {
-  id        String   @id @default(cuid())
+  id        String @id @default(cuid())
   productId String
   name      String
   price     Float
   stock     Int
 
-  product   Product  @relation(fields: [productId], references: [id])
+  product   Product    @relation(fields: [productId], references: [id])
   saleItems SaleItem[]
 }
 
 model Sale {
-  id             String         @id @default(cuid())
-  ticketNumber   String?        @unique
+  id             String   @id @default(cuid())
+  ticketNumber   String?  @unique
   cashierId      String
   cashierName    String
   total          Float
-  paymentMethod  String         @default("cash") // e.g. "cash"
+  depositAmount  Float    @default(0)
+  amountDue      Float    @default(0)
+  customerId     String?
+  paymentMethod  String   @default("cash") // e.g. "cash"
   amountReceived Float
   change         Float
-  createdAt      DateTime       @default(now())
+  createdAt      DateTime @default(now())
+  status         String   @default("completed")
 
-  cashier        User?          @relation(fields: [cashierId], references: [id])
-  items          SaleItem[]
+  cashier       User?          @relation(fields: [cashierId], references: [id])
+  items         SaleItem[]
+  customer      Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  cylinderLoans CylinderLoan[]
 }
 
 model SaleItem {
-  id          String   @id @default(cuid())
-  saleId      String
-  productId   String
-  variantId   String?
-  productName String
-  variantName String?
-  quantity    Int
-  price       Float
-  subtotal    Float
+  id                   String  @id @default(cuid())
+  saleId               String
+  productId            String
+  variantId            String?
+  productName          String
+  variantName          String?
+  quantity             Int
+  price                Float
+  subtotal             Float
+  broughtEmptyQuantity Int     @default(0)
 
-  sale        Sale     @relation(fields: [saleId], references: [id])
-  product     Product  @relation(fields: [productId], references: [id])
-  variant     Variant? @relation(fields: [variantId], references: [id])
+  sale    Sale     @relation(fields: [saleId], references: [id])
+  product Product  @relation(fields: [productId], references: [id])
+  variant Variant? @relation(fields: [variantId], references: [id])
 }
 
+model Customer {
+  id               String    @id @default(cuid())
+  storeId          String    @default("solo")
+  name             String
+  normalizedName   String
+  phone            String?
+  normalizedPhone  String?
+  nickname         String?
+  address          String?
+  qrToken          String    @unique
+  isSuki           Boolean   @default(false)
+  sukiAssignedAt   DateTime?
+  sukiAssignedById String?
+  sukiNote         String?
+  archived         Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
+  sukiAssignedBy User?          @relation("CustomerSukiAssignedBy", fields: [sukiAssignedById], references: [id], onDelete: SetNull)
+  sales          Sale[]
+  cylinderLoans  CylinderLoan[]
+
+  @@index([storeId, normalizedName])
+  @@index([storeId, normalizedPhone])
+}
+
+model CylinderLoan {
+  id               String    @id @default(cuid())
+  storeId          String    @default("solo")
+  saleId           String
+  saleItemId       String?
+  productId        String
+  customerId       String?
+  quantity         Int
+  returnedQuantity Int       @default(0)
+  customerName     String?
+  customerPhone    String?
+  depositAmount    Float     @default(0)
+  depositRefunded  Boolean   @default(false)
+  status           String    @default("out")
+  outAt            DateTime  @default(now())
+  returnedAt       DateTime?
+
+  sale     Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product  Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customer Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  returns  CylinderReturn[]
+
+  @@index([storeId, status])
+  @@index([customerId])
+}
+
+model CylinderReturn {
+  id           String   @id @default(cuid())
+  loanId       String
+  storeId      String   @default("solo")
+  quantity     Int
+  refundAmount Float    @default(0)
+  actorId      String?
+  actorName    String?
+  note         String?
+  returnedAt   DateTime @default(now())
+
+  loan  CylinderLoan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  actor User?        @relation(fields: [actorId], references: [id], onDelete: SetNull)
+}

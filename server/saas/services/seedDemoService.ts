@@ -1,7 +1,9 @@
 /**
  * SaaS demo seed service - callable from API.
- * Creates/resets Demo Organization with 2 retail stores + 1 F&B store, owner, cashiers, products/menu, and ~11 days of sales.
+ * Creates/resets Demo Organization with 3 retail stores (2 general + 1 LPG/canister) + 1 F&B store,
+ * owner, cashiers (one primary store each), products/menu, and ~11 days of sales.
  */
+import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { saasPrisma } from "../db.js";
 import { mockCategories, mockProducts } from "../../../src/lib/mockData.js";
@@ -47,6 +49,10 @@ function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function normalizeCustomerName(value: string) {
+  return value.trim().toLocaleLowerCase().replace(/\s+/g, " ");
+}
+
 export interface SeedDemoResult {
   orgId: string;
   orgName: string;
@@ -64,6 +70,9 @@ export async function runSeedDemo(): Promise<SeedDemoResult> {
   if (existingDemo) {
     const storeIds = existingDemo.stores.map((s) => s.id);
     const userIds = existingDemo.users.map((u) => u.id);
+    await saasPrisma.cylinderReturn.deleteMany({ where: { storeId: { in: storeIds } } }).catch(() => undefined);
+    await saasPrisma.cylinderLoan.deleteMany({ where: { storeId: { in: storeIds } } }).catch(() => undefined);
+    await saasPrisma.customer.deleteMany({ where: { storeId: { in: storeIds } } }).catch(() => undefined);
     await saasPrisma.saleItem.deleteMany({ where: { sale: { storeId: { in: storeIds } } } });
     await saasPrisma.sale.deleteMany({ where: { storeId: { in: storeIds } } });
     await saasPrisma.menuItem.deleteMany({ where: { storeId: { in: storeIds } } });
@@ -85,7 +94,7 @@ export async function runSeedDemo(): Promise<SeedDemoResult> {
   const org = await saasPrisma.organization.create({
     data: {
       name: "Demo Organization",
-      plan: "tindahan",
+      plan: "negosyo",
       trialEndsAt,
       phone: "+63 912 345 6789",
       email: "demo@example.com",
@@ -96,7 +105,7 @@ export async function runSeedDemo(): Promise<SeedDemoResult> {
   await saasPrisma.organizationSubscription.create({
     data: {
       organizationId: org.id,
-      tier: "tindahan",
+      tier: "negosyo",
       status: "trialing",
       trialStart: new Date(),
       trialEnd: trialEndsAt,
@@ -116,6 +125,16 @@ export async function runSeedDemo(): Promise<SeedDemoResult> {
       name: "Demo Café & Grill (F&B)",
       address: "321 Food Court Lane",
       businessMode: "fnb",
+    },
+  });
+  const store4 = await saasPrisma.store.create({
+    data: {
+      organizationId: org.id,
+      name: "Demo LPG Canister Shop",
+      address: "555 Gas Station Road",
+      businessMode: "retail",
+      enableCylinderTracking: true,
+      collectCylinderDeposits: true,
     },
   });
 
@@ -156,23 +175,32 @@ export async function runSeedDemo(): Promise<SeedDemoResult> {
       role: "cashier",
     },
   });
+  const cashier4 = await saasPrisma.user.create({
+    data: {
+      organizationId: org.id,
+      name: "Liza LPG",
+      email: "lpg@demo.com",
+      password: hashedPassword,
+      role: "cashier",
+    },
+  });
 
   await saasPrisma.userStore.createMany({
     data: [
       { userId: owner.id, storeId: store1.id },
       { userId: owner.id, storeId: store2.id },
       { userId: owner.id, storeId: store3.id },
+      { userId: owner.id, storeId: store4.id },
       { userId: cashier1.id, storeId: store1.id },
-      { userId: cashier1.id, storeId: store3.id },
       { userId: cashier2.id, storeId: store2.id },
-      { userId: cashier2.id, storeId: store3.id },
       { userId: cashier3.id, storeId: store3.id },
+      { userId: cashier4.id, storeId: store4.id },
     ],
   });
 
   const retailStores = [store1, store2];
   const retailCashiers = [cashier1, cashier2];
-  const fnbCashiers = [cashier1, cashier2, cashier3];
+  const fnbCashiers = [cashier3];
   const storeProducts = new Map<string, { productId: string; variantId?: string; productName: string; variantName?: string; price: number }[]>();
 
   for (const store of retailStores) {
@@ -230,6 +258,77 @@ export async function runSeedDemo(): Promise<SeedDemoResult> {
       }
     }
     storeProducts.set(store.id, productsForSale);
+  }
+
+  // --- LPG / canister retail (4th store) ---
+  const lpgCat = await saasPrisma.category.create({
+    data: { storeId: store4.id, name: "LPG" },
+  });
+  const lpgAccCat = await saasPrisma.category.create({
+    data: { storeId: store4.id, name: "Accessories" },
+  });
+  await saasPrisma.product.createMany({
+    data: [
+      {
+        storeId: store4.id,
+        categoryId: lpgCat.id,
+        name: "11kg LPG Refill",
+        itemCode: "LPG-11KG",
+        hasVariants: false,
+        price: 950,
+        stock: 24,
+        lowStockThreshold: 5,
+        marginPercentage: 20,
+        status: "active",
+        tracksCylinder: true,
+        cylinderSize: "11kg",
+        depositAmount: 1500,
+        emptyStock: 10,
+      },
+      {
+        storeId: store4.id,
+        categoryId: lpgCat.id,
+        name: "2.7kg Butane",
+        itemCode: "LPG-27KG",
+        hasVariants: false,
+        price: 280,
+        stock: 40,
+        lowStockThreshold: 8,
+        marginPercentage: 22,
+        status: "active",
+        tracksCylinder: true,
+        cylinderSize: "2.7kg",
+        depositAmount: 400,
+        emptyStock: 15,
+      },
+      {
+        storeId: store4.id,
+        categoryId: lpgAccCat.id,
+        name: "Regulator",
+        itemCode: "LPG-REG",
+        hasVariants: false,
+        price: 350,
+        stock: 12,
+        lowStockThreshold: 3,
+        marginPercentage: 30,
+        status: "active",
+      },
+    ],
+  });
+  for (const customer of [
+    { name: "Aling Rosa", phone: "+63 917 111 2222", address: "Brgy. San Jose" },
+    { name: "Mang Tomas", phone: "+63 918 333 4444", address: "Purok 3" },
+  ]) {
+    await saasPrisma.customer.create({
+      data: {
+        storeId: store4.id,
+        name: customer.name.trim(),
+        normalizedName: normalizeCustomerName(customer.name),
+        phone: customer.phone,
+        address: customer.address,
+        qrToken: randomBytes(24).toString("base64url"),
+      },
+    });
   }
 
   // --- F&B catalog (Demo Café & Grill) ---
@@ -473,7 +572,7 @@ export async function runSeedDemo(): Promise<SeedDemoResult> {
     }
   }
 
-  const allStoreIds = [store1.id, store2.id, store3.id];
+  const allStoreIds = [store1.id, store2.id, store3.id, store4.id];
   const totalSales = await saasPrisma.sale.count({
     where: { storeId: { in: allStoreIds } },
   });
@@ -506,10 +605,11 @@ export async function runSeedDemo(): Promise<SeedDemoResult> {
     storeCount: allStoreIds.length,
     salesCount: totalSales,
     logins: [
-      { email: "owner@demo.com", role: "owner (all 3 stores)" },
-      { email: "maria@demo.com", role: "cashier (Main + F&B)" },
-      { email: "juan@demo.com", role: "cashier (Second + F&B)" },
+      { email: "owner@demo.com", role: "owner (all 4 stores)" },
+      { email: "maria@demo.com", role: "cashier (Main Store)" },
+      { email: "juan@demo.com", role: "cashier (Second Store)" },
       { email: "pedro@demo.com", role: "cashier (F&B only)" },
+      { email: "lpg@demo.com", role: "cashier (LPG / canister only)" },
     ],
   };
 }

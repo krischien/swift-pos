@@ -11,6 +11,9 @@ export interface StoreInfo {
   name: string;
   address: string | null;
   receiptLogoUrl: string | null;
+  businessMode?: "retail" | "fnb";
+  enableCylinderTracking: boolean;
+  collectCylinderDeposits: boolean;
 }
 
 export async function getStore(storeId?: string): Promise<StoreInfo> {
@@ -32,7 +35,12 @@ export async function getStore(storeId?: string): Promise<StoreInfo> {
 }
 
 export async function updateStore(
-  payload: { name?: string; address?: string },
+  payload: {
+    name?: string;
+    address?: string;
+    enableCylinderTracking?: boolean;
+    collectCylinderDeposits?: boolean;
+  },
   storeId?: string
 ): Promise<StoreInfo> {
   const token = getAuthToken();

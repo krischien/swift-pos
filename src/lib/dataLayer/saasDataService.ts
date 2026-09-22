@@ -227,6 +227,49 @@ export const createSaasDataService = (): DataService => {
         storeId: sid ?? storeId(),
       }) as Promise<any>,
 
+    getCustomers: (params, sid) => {
+      const url = new URL("/api/customers", getSaasApiBase() || window.location.origin);
+      if (params?.search) url.searchParams.set("search", params.search);
+      if (params?.page) url.searchParams.set("page", String(params.page));
+      if (params?.pageSize) url.searchParams.set("pageSize", String(params.pageSize));
+      if (params?.archived) url.searchParams.set("archived", "true");
+      return saasRequest(url.toString(), { storeId: sid ?? storeId() }) as Promise<any>;
+    },
+    getRecentCustomers: (limit, sid) =>
+      saasRequest(`/api/customers/recent?limit=${limit ?? 12}`, {
+        storeId: sid ?? storeId(),
+      }) as Promise<any>,
+    getCustomerByQr: (token, sid) =>
+      saasRequest(`/api/customers/qr/${encodeURIComponent(token)}`, {
+        storeId: sid ?? storeId(),
+      }) as Promise<any>,
+    getCustomer: (id, sid) =>
+      saasRequest(`/api/customers/${id}`, { storeId: sid ?? storeId() }) as Promise<any>,
+    createCustomer: (payload, sid) =>
+      saasRequest("/api/customers", {
+        method: "POST",
+        body: JSON.stringify(payload),
+        storeId: sid ?? storeId(),
+      }) as Promise<any>,
+    updateCustomer: (id, payload, sid) =>
+      saasRequest(`/api/customers/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+        storeId: sid ?? storeId(),
+      }) as Promise<any>,
+    archiveCustomer: (id, archived, sid) =>
+      saasRequest(`/api/customers/${id}/archive`, {
+        method: "POST",
+        body: JSON.stringify({ archived: archived ?? true }),
+        storeId: sid ?? storeId(),
+      }) as Promise<any>,
+    setCustomerSuki: (id, payload, sid) =>
+      saasRequest(`/api/customers/${id}/suki`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+        storeId: sid ?? storeId(),
+      }) as Promise<any>,
+
     getUsers: () =>
       saasRequest("/api/org/users") as Promise<any>,
     createUser: (payload, sid) =>

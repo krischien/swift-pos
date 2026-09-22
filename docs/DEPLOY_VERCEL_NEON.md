@@ -13,6 +13,8 @@ Use this runbook when creating a **new production** Vercel project. Keep your ex
 
 Demo seed/reset endpoints return **404** on Vercel (`VERCEL=1`).
 
+**Before you push:** [PRE_PUSH_VERCEL.md](./PRE_PUSH_VERCEL.md) (`npm run verify:vercel`).
+
 ---
 
 ## 1. Neon (production database)

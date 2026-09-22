@@ -49,6 +49,7 @@
     "saas:seed-demo:prod": "npx prisma generate --schema=prisma-saas/schema.pg.prisma && tsx server/saas/seed-demo.ts",
     "saas:seed-vercel-demo:prod": "npx prisma generate --schema=prisma-saas/schema.pg.prisma && tsx server/saas/seed-vercel-demo.ts",
     "saas:seed-second-org": "tsx --env-file=.env server/saas/scripts/seedSecondOrg.ts",
+    "saas:seed-negosyo-sample": "tsx --env-file=.env server/saas/scripts/seedNegosyoSampleOrg.ts",
     "saas:backfill-subscriptions": "tsx --env-file=.env server/saas/scripts/backfillSubscriptions.ts",
     "prisma:generate": "prisma generate",
     "prisma:seed": "tsx server/seed.ts",
@@ -68,7 +69,8 @@
     "cap:sync:saas": "npm run build:mobile:saas",
     "cap:open": "npx cap open android",
     "build:api": "npx prisma generate --schema=prisma-saas/schema.pg.prisma && node scripts/vercel-build-api.mjs",
-    "vercel:build": "npm run build:saas && node scripts/prisma-generate-vercel.mjs && npm run build:api"
+    "vercel:build": "npm run build:saas && node scripts/prisma-generate-vercel.mjs && npm run build:api",
+    "verify:vercel": "node scripts/verify-vercel-ready.mjs"
   },
   "dependencies": {
     "@capacitor-community/sqlite": "^7.0.2",

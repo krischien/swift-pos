@@ -11,21 +11,41 @@ import { Capacitor } from "@capacitor/core";
 
 const DEFAULT_SAAS_PORT = 4001;
 
+function isLocalDevApiUrl(url: string): boolean {
+  if (!url) return true;
+  return (
+    url.includes("localhost") ||
+    url.includes("127.0.0.1") ||
+    url.includes("::1") ||
+    url.includes("10.0.2.2")
+  );
+}
+
+/** Dev server loads the app over http(s) — relative /api uses Vite's proxy (browser or Capacitor -l). */
+function canUseSameOriginDevProxy(): boolean {
+  if (!import.meta.env.DEV || typeof window === "undefined") return false;
+  if (!Capacitor.isNativePlatform()) return true;
+  const { protocol } = window.location;
+  return protocol === "http:" || protocol === "https:";
+}
+
+/** Android emulator / device: localhost in the WebView is the phone, not your PC. */
+function remapLocalhostForNativePlatform(base: string): string {
+  if (!base || !Capacitor.isNativePlatform()) return base;
+  if (Capacitor.getPlatform() !== "android") return base;
+  return base
+    .replace(/\/\/localhost\b/i, "//10.0.2.2")
+    .replace(/\/\/127\.0\.0\.1\b/, "//10.0.2.2")
+    .replace(/\/\/\[::1\]/, "//10.0.2.2");
+}
+
 function getBaseFromEnv(): string {
   const envUrl = (import.meta.env.VITE_SAAS_API_URL || "").trim();
   if (import.meta.env.DEV && import.meta.env.VITE_APP_MODE === "saas") {
-    // Web browser (not Capacitor): use same-origin `/api/...` so Vite's proxy (see vite.config)
-    // forwards to localhost:4001. Avoids "Failed to fetch" when the browser talks to :4001 directly
-    // (firewall/CORS) and matches "one dev server" UX — you still must run `npm run dev:saas`.
-    if (!Capacitor.isNativePlatform()) {
-      const isLocalApi =
-        !envUrl ||
-        envUrl.includes("localhost") ||
-        envUrl.includes("127.0.0.1") ||
-        envUrl.includes("::1");
-      if (isLocalApi) {
-        return "";
-      }
+    // Same-origin `/api/...` → Vite proxy → 127.0.0.1:4001 (see vite.config). Avoids calling
+    // http://localhost:4001 from Capacitor WebView (wrong host) and browser CORS/firewall issues.
+    if (canUseSameOriginDevProxy() && isLocalDevApiUrl(envUrl)) {
+      return "";
     }
     // Web dev: when VITE_SAAS_API_URL points at HTTPS production (Vercel / domain), use the
     // local Node API so you don't hit prod DB by mistake. Explicit http:// hosts (LAN IP, VPS)
@@ -61,5 +81,5 @@ export function getSaasApiBase(): string {
         ? `http://10.0.2.2:${DEFAULT_SAAS_PORT}`
         : `http://localhost:${DEFAULT_SAAS_PORT}`;
   }
-  return base.trim();
+  return remapLocalhostForNativePlatform(base.trim());
 }

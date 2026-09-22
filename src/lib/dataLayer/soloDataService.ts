@@ -30,6 +30,18 @@ export const soloDataService: DataService = {
 
   getSales: (params) => api.getSales(params) as Promise<any>,
   createSale: (payload) => api.createSale(payload) as Promise<any>,
+  getCustomers: (params) => api.getCustomers(params) as Promise<any>,
+  getRecentCustomers: (limit) => api.getRecentCustomers(limit) as Promise<any>,
+  getCustomerByQr: (token) => api.getCustomerByQr(token) as Promise<any>,
+  getCustomer: (id) => api.getCustomer(id) as Promise<any>,
+  createCustomer: (payload) => api.createCustomer(payload) as Promise<any>,
+  updateCustomer: (id, payload) => api.updateCustomer(id, payload) as Promise<any>,
+  archiveCustomer: (id, archived) => api.archiveCustomer(id, archived) as Promise<any>,
+  setCustomerSuki: (id, payload) =>
+    api.setCustomerSuki(id, { ...payload, actorId: payload.actorId ?? "" }) as Promise<any>,
+  getCylinderLoans: (params) => api.getCylinderLoans(params) as Promise<any>,
+  getCylinderStats: () => api.getCylinderStats() as Promise<any>,
+  returnCylinderLoan: (id, options) => api.returnCylinderLoan(id, options) as Promise<any>,
 
   getIngredients: fnbUnavailable,
   createIngredient: fnbUnavailable,

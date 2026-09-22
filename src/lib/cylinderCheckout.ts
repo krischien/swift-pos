@@ -8,10 +8,14 @@ export function computeCylinderDeposit(
   if (!options.enabled || !options.collectDeposits) return 0;
   let deposit = 0;
   for (const item of cart) {
-    if (!item.productId || item.broughtEmpty) continue;
+    if (!item.productId) continue;
     const product = products.find((p) => p.id === item.productId);
     if (!product?.tracksCylinder) continue;
-    deposit += (product.depositAmount ?? 0) * item.quantity;
+    const exchanged = Math.min(
+      item.quantity,
+      Math.max(0, Math.floor(item.broughtEmptyQuantity ?? (item.broughtEmpty ? item.quantity : 0))),
+    );
+    deposit += (product.depositAmount ?? 0) * Math.max(0, item.quantity - exchanged);
   }
   return deposit;
 }
@@ -23,8 +27,13 @@ export function cartHasOutstandingCylinder(
 ): boolean {
   if (!enabled) return false;
   return cart.some((item) => {
-    if (!item.productId || item.broughtEmpty) return false;
+    if (!item.productId) return false;
     const product = products.find((p) => p.id === item.productId);
-    return Boolean(product?.tracksCylinder);
+    if (!product?.tracksCylinder) return false;
+    const exchanged = Math.min(
+      item.quantity,
+      Math.max(0, Math.floor(item.broughtEmptyQuantity ?? (item.broughtEmpty ? item.quantity : 0))),
+    );
+    return item.quantity - exchanged > 0;
   });
 }
